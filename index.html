@@ -23,176 +23,147 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;overflow:hidden;}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
-
-/* HEADER */
 .hdr{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .hdr-title{font-size:17px;font-weight:700;}
 .hdr-sub{font-size:11px;opacity:.65;margin-top:1px;}
 .sync-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;}
 .sync-pill .dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;}
 .sync-pill .dot.off{background:#e74c3c;}
-
-/* SCREENS */
 #screens{flex:1;overflow-y:auto;overflow-x:hidden;}
 .screen{display:none;padding:20px 16px 30px;min-height:100%;}
 .screen.active{display:block;}
-
-/* BOTTOM NAV */
 #bnav{background:var(--brand);display:flex;justify-content:space-around;padding:8px 0 16px;flex-shrink:0;}
-#bnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:rgba(255,255,255,.55);font-size:10px;font-weight:600;cursor:pointer;padding:4px 12px;border-radius:10px;transition:all .15s;text-decoration:none;}
+#bnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:rgba(255,255,255,.55);font-size:9px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:10px;transition:all .15s;text-decoration:none;}
 #bnav a.active{color:#fff;background:rgba(255,255,255,.15);}
-#bnav a .ico{font-size:24px;line-height:1;}
-
-/* BIG MENU BUTTONS */
+#bnav a .ico{font-size:22px;line-height:1;}
+.nav-ico-wrap{position:relative;display:inline-block;}
+.nb{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
 .menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;}
-.menu-btn{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:22px 14px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:10px;text-decoration:none;}
-.menu-btn:active{transform:scale(.96);box-shadow:none;}
-.menu-btn .mico{font-size:48px;line-height:1;}
-.menu-btn .mlabel{font-size:15px;font-weight:700;color:var(--text);line-height:1.2;}
-.menu-btn .msub{font-size:11px;color:var(--text3);margin-top:2px;}
+.menu-btn{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:20px 14px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:8px;}
+.menu-btn:active{transform:scale(.96);}
+.menu-btn .mico{font-size:44px;line-height:1;}
+.menu-btn .mlabel{font-size:14px;font-weight:700;color:var(--text);line-height:1.2;}
+.menu-btn .msub{font-size:11px;color:var(--text3);}
 .menu-btn.green{border-color:#9ad1b0;background:var(--green-light);}
 .menu-btn.blue{border-color:#90bfdf;background:var(--brand-light);}
 .menu-btn.orange{border-color:#f5c97a;background:var(--orange-light);}
 .menu-btn.purple{border-color:#d7b8eb;background:var(--purple-light);}
-.menu-btn.red{border-color:#f5c6c2;background:var(--red-light);}
-
-/* CARDS */
+.menu-btn.teal{border-color:#76cec4;background:#e0f5f3;}
 .card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
 .card-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
-
-/* INPUTS */
 .fg{margin-bottom:16px;}
 .fg label{display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:7px;}
-.fg input,.fg select,.fg textarea{width:100%;padding:14px 16px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:16px;color:var(--text);background:var(--surface);outline:none;font-family:inherit;transition:border-color .15s;}
+.fg input,.fg select,.fg textarea{width:100%;padding:13px 15px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:15px;color:var(--text);background:var(--surface);outline:none;font-family:inherit;transition:border-color .15s;}
 .fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--brand);}
 .fg textarea{resize:none;min-height:100px;line-height:1.5;}
-.fg select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239aacba' stroke-width='2' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
-
-/* BIG BUTTONS */
-.btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:16px;border-radius:var(--r);font-size:16px;font-weight:700;border:none;cursor:pointer;width:100%;transition:all .15s;}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:var(--r);font-size:15px;font-weight:700;border:none;cursor:pointer;width:100%;transition:all .15s;}
 .btn:active{transform:scale(.97);}
 .btn+.btn{margin-top:10px;}
 .btn-primary{background:var(--brand);color:#fff;}
 .btn-green{background:var(--green);color:#fff;}
-.btn-red{background:var(--red);color:#fff;}
 .btn-ghost{background:var(--surface);color:var(--brand);border:2px solid var(--border);}
-.btn-yellow{background:var(--yellow);color:#fff;}
 .btn-orange{background:var(--orange);color:#fff;}
 .btn:disabled{opacity:.4;pointer-events:none;}
-.btn-ico{font-size:22px;}
-
-/* CHECKLIST */
-.ck-item{display:flex;align-items:center;gap:14px;padding:15px 14px;border:2px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;background:var(--surface);transition:all .15s;}
+.ck-item{display:flex;align-items:flex-start;gap:14px;padding:14px;border:2px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;background:var(--surface);transition:all .15s;}
 .ck-item.done{background:var(--green-light);border-color:#9ad1b0;}
-.ck-box{width:30px;height:30px;border-radius:8px;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;transition:all .15s;}
+.ck-box{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;transition:all .15s;margin-top:1px;}
 .ck-item.done .ck-box{background:var(--green);border-color:var(--green);color:#fff;}
-.ck-label{font-size:15px;font-weight:600;flex:1;line-height:1.3;}
+.ck-label{font-size:14px;font-weight:600;flex:1;line-height:1.4;}
 .ck-item.done .ck-label{text-decoration:line-through;color:var(--text3);}
-
-/* PHOTOS */
-.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
-.photo-thumb{aspect-ratio:1;border-radius:var(--r-sm);background:var(--bg);border:2.5px dashed var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .15s;}
-.photo-thumb:active{border-color:var(--brand);}
-.photo-thumb img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;}
-.photo-thumb .add-ico{font-size:36px;color:var(--text3);}
-.photo-del{position:absolute;top:4px;right:4px;background:rgba(192,57,43,.85);color:#fff;border-radius:50%;width:26px;height:26px;font-size:16px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
-.photo-add-btn{background:var(--brand-light);border:2px dashed var(--brand);border-radius:var(--r-sm);padding:20px;text-align:center;cursor:pointer;color:var(--brand);font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:10px;}
-.photo-add-btn .ico{font-size:36px;}
-
-/* GEO */
-.geo-bar{display:flex;align-items:center;gap:10px;padding:13px 15px;border-radius:var(--r-sm);font-size:13px;font-weight:700;margin-bottom:14px;}
+.ck-meta{font-size:11px;color:var(--text3);margin-top:3px;}
+.photo-add-btn{background:var(--brand-light);border:2px dashed var(--brand);border-radius:var(--r-sm);padding:18px;text-align:center;cursor:pointer;color:var(--brand);font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:10px;}
+.photo-add-btn .ico{font-size:34px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.photo-thumb{aspect-ratio:1;border-radius:var(--r-sm);background:var(--bg);overflow:hidden;position:relative;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-del{position:absolute;top:4px;right:4px;background:rgba(192,57,43,.85);color:#fff;border-radius:50%;width:24px;height:24px;font-size:14px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
+.geo-bar{display:flex;align-items:center;gap:10px;padding:12px 15px;border-radius:var(--r-sm);font-size:13px;font-weight:700;margin-bottom:14px;}
 .geo-ok{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;}
 .geo-wait{background:var(--yellow-light);color:var(--yellow);border:1.5px solid #f5d88e;}
 .geo-err{background:var(--red-light);color:var(--red);border:1.5px solid #f5c6c2;}
-
-/* BADGES */
-.badge{display:inline-block;padding:4px 11px;border-radius:20px;font-size:12px;font-weight:700;}
-.b-aberto{background:#fdecea;color:#c0392b;}
-.b-andamento{background:#fff8e6;color:#d68910;}
-.b-fechado{background:#eaf5ee;color:#1e7e4a;}
-.b-info{background:#e8f0f8;color:#1a4f7a;}
-.b-urgente{background:#fdecea;color:#c0392b;}
-
-/* CHAMADO ITEM */
-.chamado-item{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:16px;margin-bottom:12px;cursor:pointer;transition:all .15s;box-shadow:0 2px 6px rgba(0,0,0,.05);}
-.chamado-item:active{border-color:var(--brand);}
-.chamado-item .ch-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
-.chamado-item .ch-title{font-size:15px;font-weight:700;flex:1;margin-right:8px;}
-.chamado-item .ch-desc{font-size:13px;color:var(--text2);line-height:1.4;margin-bottom:8px;}
-.chamado-item .ch-meta{font-size:11px;color:var(--text3);}
-.urgente-strip{background:var(--red);color:#fff;border-radius:var(--r) var(--r) 0 0;padding:6px 14px;font-size:12px;font-weight:700;margin:-16px -16px 12px;display:flex;align-items:center;gap:6px;}
-
-/* INFORMATIVO ITEM */
-.info-item{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:16px;margin-bottom:12px;cursor:pointer;transition:all .15s;}
-.info-item.nao-lido{border-color:var(--brand);background:var(--brand-light);}
-.info-item .info-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
-.info-item .info-title{font-size:15px;font-weight:700;}
-.info-item .info-desc{font-size:13px;color:var(--text2);line-height:1.4;}
-.info-item .info-meta{font-size:11px;color:var(--text3);margin-top:6px;}
-.notif-dot{width:12px;height:12px;border-radius:50%;background:var(--red);flex-shrink:0;}
-
-/* ASSINATURA */
-#canvas-assinatura{width:100%;height:180px;border:2.5px solid var(--border);border-radius:var(--r-sm);background:#fafafa;touch-action:none;display:block;}
-.sign-instrucao{text-align:center;font-size:13px;color:var(--text3);margin-top:6px;}
-
-/* LOGIN */
-.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--brand);}
-.login-logo{font-size:64px;margin-bottom:10px;}
-.login-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:4px;}
-.login-sub{font-size:13px;color:rgba(255,255,255,.65);margin-bottom:32px;}
-.login-card{background:#fff;border-radius:var(--r);padding:24px;width:100%;max-width:360px;box-shadow:var(--shadow);}
-.login-card .fg label{font-size:14px;}
-.login-card .fg input{font-size:16px;padding:14px;}
-.login-step{text-align:center;font-size:12px;color:rgba(255,255,255,.55);margin-top:16px;}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;padding:0;}
-.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 18px 36px;box-shadow:var(--shadow);}
-.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
-.modal-hdr h3{font-size:17px;font-weight:700;color:var(--brand);}
-.modal-cls{background:none;border:none;font-size:28px;color:var(--text3);cursor:pointer;line-height:1;padding:0;}
-.hidden{display:none!important;}
-
-/* OUVIDORIA */
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.b-aberto{background:var(--red-light);color:var(--red);}
+.b-andamento{background:var(--yellow-light);color:var(--yellow);}
+.b-fechado{background:var(--green-light);color:var(--green);}
+.item-card{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:15px;margin-bottom:12px;cursor:pointer;transition:all .15s;}
+.item-card:active{border-color:var(--brand);}
+.item-card .it-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.item-card .it-title{font-weight:700;font-size:14px;flex:1;margin-right:8px;line-height:1.3;}
+.item-card .it-sub{font-size:12px;color:var(--text2);line-height:1.4;margin-bottom:6px;}
+.item-card .it-meta{font-size:11px;color:var(--text3);}
+.urgente-strip{background:var(--red);color:#fff;border-radius:var(--r) var(--r) 0 0;padding:5px 14px;font-size:11px;font-weight:700;margin:-15px -15px 12px;display:flex;align-items:center;gap:5px;}
+.anon-toggle{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);margin-bottom:14px;cursor:pointer;}
+.toggle-box{width:50px;height:28px;border-radius:14px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0;}
+.toggle-box.on{background:var(--green);}
+.toggle-knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.toggle-box.on .toggle-knob{left:25px;}
 .ouv-tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
 .ouv-tipo{border:2px solid var(--border);border-radius:var(--r-sm);padding:14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);}
 .ouv-tipo.sel{border-color:var(--brand);background:var(--brand-light);}
-.ouv-tipo .ot-ico{font-size:32px;margin-bottom:6px;}
-.ouv-tipo .ot-lbl{font-size:13px;font-weight:700;color:var(--text);}
-.anon-toggle{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);margin-bottom:14px;cursor:pointer;}
-.anon-toggle .toggle-box{width:50px;height:28px;border-radius:14px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0;}
-.anon-toggle .toggle-box.on{background:var(--green);}
-.anon-toggle .toggle-knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
-.anon-toggle .toggle-box.on .toggle-knob{left:25px;}
-.anon-toggle .toggle-label{font-size:13px;font-weight:700;color:var(--yellow);flex:1;}
-
-/* ALERT */
-.alert{padding:13px 16px;border-radius:var(--r-sm);font-size:13px;margin-bottom:14px;line-height:1.5;}
-.alert-info{background:var(--brand-light);color:var(--brand);border:1.5px solid #b0cde6;}
-.alert-ok{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;}
-.alert-warn{background:var(--yellow-light);color:var(--yellow);border:1.5px solid #f5d88e;}
-
-/* SUCCESS SCREEN */
-.success-screen{text-align:center;padding:40px 20px;}
-.success-ico{font-size:80px;margin-bottom:16px;}
-.success-title{font-size:22px;font-weight:700;margin-bottom:8px;}
-.success-sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:28px;}
-
-/* NOTIF BADGE */
-.nb{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;}
-.nav-ico-wrap{position:relative;display:inline-block;}
-
-/* TIME INPUTS */
-.time-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
-
-/* OFFLINE BAR */
-#offline-bar{background:var(--red);color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:700;display:none;flex-shrink:0;}
-
-/* PROGRESS */
+.ouv-tipo .ot-ico{font-size:30px;margin-bottom:5px;}
+.ouv-tipo .ot-lbl{font-size:13px;font-weight:700;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;}
+.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 18px 36px;}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal-hdr h3{font-size:17px;font-weight:700;color:var(--brand);}
+.modal-cls{background:none;border:none;font-size:28px;color:var(--text3);cursor:pointer;line-height:1;}
+.hidden{display:none!important;}
+#canvas-sign{width:100%;height:180px;border:2.5px solid var(--border);border-radius:var(--r-sm);background:#fafafa;touch-action:none;display:block;}
+.sign-hint{text-align:center;font-size:12px;color:var(--text3);margin-top:5px;}
 .step-progress{display:flex;gap:6px;margin-bottom:20px;}
 .step-dot{flex:1;height:5px;border-radius:5px;background:var(--border);}
 .step-dot.done{background:var(--green);}
 .step-dot.current{background:var(--brand);}
+.success-screen{text-align:center;padding:50px 20px;}
+.success-ico{font-size:80px;margin-bottom:16px;}
+.success-title{font-size:22px;font-weight:700;margin-bottom:8px;}
+.success-sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:28px;}
+#offline-bar{background:var(--red);color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:700;display:none;flex-shrink:0;}
+.alert{padding:13px 16px;border-radius:var(--r-sm);font-size:13px;margin-bottom:14px;line-height:1.5;}
+.alert-info{background:var(--brand-light);color:var(--brand);border:1.5px solid #b0cde6;}
+.alert-warn{background:var(--yellow-light);color:var(--yellow);border:1.5px solid #f5d88e;}
+.alert-ok{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+
+/* CRONOGRAMA */
+.crono-local{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);margin-bottom:14px;overflow:hidden;}
+.crono-local-hdr{background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.crono-local-hdr h3{font-size:15px;font-weight:700;}
+.crono-local-hdr .prog{font-size:12px;opacity:.8;}
+.crono-local-body{padding:14px;}
+.crono-item{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:2px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;cursor:pointer;background:var(--surface);transition:all .15s;}
+.crono-item.feito{background:var(--green-light);border-color:#9ad1b0;}
+.crono-item .ci-box{width:30px;height:30px;border-radius:8px;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;transition:all .15s;margin-top:1px;}
+.crono-item.feito .ci-box{background:var(--green);border-color:var(--green);color:#fff;}
+.crono-item .ci-info{flex:1;}
+.crono-item .ci-label{font-size:14px;font-weight:700;line-height:1.3;}
+.crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
+.crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
+.crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
+.crono-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;}
+.dia-semana{text-align:center;padding:6px 2px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;}
+.dia-semana.hoje{background:var(--brand);border-color:var(--brand);}
+.dia-semana.hoje .ds-num{color:#fff;}
+.dia-semana.hoje .ds-dia{color:rgba(255,255,255,.7);}
+.dia-semana.tem-feito{background:var(--green-light);border-color:#9ad1b0;}
+.ds-num{font-size:15px;font-weight:700;color:var(--text);}
+.ds-dia{font-size:9px;color:var(--text3);margin-top:1px;}
+
+/* PDF VIEWER */
+.pdf-item{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:16px;margin-bottom:12px;cursor:pointer;transition:all .15s;}
+.pdf-item.nao-lido{border-color:var(--brand);background:var(--brand-light);}
+.pdf-item .pdf-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pdf-item .pdf-title{font-size:15px;font-weight:700;}
+.pdf-item .pdf-sub{font-size:13px;color:var(--text2);}
+.pdf-item .pdf-meta{font-size:11px;color:var(--text3);margin-top:5px;}
+.pdf-frame{width:100%;height:400px;border:none;border-radius:var(--r-sm);background:var(--bg);}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--brand);}
+.login-logo{font-size:60px;margin-bottom:10px;}
+.login-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:4px;}
+.login-sub{font-size:13px;color:rgba(255,255,255,.65);margin-bottom:28px;}
+.login-card{background:#fff;border-radius:var(--r);padding:22px;width:100%;max-width:360px;box-shadow:var(--shadow);}
 </style>
 </head>
 <body>
@@ -202,243 +173,190 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="login-logo">🏢</div>
   <div class="login-title">MJL Serviços</div>
   <div class="login-sub">Acesso do Colaborador</div>
+
   <div class="login-card" id="login-form-card">
     <div class="fg">
-      <label>📋 Seu CPF (somente números)</label>
-      <input type="tel" id="login-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric" style="letter-spacing:2px;font-size:18px;font-weight:700;">
+      <label>📋 CPF (só números)</label>
+      <input type="tel" id="login-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric" style="font-size:18px;font-weight:700;letter-spacing:2px;">
     </div>
     <div class="fg">
-      <label>🔒 Sua senha (4 números)</label>
+      <label>🔒 Senha (4 números)</label>
       <input type="password" id="login-senha" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:24px;text-align:center;letter-spacing:8px;">
     </div>
-    <button class="btn btn-primary" onclick="fazerLogin()">
-      <span class="btn-ico">▶</span> Entrar
-    </button>
-    <p style="text-align:center;font-size:12px;color:var(--text3);margin-top:12px;">Primeiro acesso? Use CPF e crie sua senha abaixo.</p>
-    <button class="btn btn-ghost" style="margin-top:8px;font-size:14px;" onclick="mostrarPrimeiroAcesso()">
-      🔑 Primeiro Acesso
-    </button>
-    <hr style="border:none;border-top:1px solid #dde2ea;margin:16px 0;">
-    <button class="btn btn-ghost" style="font-size:13px;color:#5a6a7a;" onclick="mostrarConfigURL()">
-      ⚙️ Configurar URL do sistema
-    </button>
+    <button class="btn btn-primary" onclick="fazerLogin()">▶ Entrar</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+    <button class="btn btn-ghost" style="font-size:14px;" onclick="mostrarPrimeiroAcesso()">🔑 Primeiro Acesso</button>
+    <button class="btn btn-ghost" style="font-size:13px;color:var(--text2);margin-top:8px;" onclick="mostrarConfigURL()">⚙️ Configurar URL do sistema</button>
   </div>
 
-  <!-- CONFIG URL (login) -->
-  <div class="login-card hidden" id="config-url-card" style="margin-top:0;">
-    <h3 style="font-size:15px;font-weight:700;color:#1a4f7a;margin-bottom:6px;">⚙️ Configurar sistema</h3>
-    <p style="font-size:12px;color:#5a6a7a;margin-bottom:14px;line-height:1.5;">Cole aqui a URL que a MJL enviou para você. Faça isso uma vez só.</p>
-    <div class="fg">
-      <label>URL do sistema</label>
-      <input type="url" id="cfg-url-login" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;word-break:break-all;">
-    </div>
-    <button class="btn btn-primary" onclick="salvarURLLogin()" style="background:#1a4f7a;color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;border-radius:14px;font-size:15px;font-weight:700;border:none;cursor:pointer;width:100%;">
-      ✅ Salvar e conectar
-    </button>
-    <div id="cfg-url-login-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
-    <button class="btn btn-ghost" style="margin-top:10px;font-size:13px;" onclick="voltarLoginPrincipal()">← Voltar</button>
-  </div>
-  <div class="login-card hidden" id="primeiro-acesso-card" style="margin-top:0;">
-    <h3 style="font-size:16px;font-weight:700;color:var(--brand);margin-bottom:16px;">Criar minha senha</h3>
-    <div class="fg">
-      <label>📋 Seu CPF</label>
-      <input type="tel" id="pa-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric">
-    </div>
-    <div class="fg">
-      <label>🔒 Criar senha (4 números)</label>
-      <input type="password" id="pa-senha1" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:22px;text-align:center;letter-spacing:6px;">
-    </div>
-    <div class="fg">
-      <label>🔒 Repetir senha</label>
-      <input type="password" id="pa-senha2" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:22px;text-align:center;letter-spacing:6px;">
-    </div>
+  <div class="login-card hidden" id="primeiro-acesso-card">
+    <h3 style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:14px;">Criar minha senha</h3>
+    <div class="fg"><label>📋 CPF</label><input type="tel" id="pa-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric"></div>
+    <div class="fg"><label>🔒 Criar senha (4 números)</label><input type="password" id="pa-s1" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:20px;text-align:center;letter-spacing:6px;"></div>
+    <div class="fg"><label>🔒 Repetir senha</label><input type="password" id="pa-s2" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:20px;text-align:center;letter-spacing:6px;"></div>
     <button class="btn btn-green" onclick="criarSenha()">✅ Criar Minha Senha</button>
-    <button class="btn btn-ghost" style="margin-top:10px;font-size:14px;" onclick="voltarLogin()">← Voltar</button>
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:13px;" onclick="voltarLogin()">← Voltar</button>
   </div>
-  <p class="login-step" id="login-step-msg"></p>
+
+  <div class="login-card hidden" id="config-url-card">
+    <h3 style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:6px;">⚙️ Configurar sistema</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5;">Cole aqui a URL que a MJL enviou. Faça isso uma vez só.</p>
+    <div class="fg"><label>URL do sistema</label><input type="url" id="cfg-url-login" placeholder="https://script.google.com/macros/s/..." style="font-size:12px;"></div>
+    <button class="btn btn-primary" onclick="salvarURLLogin()">✅ Salvar e conectar</button>
+    <div id="cfg-url-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:20px;"></div>
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:13px;" onclick="voltarLogin()">← Voltar</button>
+  </div>
 </div>
 
-<!-- APP (mostrado após login) -->
+<!-- APP -->
 <div id="app-wrap" class="hidden" style="display:flex;flex-direction:column;height:100vh;">
-
-<div id="offline-bar">📵 Sem internet — seus dados estão salvos</div>
-
+<div id="offline-bar">📵 Sem internet — dados salvos no celular</div>
 <div class="hdr">
-  <div>
-    <div class="hdr-title" id="hdr-nome">Olá! 👋</div>
-    <div class="hdr-sub" id="hdr-cargo">Colaborador</div>
-  </div>
-  <div class="sync-pill">
-    <div class="dot" id="sync-dot"></div>
-    <span id="sync-txt">Online</span>
-  </div>
+  <div><div class="hdr-title" id="hdr-nome">Olá! 👋</div><div class="hdr-sub" id="hdr-cargo"></div></div>
+  <div class="sync-pill"><div class="dot" id="sync-dot"></div><span id="sync-txt">Online</span></div>
 </div>
 
 <div id="screens">
 
   <!-- HOME -->
   <div class="screen active" id="scr-home">
-    <p style="font-size:13px;color:var(--text2);margin-bottom:16px;" id="home-data"></p>
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;" id="home-data"></p>
     <div class="menu-grid">
-      <div class="menu-btn green" onclick="ir('scr-registro')">
-        <div class="mico">📝</div>
-        <div class="mlabel">Meu Dia</div>
-        <div class="msub">Registrar presença</div>
-      </div>
-      <div class="menu-btn blue" onclick="ir('scr-chamados')">
-        <div class="mico">🔧</div>
-        <div class="mlabel">Chamados</div>
-        <div class="msub" id="home-ch-sub">Manutenção</div>
-      </div>
-      <div class="menu-btn orange" onclick="ir('scr-informativos')">
-        <div class="mico">📢</div>
-        <div class="mlabel">Avisos</div>
-        <div class="msub" id="home-info-sub">Comunicados</div>
-      </div>
-      <div class="menu-btn purple" onclick="ir('scr-ouvidoria')">
-        <div class="mico">💬</div>
-        <div class="mlabel">Falar com MJL</div>
-        <div class="msub">Ouvidoria</div>
-      </div>
+      <div class="menu-btn green" onclick="ir('scr-registro')"><div class="mico">📝</div><div class="mlabel">Meu Dia</div><div class="msub">Registrar presença</div></div>
+      <div class="menu-btn teal" onclick="ir('scr-cronograma')"><div class="mico">📅</div><div class="mlabel">Cronograma</div><div class="msub" id="home-crono-sub">Tarefas do dia</div></div>
+      <div class="menu-btn blue" onclick="ir('scr-chamados')"><div class="mico">🔧</div><div class="mlabel">Chamados</div><div class="msub" id="home-ch-sub">Manutenção</div></div>
+      <div class="menu-btn orange" onclick="ir('scr-informativos')"><div class="mico">📢</div><div class="mlabel">Avisos</div><div class="msub" id="home-info-sub">Documentos</div></div>
+      <div class="menu-btn purple" onclick="ir('scr-ouvidoria')"><div class="mico">💬</div><div class="mlabel">Falar com MJL</div><div class="msub">Ouvidoria</div></div>
+      <div class="menu-btn" style="border-color:#c8d8e8;background:#f0f4f8;" onclick="ir('scr-config')"><div class="mico">⚙️</div><div class="mlabel">Configurar</div><div class="msub">URL do sistema</div></div>
     </div>
-    <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div class="menu-btn red" onclick="logout()">
-        <div class="mico">🚪</div>
-        <div class="mlabel">Sair</div>
-      </div>
-      <div class="menu-btn" style="border-color:#c8d8e8;background:#f0f4f8;" onclick="ir('scr-config')">
-        <div class="mico">⚙️</div>
-        <div class="mlabel">Configurar</div>
-        <div class="msub">URL do sistema</div>
-      </div>
-    </div>
+    <button class="btn btn-ghost" style="margin-top:14px;font-size:14px;color:var(--text2);" onclick="logout()">🚪 Sair</button>
   </div>
 
-  <!-- REGISTRO DO DIA -->
+  <!-- REGISTRO -->
   <div class="screen" id="scr-registro">
-    <button class="btn btn-ghost" style="margin-bottom:16px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
-
-    <div class="step-progress" id="reg-progress">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="step-progress">
       <div class="step-dot current" id="sp0"></div>
       <div class="step-dot" id="sp1"></div>
       <div class="step-dot" id="sp2"></div>
       <div class="step-dot" id="sp3"></div>
     </div>
-
-    <!-- Etapa 0: GPS -->
     <div id="reg-step-0">
-      <div class="card" style="text-align:center;padding:30px 20px;">
-        <div style="font-size:60px;margin-bottom:12px;">📍</div>
-        <h2 style="font-size:20px;font-weight:700;margin-bottom:8px;">Confirmar localização</h2>
-        <p style="font-size:14px;color:var(--text2);margin-bottom:20px;line-height:1.5;">Precisamos saber onde você está para registrar sua presença.</p>
-        <div class="geo-bar geo-wait" id="geo-status-reg" style="justify-content:center;">
-          ⏳ Buscando sua localização...
-        </div>
-        <button class="btn btn-primary" id="btn-confirmar-geo" onclick="proximaEtapa(1)" disabled>
-          ✅ Confirmar e Continuar
-        </button>
+      <div class="card" style="text-align:center;padding:28px 20px;">
+        <div style="font-size:56px;margin-bottom:10px;">📍</div>
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Confirmar localização</h2>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5;">Precisamos saber onde você está para registrar sua presença.</p>
+        <div class="geo-bar geo-wait" id="geo-status-reg" style="justify-content:center;">⏳ Buscando localização...</div>
+        <button class="btn btn-primary" id="btn-geo-ok" onclick="proximaEtapa(1)" disabled>✅ Confirmar e Continuar</button>
       </div>
     </div>
-
-    <!-- Etapa 1: Horário -->
     <div id="reg-step-1" class="hidden">
       <div class="card">
-        <div style="text-align:center;margin-bottom:16px;"><div style="font-size:48px;">⏰</div></div>
-        <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:16px;">Horários de hoje</h2>
+        <div style="text-align:center;margin-bottom:14px;"><div style="font-size:44px;">⏰</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Horários de hoje</h2></div>
         <div class="time-row">
-          <div class="fg"><label>Entrada</label><input type="time" id="reg-entrada" style="font-size:22px;text-align:center;font-weight:700;"></div>
-          <div class="fg"><label>Saída</label><input type="time" id="reg-saida" style="font-size:22px;text-align:center;font-weight:700;"></div>
+          <div class="fg"><label>Entrada</label><input type="time" id="reg-entrada" style="font-size:20px;text-align:center;font-weight:700;"></div>
+          <div class="fg"><label>Saída</label><input type="time" id="reg-saida" style="font-size:20px;text-align:center;font-weight:700;"></div>
         </div>
         <button class="btn btn-primary" onclick="proximaEtapa(2)">Continuar →</button>
       </div>
     </div>
-
-    <!-- Etapa 2: Tarefas -->
     <div id="reg-step-2" class="hidden">
       <div class="card">
-        <div style="text-align:center;margin-bottom:16px;"><div style="font-size:48px;">✅</div></div>
-        <h2 style="font-size:18px;font-weight:700;text-align:center;margin-bottom:16px;">O que fiz hoje</h2>
-        <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:14px;">Toque nas tarefas que você fez</p>
+        <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">✅</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">O que fiz hoje</h2></div>
+        <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:12px;">Toque nas tarefas que você fez</p>
         <div id="ck-lista">
           <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Limpeza do local</span></div>
           <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Organização das áreas</span></div>
           <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Uso dos equipamentos de proteção</span></div>
-          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Atendimento ao responsável do local</span></div>
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Atendimento ao responsável</span></div>
           <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Sem ocorrências no dia</span></div>
         </div>
-        <div style="display:flex;gap:8px;margin-top:12px;">
-          <input type="text" id="nova-ck" placeholder="Outra tarefa..." style="flex:1;padding:12px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:14px;">
-          <button onclick="addCk()" style="padding:12px 16px;background:var(--brand);color:#fff;border:none;border-radius:var(--r-sm);font-size:20px;cursor:pointer;">+</button>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" id="nova-ck" placeholder="Outra tarefa..." style="flex:1;padding:11px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:14px;">
+          <button onclick="addCk()" style="padding:11px 16px;background:var(--brand);color:#fff;border:none;border-radius:var(--r-sm);font-size:20px;cursor:pointer;">+</button>
         </div>
         <button class="btn btn-primary" style="margin-top:14px;" onclick="proximaEtapa(3)">Continuar →</button>
       </div>
     </div>
-
-    <!-- Etapa 3: Fotos + obs + salvar -->
     <div id="reg-step-3" class="hidden">
       <div class="card" style="margin-bottom:14px;">
-        <div style="text-align:center;margin-bottom:14px;"><div style="font-size:48px;">📷</div><h2 style="font-size:18px;font-weight:700;margin-top:8px;">Foto do dia</h2></div>
-        <div class="photo-add-btn" onclick="document.getElementById('foto-reg').click()">
-          <div class="ico">📸</div>
-          <span>Tirar foto ou escolher da galeria</span>
-        </div>
-        <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'fotos-reg-grid','fotos-reg-data')">
-        <div class="photo-grid" id="fotos-reg-grid"></div>
+        <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">📷</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Foto do dia</h2></div>
+        <div class="photo-add-btn" onclick="document.getElementById('foto-reg').click()"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-reg','fotos-reg')">
+        <div class="photo-grid" id="grid-reg" style="margin-bottom:12px;"></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
-        <div class="card-title">💬 Alguma observação?</div>
-        <textarea id="reg-obs" placeholder="Escreva aqui se aconteceu algo importante, problema, dúvida... (não é obrigatório)" style="font-size:15px;"></textarea>
+        <div class="card-title">💬 Observações</div>
+        <textarea id="reg-obs" placeholder="Se aconteceu algo importante, escreva aqui... (não é obrigatório)" style="font-size:14px;"></textarea>
       </div>
-      <button class="btn btn-green" id="btn-salvar-reg" onclick="salvarRegistro()">
-        <span class="btn-ico">💾</span> Salvar meu dia
-      </button>
+      <button class="btn btn-green" onclick="salvarRegistro()">💾 Salvar meu dia</button>
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="proximaEtapa(2)">← Voltar</button>
     </div>
   </div>
 
+  <!-- CRONOGRAMA -->
+  <div class="screen" id="scr-cronograma">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="alert alert-info" style="margin-bottom:14px;">
+      📅 Toque em cada tarefa para marcar como feita. Fica registrado com data e hora.
+    </div>
+    <!-- Mini calendário semanal -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">Semana atual</div>
+      <div class="crono-semana" id="crono-semana"></div>
+    </div>
+    <div id="crono-locais"></div>
+  </div>
+
   <!-- CHAMADOS -->
   <div class="screen" id="scr-chamados">
-    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
-    <button class="btn btn-orange" style="margin-bottom:16px;" onclick="abrirModalChamado()">
-      <span class="btn-ico">➕</span> Abrir novo chamado
-    </button>
-    <div id="lista-chamados-col">
-      <p style="color:var(--text3);text-align:center;padding:20px;">Nenhum chamado ainda.</p>
-    </div>
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <button class="btn btn-orange" style="margin-bottom:14px;" onclick="abrirModalChamado()">➕ Abrir novo chamado</button>
+    <div id="lista-chamados"></div>
   </div>
 
   <!-- INFORMATIVOS -->
   <div class="screen" id="scr-informativos">
-    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
-    <div id="lista-informativos-col">
-      <p style="color:var(--text3);text-align:center;padding:20px;">Nenhum informativo ainda.</p>
-    </div>
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="lista-informativos"></div>
   </div>
 
   <!-- OUVIDORIA -->
   <div class="screen" id="scr-ouvidoria">
-    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
-    <div class="alert alert-info" style="margin-bottom:14px;">
-      💬 Aqui você pode fazer denúncias, pedidos, sugestões ou elogios. Pode ser anônimo se preferir.
-    </div>
-    <div class="ouv-tipo-grid" id="ouv-tipo-grid">
-      <div class="ouv-tipo" onclick="selOuvTipo(this,'denuncia')"><div class="ot-ico">🚨</div><div class="ot-lbl">Denúncia</div></div>
-      <div class="ouv-tipo" onclick="selOuvTipo(this,'pedido')"><div class="ot-ico">📋</div><div class="ot-lbl">Pedido</div></div>
-      <div class="ouv-tipo" onclick="selOuvTipo(this,'sugestao')"><div class="ot-ico">💡</div><div class="ot-lbl">Sugestão</div></div>
-      <div class="ouv-tipo" onclick="selOuvTipo(this,'elogio')"><div class="ot-ico">⭐</div><div class="ot-lbl">Elogio</div></div>
-    </div>
-    <div class="anon-toggle" onclick="toggleAnon()">
-      <div class="toggle-box" id="anon-box"><div class="toggle-knob"></div></div>
-      <div class="toggle-label" id="anon-label">Enviar como anônimo</div>
-    </div>
-    <div class="card">
-      <div class="fg">
-        <label>📝 Conte o que aconteceu</label>
-        <textarea id="ouv-msg" placeholder="Descreva aqui sua mensagem..." style="font-size:15px;min-height:120px;"></textarea>
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="alert alert-info">💬 Denúncias, pedidos, sugestões ou elogios. Pode ser anônimo.</div>
+    <div style="margin-top:14px;">
+      <div class="ouv-tipo-grid">
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'denuncia')"><div class="ot-ico">🚨</div><div class="ot-lbl">Denúncia</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'pedido')"><div class="ot-ico">📋</div><div class="ot-lbl">Pedido</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'sugestao')"><div class="ot-ico">💡</div><div class="ot-lbl">Sugestão</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'elogio')"><div class="ot-ico">⭐</div><div class="ot-lbl">Elogio</div></div>
       </div>
-      <button class="btn btn-purple" style="background:var(--purple);color:#fff;" onclick="enviarOuvidoria()">
-        <span class="btn-ico">📤</span> Enviar mensagem
-      </button>
+      <div class="anon-toggle" onclick="toggleAnon()">
+        <div class="toggle-box" id="anon-box"><div class="toggle-knob"></div></div>
+        <span id="anon-label" style="font-size:13px;font-weight:700;color:var(--yellow);flex:1;">Enviar como anônimo</span>
+      </div>
+      <div class="card">
+        <div class="fg"><label>📝 Sua mensagem</label><textarea id="ouv-msg" placeholder="Escreva aqui..." style="font-size:15px;min-height:120px;"></textarea></div>
+        <button class="btn" style="background:var(--purple);color:#fff;" onclick="enviarOuvidoria()">📤 Enviar mensagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="screen" id="scr-config">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="card">
+      <div class="card-title">⚙️ URL do sistema</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Cole a URL que a MJL enviou para você. Faça isso uma vez só.</p>
+      <div class="fg"><label>URL</label><input type="url" id="cfg-url-app" placeholder="https://script.google.com/macros/s/..." style="font-size:12px;"></div>
+      <button class="btn btn-green" onclick="salvarURLApp()">✅ Salvar</button>
+      <div id="cfg-app-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">📱 Salvar na tela inicial</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:6px;line-height:1.6;"><strong>Android:</strong> 3 pontinhos ⋮ → Adicionar à tela inicial</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;"><strong>iPhone:</strong> Compartilhar □↑ → Adicionar à Tela de Início</p>
     </div>
   </div>
 
@@ -447,38 +365,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="success-screen">
       <div class="success-ico" id="suc-ico">✅</div>
       <div class="success-title" id="suc-title">Salvo!</div>
-      <div class="success-sub" id="suc-sub">Seus dados foram salvos.</div>
+      <div class="success-sub" id="suc-sub"></div>
       <button class="btn btn-primary" onclick="ir('scr-home')">← Voltar ao início</button>
-    </div>
-  </div>
-
-
-  <!-- CONFIG -->
-  <div class="screen" id="scr-config">
-    <button class="btn btn-ghost" style="margin-bottom:16px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
-    <div class="card">
-      <div class="card-title">⚙️ Configuração do sistema</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.6;">
-        Cole aqui a URL do Google Apps Script que a <strong>MJL</strong> vai te enviar. Faça isso uma vez só.
-      </p>
-      <div class="fg">
-        <label>URL do sistema (copie e cole)</label>
-        <input type="url" id="cfg-url-campo" placeholder="https://script.google.com/macros/s/..." style="font-size:13px;">
-      </div>
-      <button class="btn btn-green" onclick="salvarURLCampo()">✅ Salvar</button>
-      <div id="cfg-status-campo" style="margin-top:12px;font-size:13px;"></div>
-    </div>
-    <div class="card" style="margin-top:14px;">
-      <div class="card-title">📱 Como salvar este app na tela inicial</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:8px;line-height:1.6;"><strong>Android:</strong> Toque nos 3 pontinhos ⋮ do navegador → <em>Adicionar à tela inicial</em></p>
-      <p style="font-size:13px;color:var(--text2);line-height:1.6;"><strong>iPhone:</strong> Toque no ícone de compartilhar □↑ → <em>Adicionar à Tela de Início</em></p>
-    </div>
-    <div class="card" style="margin-top:14px;">
-      <div class="card-title">ℹ️ Informações</div>
-      <p style="font-size:12px;color:var(--text3);line-height:1.7;">
-        Versão: MJL Campo v2<br>
-        URL configurada: <span id="cfg-url-atual" style="word-break:break-all;color:var(--brand);">Não configurada</span>
-      </p>
     </div>
   </div>
 
@@ -486,663 +374,544 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 <div id="bnav">
   <a class="bnav-link active" data-scr="scr-home"><div class="nav-ico-wrap"><span class="ico">🏠</span></div><span>Início</span></a>
-  <a class="bnav-link" data-scr="scr-registro"><div class="nav-ico-wrap"><span class="ico">📝</span></div><span>Meu Dia</span></a>
-  <a class="bnav-link" data-scr="scr-chamados"><div class="nav-ico-wrap"><span class="ico">🔧</span><span class="nb" id="nb-ch" style="display:none">0</span></div><span>Chamados</span></a>
-  <a class="bnav-link" data-scr="scr-informativos"><div class="nav-ico-wrap"><span class="ico">📢</span><span class="nb" id="nb-info" style="display:none">0</span></div><span>Avisos</span></a>
+  <a class="bnav-link" data-scr="scr-cronograma"><div class="nav-ico-wrap"><span class="ico">📅</span><span class="nb hidden" id="nb-crono">0</span></div><span>Cronograma</span></a>
+  <a class="bnav-link" data-scr="scr-chamados"><div class="nav-ico-wrap"><span class="ico">🔧</span><span class="nb hidden" id="nb-ch">0</span></div><span>Chamados</span></a>
+  <a class="bnav-link" data-scr="scr-informativos"><div class="nav-ico-wrap"><span class="ico">📢</span><span class="nb hidden" id="nb-info">0</span></div><span>Avisos</span></a>
   <a class="bnav-link" data-scr="scr-ouvidoria"><div class="nav-ico-wrap"><span class="ico">💬</span></div><span>Ouvidoria</span></a>
 </div>
-
 </div><!-- end app-wrap -->
 
 <!-- MODAL CHAMADO -->
-<div id="modal-chamado" class="modal-overlay hidden">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>🔧 Novo Chamado</h3>
-      <button class="modal-cls" onclick="fecharModal('modal-chamado')">×</button>
-    </div>
-    <div class="fg">
-      <label>O que precisa resolver?</label>
-      <select id="ch-tipo" style="font-size:16px;padding:14px;">
-        <option value="">-- Escolha --</option>
-        <option>Vazamento</option>
-        <option>Elétrica</option>
-        <option>Limpeza urgente</option>
-        <option>Equipamento quebrado</option>
-        <option>Segurança</option>
-        <option>Outro</option>
-      </select>
-    </div>
-    <div class="fg">
-      <label>Descreva o problema</label>
-      <textarea id="ch-desc" placeholder="Explique o que está acontecendo..." style="font-size:15px;"></textarea>
-    </div>
-    <div style="margin-bottom:16px;">
-      <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (OBRIGATÓRIO)</label>
-      <div class="photo-add-btn" onclick="document.getElementById('foto-ch-antes').click()">
-        <div class="ico">📸</div>
-        <span>Tirar foto do problema</span>
-      </div>
-      <input type="file" id="foto-ch-antes" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-ch-antes','data-ch-antes')">
-      <div class="photo-grid" id="grid-ch-antes"></div>
-    </div>
-    <div class="fg">
-      <label>Urgência</label>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div class="ouv-tipo" onclick="selUrgencia(this,'normal')" style="border-color:#9ad1b0;background:var(--green-light)"><div class="ot-ico">🟢</div><div class="ot-lbl">Normal</div></div>
-        <div class="ouv-tipo" onclick="selUrgencia(this,'media')" style=""><div class="ot-ico">🟡</div><div class="ot-lbl">Média</div></div>
-        <div class="ouv-tipo sel" onclick="selUrgencia(this,'urgente')"><div class="ot-ico">🔴</div><div class="ot-lbl">Urgente</div></div>
-      </div>
-    </div>
-    <button class="btn btn-orange" onclick="abrirChamado()"><span class="btn-ico">📤</span> Enviar chamado</button>
+<div id="modal-chamado" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>🔧 Novo Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-chamado')">×</button></div>
+  <div class="fg"><label>O que precisa resolver?</label>
+    <select id="ch-tipo" style="font-size:15px;padding:13px;"><option value="">-- Escolha --</option><option>Vazamento</option><option>Elétrica</option><option>Limpeza urgente</option><option>Equipamento quebrado</option><option>Segurança</option><option>Outro</option></select>
   </div>
-</div>
-
-<!-- MODAL VER CHAMADO -->
-<div id="modal-ver-chamado" class="modal-overlay hidden">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3 id="mvc-title">Chamado</h3>
-      <button class="modal-cls" onclick="fecharModal('modal-ver-chamado')">×</button>
-    </div>
-    <div id="mvc-body"></div>
+  <div class="fg"><label>Descreva o problema</label><textarea id="ch-desc" placeholder="O que está acontecendo?" style="font-size:14px;"></textarea></div>
+  <div style="margin-bottom:14px;">
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (obrigatório)</label>
+    <div class="photo-add-btn" onclick="document.getElementById('foto-ch').click()"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-ch','fotos-ch')">
+    <div class="photo-grid" id="grid-ch"></div>
   </div>
-</div>
+  <div class="fg"><label>Urgência</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div class="ouv-tipo sel" onclick="selUrg(this,'normal')" id="urg-normal"><div class="ot-ico">🟢</div><div class="ot-lbl">Normal</div></div>
+      <div class="ouv-tipo" onclick="selUrg(this,'media')" id="urg-media"><div class="ot-ico">🟡</div><div class="ot-lbl">Média</div></div>
+      <div class="ouv-tipo" onclick="selUrg(this,'urgente')" id="urg-urgente"><div class="ot-ico">🔴</div><div class="ot-lbl">Urgente</div></div>
+    </div>
+  </div>
+  <button class="btn btn-orange" onclick="salvarChamado()">📤 Enviar chamado</button>
+</div></div>
 
 <!-- MODAL FECHAR CHAMADO -->
-<div id="modal-fechar-chamado" class="modal-overlay hidden">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3>✅ Fechar Chamado</h3>
-      <button class="modal-cls" onclick="fecharModal('modal-fechar-chamado')">×</button>
-    </div>
-    <input type="hidden" id="fechar-ch-id">
-    <div class="alert alert-warn">📷 A foto do serviço concluído é <strong>obrigatória</strong> para fechar o chamado.</div>
-    <div class="photo-add-btn" onclick="document.getElementById('foto-ch-depois').click()">
-      <div class="ico">📸</div>
-      <span>Foto do serviço concluído</span>
-    </div>
-    <input type="file" id="foto-ch-depois" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-ch-depois','data-ch-depois')">
-    <div class="photo-grid" id="grid-ch-depois" style="margin-bottom:14px;"></div>
-    <div class="fg">
-      <label>Como foi resolvido?</label>
-      <textarea id="fechar-ch-obs" placeholder="Descreva o que foi feito..." style="font-size:15px;"></textarea>
-    </div>
-    <button class="btn btn-green" onclick="fecharChamado()">✅ Confirmar conclusão</button>
-  </div>
-</div>
+<div id="modal-fechar-ch" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>✅ Resolver Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-fechar-ch')">×</button></div>
+  <input type="hidden" id="fechar-ch-id">
+  <div class="alert alert-warn">📷 Foto do serviço concluído é <strong>obrigatória</strong>.</div>
+  <div class="photo-add-btn" onclick="document.getElementById('foto-depois').click()"><div class="ico">📸</div><span>Foto do serviço concluído</span></div>
+  <input type="file" id="foto-depois" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-depois','fotos-depois')">
+  <div class="photo-grid" id="grid-depois" style="margin-bottom:14px;"></div>
+  <div class="fg"><label>Como foi resolvido?</label><textarea id="fechar-ch-obs" placeholder="Descreva o que foi feito..." style="font-size:14px;"></textarea></div>
+  <button class="btn btn-green" onclick="fecharChamado()">✅ Confirmar conclusão</button>
+</div></div>
 
 <!-- MODAL INFORMATIVO -->
-<div id="modal-info" class="modal-overlay hidden">
-  <div class="modal">
-    <div class="modal-hdr">
-      <h3 id="mi-title">Aviso</h3>
-      <button class="modal-cls" onclick="fecharModal('modal-info')">×</button>
-    </div>
-    <div id="mi-body" style="margin-bottom:16px;"></div>
-    <div id="mi-assinar-area" class="hidden">
-      <div class="alert alert-warn">✍️ Você precisa assinar para confirmar que leu este documento.</div>
-      <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">Assine aqui com o dedo:</label>
-      <canvas id="canvas-assinatura" width="400" height="180"></canvas>
-      <p class="sign-instrucao">Desenhe sua assinatura acima</p>
-      <button class="btn btn-ghost btn-sm" style="margin-top:8px;padding:8px;font-size:13px;" onclick="limparAssinatura()">🗑️ Limpar assinatura</button>
-      <div id="mi-geo-status" class="geo-bar geo-wait" style="margin-top:12px;">📍 Capturando localização...</div>
-      <button class="btn btn-green" style="margin-top:12px;" id="btn-confirmar-leitura" onclick="confirmarLeitura()">
-        ✅ Confirmar que li e concordo
-      </button>
-    </div>
-    <div id="mi-ja-assinado" class="hidden">
-      <div class="alert alert-ok">✅ Você já assinou este documento em <span id="mi-data-assinatura"></span></div>
-    </div>
+<div id="modal-info" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3 id="mi-title">Aviso</h3><button class="modal-cls" onclick="fecharModal('modal-info')">×</button></div>
+  <div id="mi-body" style="margin-bottom:14px;"></div>
+  <!-- PDF link -->
+  <div id="mi-pdf-area" class="hidden" style="margin-bottom:14px;">
+    <a id="mi-pdf-link" href="#" target="_blank" class="btn btn-primary" style="text-decoration:none;">📄 Abrir / Baixar documento</a>
   </div>
-</div>
+  <!-- Assinatura -->
+  <div id="mi-assinar" class="hidden">
+    <div class="alert alert-warn">✍️ Assine para confirmar que leu este documento.</div>
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">Assine com o dedo:</label>
+    <canvas id="canvas-sign" width="400" height="180"></canvas>
+    <p class="sign-hint">Desenhe sua assinatura acima</p>
+    <button class="btn btn-ghost" style="margin-top:8px;padding:10px;font-size:13px;" onclick="limparSign()">🗑️ Limpar</button>
+    <div id="mi-geo-ass" class="geo-bar geo-wait" style="margin-top:12px;">📍 Capturando localização...</div>
+    <button class="btn btn-green" style="margin-top:12px;" onclick="confirmarLeitura()">✅ Confirmar que li e concordo</button>
+  </div>
+  <div id="mi-assinado" class="hidden">
+    <div class="alert alert-ok">✅ Você já assinou em <span id="mi-data-ass"></span></div>
+  </div>
+</div></div>
 
 <script>
-// ===== DADOS =====
-let DB = JSON.parse(localStorage.getItem('mjl_campo_db') || '{"colaboradores":[],"chamados":[],"informativos":[],"ouvidoria":[],"pendentes":[]}');
-let colAtual = null;
-let geoAtual = null;
-let ouvTipoSel = '';
-let anonimo = false;
-let urgenciaSel = 'normal';
-let infoAtualId = null;
-let chamadoFecharId = null;
-let fotosTemp = {};
-let signCanvas, signCtx, signing = false;
+// ===== STATE =====
+let colAtual=null, geoAtual=null, ouvTipo='', anonimo=false, urgSel='normal';
+let infoId=null, signCanvas=null, signCtx=null, signing=false;
+let fotosData={};
+let cronoFeitosLocal={};
 
-function salvarDB(){ localStorage.setItem('mjl_campo_db', JSON.stringify(DB)); }
-function gid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function salvarLocal(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function lerLocal(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
 
 // ===== ONLINE =====
 function checkOnline(){
-  const on = navigator.onLine;
-  document.getElementById('offline-bar').style.display = on ? 'none' : 'block';
-  document.getElementById('sync-dot').classList.toggle('off', !on);
-  document.getElementById('sync-txt').textContent = on ? 'Online' : 'Offline';
+  const on=navigator.onLine;
+  document.getElementById('offline-bar').style.display=on?'none':'block';
+  document.getElementById('sync-dot').classList.toggle('off',!on);
+  document.getElementById('sync-txt').textContent=on?'Online':'Offline';
   if(on) enviarPendentes();
 }
-window.addEventListener('online', checkOnline);
-window.addEventListener('offline', checkOnline);
+window.addEventListener('online',checkOnline);
+window.addEventListener('offline',checkOnline);
 
 // ===== LOGIN =====
-
+function mostrarPrimeiroAcesso(){document.getElementById('login-form-card').classList.add('hidden');document.getElementById('primeiro-acesso-card').classList.remove('hidden');document.getElementById('config-url-card').classList.add('hidden');}
 function mostrarConfigURL(){
-  // mostra URL já salva se existir
-  const url = localStorage.getItem('mjl_script_url') || '';
-  document.getElementById('cfg-url-login').value = url;
+  const url=localStorage.getItem('mjl_script_url')||'';
+  document.getElementById('cfg-url-login').value=url;
   document.getElementById('login-form-card').classList.add('hidden');
   document.getElementById('primeiro-acesso-card').classList.add('hidden');
   document.getElementById('config-url-card').classList.remove('hidden');
-  document.getElementById('cfg-url-login-status').innerHTML = url ? '<span style="color:#1e7e4a;font-weight:700;">✅ URL já configurada</span>' : '';
+  document.getElementById('cfg-url-status').innerHTML=url?'<span style="color:var(--green);font-weight:700">✅ URL já configurada</span>':'';
 }
-
-function voltarLoginPrincipal(){
-  document.getElementById('login-form-card').classList.remove('hidden');
-  document.getElementById('config-url-card').classList.add('hidden');
-  document.getElementById('primeiro-acesso-card').classList.add('hidden');
-}
+function voltarLogin(){document.getElementById('login-form-card').classList.remove('hidden');document.getElementById('primeiro-acesso-card').classList.add('hidden');document.getElementById('config-url-card').classList.add('hidden');}
 
 function salvarURLLogin(){
-  const url = document.getElementById('cfg-url-login').value.trim();
-  if(!url){ alert('Cole a URL antes de salvar.'); return; }
-  if(!url.startsWith('https://')){ alert('A URL deve começar com https://'); return; }
-  localStorage.setItem('mjl_script_url', url);
-  document.getElementById('cfg-url-login-status').innerHTML = '<span style="color:#1e7e4a;font-weight:700;">✅ Salvo! Buscando colaboradores...</span>';
-  // Busca colaboradores imediatamente
-  fetch(url + '?acao=getColaboradores')
-    .then(r => r.json())
-    .then(data => {
-      if(data && data.colaboradores && data.colaboradores.length){
-        localStorage.setItem('mjl_colaboradores', JSON.stringify(data.colaboradores));
-        document.getElementById('cfg-url-login-status').innerHTML = '<span style="color:#1e7e4a;font-weight:700;">✅ ' + data.colaboradores.length + ' colaborador(es) carregado(s)! Agora faça o login.</span>';
-        setTimeout(voltarLoginPrincipal, 2000);
-      } else {
-        document.getElementById('cfg-url-login-status').innerHTML = '<span style="color:#d68910;font-weight:700;">⚠️ URL salva mas nenhum colaborador encontrado. Verifique se sincronizou no App Gestão.</span>';
-      }
-    })
-    .catch(() => {
-      document.getElementById('cfg-url-login-status').innerHTML = '<span style="color:#d68910;font-weight:700;">⚠️ URL salva. Sem internet agora — tente logar quando tiver conexão.</span>';
-    });
-}
-
-function mostrarPrimeiroAcesso(){
-  document.getElementById('login-form-card').classList.add('hidden');
-  document.getElementById('primeiro-acesso-card').classList.remove('hidden');
-}
-function voltarLogin(){
-  document.getElementById('login-form-card').classList.remove('hidden');
-  document.getElementById('primeiro-acesso-card').classList.add('hidden');
+  const url=document.getElementById('cfg-url-login').value.trim();
+  if(!url||!url.startsWith('https://')){alert('URL inválida.');return;}
+  localStorage.setItem('mjl_script_url',url);
+  document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ Salvando... buscando colaboradores</span>';
+  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(data=>{
+    if(data?.colaboradores?.length){
+      salvarLocal('mjl_colaboradores',data.colaboradores);
+      document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ '+data.colaboradores.length+' colaborador(es) carregado(s)! Faça o login.</span>';
+      setTimeout(voltarLogin,2000);
+    } else {
+      document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ URL salva. Sincronize no App Gestão primeiro.</span>';
+    }
+  }).catch(()=>{document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ URL salva. Sem internet no momento.</span>';});
 }
 
 function fazerLogin(){
-  const cpf = document.getElementById('login-cpf').value.trim();
-  const senha = document.getElementById('login-senha').value.trim();
-  if(!cpf || !senha){ alert('Preencha o CPF e a senha.'); return; }
-  // Busca colaborador
-  const col = buscarColaborador(cpf);
-  if(!col){ alert('CPF não encontrado. Verifique com a MJL.'); return; }
-  const senhaLocal = localStorage.getItem('mjl_senha_'+cpf);
-  if(!senhaLocal){ alert('Você ainda não criou sua senha. Use o Primeiro Acesso.'); return; }
-  if(senhaLocal !== senha){ alert('Senha incorreta. Tente novamente.'); return; }
-  entrarNoApp(col);
+  const cpf=document.getElementById('login-cpf').value.trim();
+  const senha=document.getElementById('login-senha').value.trim();
+  if(!cpf||!senha){alert('Preencha CPF e senha.');return;}
+  const col=buscarCol(cpf);
+  if(!col){alert('CPF não encontrado. Verifique com a MJL.');return;}
+  const s=localStorage.getItem('mjl_senha_'+cpf);
+  if(!s){alert('Crie sua senha primeiro — toque em Primeiro Acesso.');return;}
+  if(s!==senha){alert('Senha incorreta.');return;}
+  entrar(col);
 }
 
 function criarSenha(){
-  const cpf = document.getElementById('pa-cpf').value.trim();
-  const s1 = document.getElementById('pa-senha1').value.trim();
-  const s2 = document.getElementById('pa-senha2').value.trim();
-  if(!cpf){ alert('Informe o CPF.'); return; }
-  if(!/^\d{4}$/.test(s1)){ alert('A senha deve ter 4 números.'); return; }
-  if(s1 !== s2){ alert('As senhas não são iguais.'); return; }
-  const col = buscarColaborador(cpf);
-  if(!col){ alert('CPF não cadastrado. Entre em contato com a MJL.'); return; }
-  localStorage.setItem('mjl_senha_'+cpf, s1);
-  localStorage.setItem('mjl_cpf_logado', cpf);
+  const cpf=document.getElementById('pa-cpf').value.trim();
+  const s1=document.getElementById('pa-s1').value.trim();
+  const s2=document.getElementById('pa-s2').value.trim();
+  if(!cpf){alert('Informe o CPF.');return;}
+  if(!/^\d{4}$/.test(s1)){alert('A senha deve ter 4 números.');return;}
+  if(s1!==s2){alert('As senhas não são iguais.');return;}
+  const col=buscarCol(cpf);
+  if(!col){alert('CPF não cadastrado. Entre em contato com a MJL.');return;}
+  localStorage.setItem('mjl_senha_'+cpf,s1);
   alert('✅ Senha criada! Agora faça o login.');
   voltarLogin();
-  document.getElementById('login-cpf').value = cpf;
+  document.getElementById('login-cpf').value=cpf;
 }
 
-function buscarColaborador(cpf){
-  // Demo: colaboradores salvos localmente pela gestão
-  const lista = JSON.parse(localStorage.getItem('mjl_colaboradores') || '[]');
-  return lista.find(c => c.cpf === cpf || c.cpf === cpf.replace(/\D/g,'')) ||
-    // Fallback demo
-    [{cpf:'00000000001',nome:'Ana Beatriz Costa',funcao:'ASG',cliente:'Condomínio Barra Mar',id:'e1'},
-     {cpf:'00000000002',nome:'Carlos Eduardo Lima',funcao:'Porteiro',cliente:'Escritório Centro RJ',id:'e2'},
-     {cpf:'00000000003',nome:'Fernanda Rocha',funcao:'Zelador',cliente:'Shopping West Rio',id:'e3'}]
-    .find(c => c.cpf === cpf.replace(/\D/g,''));
+function buscarCol(cpf){
+  const lista=lerLocal('mjl_colaboradores',[]);
+  return lista.find(c=>String(c.cpf||'').replace(/\D/g,'')===(cpf||'').replace(/\D/g,''));
 }
 
-function entrarNoApp(col){
-  colAtual = col;
-  localStorage.setItem('mjl_cpf_logado', col.cpf);
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-wrap').classList.remove('hidden');
-  document.getElementById('app-wrap').style.display = 'flex';
-  document.getElementById('hdr-nome').textContent = 'Olá, '+col.nome.split(' ')[0]+'! 👋';
-  document.getElementById('hdr-cargo').textContent = col.funcao+' — '+col.cliente;
-  const hoje = new Date();
-  document.getElementById('home-data').textContent = hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('reg-entrada').value = hoje.toTimeString().slice(0,5);
-  checkOnline();
-  obterGeo();
-  renderChamadosCol();
-  renderInformativosCol();
-  atualizarBadges();
+function entrar(col){
+  colAtual=col;
+  localStorage.setItem('mjl_cpf_logado',col.cpf);
+  document.getElementById('login-screen').style.display='none';
+  const app=document.getElementById('app-wrap');
+  app.classList.remove('hidden'); app.style.display='flex';
+  document.getElementById('hdr-nome').textContent='Olá, '+col.nome.split(' ')[0]+'! 👋';
+  // Pode ter múltiplos locais
+  const locais=Array.isArray(col.clientes)?col.clientes.join(', '):(col.cliente||'');
+  document.getElementById('hdr-cargo').textContent=col.funcao+(locais?' — '+locais:'');
+  const hoje=new Date();
+  document.getElementById('home-data').textContent=hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('reg-entrada').value=hoje.toTimeString().slice(0,5);
+  checkOnline(); obterGeo();
+  renderCronograma(); renderChamados(); renderInformativos(); atualizarBadges();
+  // Config URL app
+  const url=localStorage.getItem('mjl_script_url')||'';
+  if(url) document.getElementById('cfg-url-app').value=url;
 }
 
-function logout(){
-  if(!confirm('Deseja sair?')) return;
-  colAtual = null;
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-wrap').style.display = 'none';
-  document.getElementById('login-cpf').value = '';
-  document.getElementById('login-senha').value = '';
-}
+function logout(){if(!confirm('Sair?'))return;colAtual=null;document.getElementById('login-screen').style.display='flex';document.getElementById('app-wrap').style.display='none';document.getElementById('login-cpf').value='';document.getElementById('login-senha').value='';}
 
-// Auto-login
-window.addEventListener('load', ()=>{
-  const cpf = localStorage.getItem('mjl_cpf_logado');
-  if(cpf){
-    const col = buscarColaborador(cpf);
-    if(col){ entrarNoApp(col); return; }
-  }
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-wrap').style.display = 'none';
+window.addEventListener('load',()=>{
+  const cpf=localStorage.getItem('mjl_cpf_logado');
+  if(cpf){const col=buscarCol(cpf);if(col){entrar(col);return;}}
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-wrap').style.display='none';
 });
 
-// ===== NAVEGAÇÃO =====
+// ===== NAV =====
 function ir(scrId){
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(scrId).classList.add('active');
-  document.querySelectorAll('.bnav-link').forEach(a => a.classList.remove('active'));
-  const link = document.querySelector('.bnav-link[data-scr="'+scrId+'"]');
-  if(link) link.classList.add('active');
-  document.getElementById('screens').scrollTop = 0;
-  if(scrId === 'scr-registro'){ etapaReg = 0; mostrarEtapa(0); obterGeo(); }
-  if(scrId === 'scr-chamados') renderChamadosCol();
-  if(scrId === 'scr-informativos') renderInformativosCol();
+  document.querySelectorAll('.bnav-link').forEach(a=>a.classList.remove('active'));
+  const l=document.querySelector('.bnav-link[data-scr="'+scrId+'"]');
+  if(l) l.classList.add('active');
+  document.getElementById('screens').scrollTop=0;
+  if(scrId==='scr-registro'){mostrarEtapa(0);obterGeo();}
+  if(scrId==='scr-cronograma'){renderCronograma();}
+  if(scrId==='scr-chamados'){renderChamados();}
+  if(scrId==='scr-informativos'){renderInformativos();}
 }
-document.querySelectorAll('.bnav-link').forEach(a => a.addEventListener('click',()=>ir(a.dataset.scr)));
+document.querySelectorAll('.bnav-link').forEach(a=>a.addEventListener('click',()=>ir(a.dataset.scr)));
 
 // ===== GEO =====
 function obterGeo(){
-  if(!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(pos => {
-    geoAtual = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) };
-    const el = document.getElementById('geo-status-reg');
-    if(el){ el.className='geo-bar geo-ok'; el.textContent='📍 Localização encontrada! (±'+geoAtual.acc+'m)'; }
-    const btn = document.getElementById('btn-confirmar-geo');
-    if(btn) btn.disabled = false;
-  }, err => {
-    const el = document.getElementById('geo-status-reg');
-    if(el){ el.className='geo-bar geo-err'; el.textContent='❌ Permita o acesso à localização nas configurações'; }
-  }, {enableHighAccuracy:true,timeout:15000});
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+    const el=document.getElementById('geo-status-reg');
+    if(el){el.className='geo-bar geo-ok';el.textContent='📍 Localização encontrada! (±'+geoAtual.acc+'m)';}
+    const btn=document.getElementById('btn-geo-ok');
+    if(btn) btn.disabled=false;
+  },()=>{
+    const el=document.getElementById('geo-status-reg');
+    if(el){el.className='geo-bar geo-err';el.textContent='❌ Permita o acesso à localização';}
+  },{enableHighAccuracy:true,timeout:15000});
 }
 
 // ===== REGISTRO =====
-let etapaReg = 0;
+let etapa=0;
 function mostrarEtapa(n){
   for(let i=0;i<4;i++){
     document.getElementById('reg-step-'+i).classList.toggle('hidden',i!==n);
-    const dot=document.getElementById('sp'+i);
-    dot.classList.remove('done','current');
-    if(i<n) dot.classList.add('done');
-    else if(i===n) dot.classList.add('current');
+    const d=document.getElementById('sp'+i);
+    d.classList.remove('done','current');
+    if(i<n)d.classList.add('done'); else if(i===n)d.classList.add('current');
   }
-  etapaReg=n;
+  etapa=n;
 }
-function proximaEtapa(n){ mostrarEtapa(n); }
-
-function toggleCk(el){
-  el.classList.toggle('done');
-}
-function addCk(){
-  const inp=document.getElementById('nova-ck');
-  const txt=inp.value.trim(); if(!txt) return;
-  const div=document.createElement('div');
-  div.className='ck-item'; div.setAttribute('onclick','toggleCk(this)');
-  div.innerHTML=`<div class="ck-box">✓</div><span class="ck-label">${txt}</span>`;
-  document.getElementById('ck-lista').appendChild(div);
-  inp.value='';
-}
+function proximaEtapa(n){mostrarEtapa(n);}
+function toggleCk(el){el.classList.toggle('done');}
+function addCk(){const i=document.getElementById('nova-ck');const t=i.value.trim();if(!t)return;const d=document.createElement('div');d.className='ck-item';d.setAttribute('onclick','toggleCk(this)');d.innerHTML='<div class="ck-box">✓</div><span class="ck-label">'+t+'</span>';document.getElementById('ck-lista').appendChild(d);i.value='';}
 
 function salvarRegistro(){
-  const tarefas=Array.from(document.querySelectorAll('#ck-lista .ck-item')).map(el=>({
-    texto:el.querySelector('.ck-label').textContent, feita:el.classList.contains('done')
-  }));
-  const reg={
-    id:gid(), colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
-    colaboradorFuncao:colAtual.funcao, cliente:colAtual.cliente,
-    data:new Date().toISOString().slice(0,10), timestamp:Date.now(),
-    entrada:document.getElementById('reg-entrada').value,
-    saida:document.getElementById('reg-saida').value,
-    obs:document.getElementById('reg-obs').value.trim(),
-    tarefas, fotos:fotosTemp['fotos-reg-data']||[],
-    geo:geoAtual, geoMapsLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',
-    enviado:false
-  };
-  const pendentes=JSON.parse(localStorage.getItem('mjl_pendentes')||'[]');
-  pendentes.push(reg); localStorage.setItem('mjl_pendentes',JSON.stringify(pendentes));
-  if(navigator.onLine) enviarRegistro(reg);
-  fotosTemp['fotos-reg-data']=[]; fotosTemp['fotos-reg-grid'] && (document.getElementById('fotos-reg-grid').innerHTML='');
-  mostrarSucesso('✅','Dia registrado!', navigator.onLine ? 'Seus dados foram enviados para a MJL.' : 'Salvos no celular. Serão enviados quando tiver Wi-Fi.');
+  const tarefas=Array.from(document.querySelectorAll('#ck-lista .ck-item')).map(el=>({texto:el.querySelector('.ck-label').textContent,feita:el.classList.contains('done')}));
+  const reg={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,colaboradorFuncao:colAtual.funcao,
+    cliente:colAtual.cliente||'',data:new Date().toISOString().slice(0,10),timestamp:Date.now(),
+    entrada:document.getElementById('reg-entrada').value,saida:document.getElementById('reg-saida').value,
+    obs:document.getElementById('reg-obs').value.trim(),tarefas,fotos:fotosData['fotos-reg']||[],
+    geo:geoAtual,geoMapsLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',enviado:false};
+  adicionarPendente({acao:'salvarRegistro',dados:{...reg,fotos:reg.fotos.length+' foto(s)'}});
+  fotosData['fotos-reg']=[]; document.getElementById('grid-reg').innerHTML='';
+  mostrarSucesso('✅','Dia registrado!',navigator.onLine?'Enviado para a MJL.':'Salvo. Enviará quando tiver Wi-Fi.');
 }
 
-// ===== CHAMADOS =====
-function abrirModalChamado(){
-  fotosTemp['data-ch-antes']=[]; document.getElementById('grid-ch-antes').innerHTML='';
-  document.getElementById('ch-tipo').value=''; document.getElementById('ch-desc').value='';
-  document.getElementById('modal-chamado').classList.remove('hidden');
-}
+// ===== CRONOGRAMA =====
+function renderCronograma(){
+  if(!colAtual) return;
+  const cronos=lerLocal('mjl_cronogramas',[]);
+  // Filtrar cronogramas do colaborador (por cliente/local)
+  const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes:[colAtual.cliente||''];
+  const meus=cronos.filter(c=>meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
 
-function selUrgencia(el,v){
-  document.querySelectorAll('#modal-chamado .ouv-tipo').forEach(x=>x.classList.remove('sel'));
-  el.classList.add('sel'); urgenciaSel=v;
-}
-
-function abrirChamado(){
-  const tipo=document.getElementById('ch-tipo').value;
-  const desc=document.getElementById('ch-desc').value.trim();
-  const fotos=fotosTemp['data-ch-antes']||[];
-  if(!tipo){ alert('Escolha o tipo do chamado.'); return; }
-  if(!fotos.length){ alert('Adicione pelo menos uma foto do problema.'); return; }
-  const ch={
-    id:gid(), colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
-    cliente:colAtual.cliente, tipo, desc, urgencia:urgenciaSel,
-    fotosAntes:fotos, fotosdepois:[], obs:'',
-    status:'aberto', dataAbertura:new Date().toISOString().slice(0,10),
-    timestamp:Date.now(), origem:'colaborador'
-  };
-  DB.chamados.push(ch); salvarDB();
-  adicionarPendente({acao:'novoChamado',dados:ch});
-  fecharModal('modal-chamado');
-  renderChamadosCol(); atualizarBadges();
-  mostrarSucesso('🔧','Chamado enviado!','A MJL foi notificada e vai tratar o seu chamado.');
-}
-
-function renderChamadosCol(){
-  const el=document.getElementById('lista-chamados-col');
-  const lista=DB.chamados.filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente).sort((a,b)=>b.timestamp-a.timestamp);
-  if(!lista.length){ el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum chamado ainda.</p>'; return; }
-  el.innerHTML=lista.map(c=>{
-    const bMap={aberto:'b-aberto',andamento:'b-andamento',fechado:'b-fechado'};
-    const tMap={aberto:'Aberto',andamento:'Em andamento',fechado:'Concluído'};
-    const urg=c.urgencia==='urgente'?`<div class="urgente-strip">🔴 URGENTE</div>`:'';
-    return `<div class="chamado-item" onclick="verChamado('${c.id}')">
-      ${urg}
-      <div class="ch-top"><span class="ch-title">${c.tipo}</span><span class="badge ${bMap[c.status]||''}">${tMap[c.status]||c.status}</span></div>
-      <div class="ch-desc">${c.desc||'Sem descrição'}</div>
-      <div class="ch-meta">📅 ${c.dataAbertura} · 📍 ${c.cliente} · ${c.fotosAntes?.length||0} foto(s)</div>
-      ${c.status==='aberto'||c.status==='andamento'?`<button class="btn btn-green" style="margin-top:10px;padding:12px;" onclick="event.stopPropagation();iniciarFechamentoChamado('${c.id}')">✅ Marcar como resolvido</button>`:''}
-    </div>`;
-  }).join('');
-}
-
-function verChamado(id){
-  const c=DB.chamados.find(x=>x.id===id); if(!c) return;
-  document.getElementById('mvc-title').textContent='🔧 '+c.tipo;
-  const bMap={aberto:'b-aberto',andamento:'b-andamento',fechado:'b-fechado'};
-  const tMap={aberto:'Aberto',andamento:'Em andamento',fechado:'Concluído'};
-  document.getElementById('mvc-body').innerHTML=`
-    <div style="margin-bottom:12px"><span class="badge ${bMap[c.status]}">${tMap[c.status]}</span> ${c.urgencia==='urgente'?'<span class="badge b-urgente">🔴 Urgente</span>':''}</div>
-    <p style="font-size:14px;margin-bottom:12px;line-height:1.5">${c.desc||'Sem descrição'}</p>
-    ${c.fotosAntes?.length?`<div style="margin-bottom:12px"><strong style="font-size:12px;color:var(--text2)">FOTOS DO PROBLEMA</strong><div class="photo-grid" style="margin-top:8px">${c.fotosAntes.map(f=>`<div class="photo-thumb"><img src="${f}"></div>`).join('')}</div></div>`:''}
-    ${c.fotosdepois?.length?`<div><strong style="font-size:12px;color:var(--text2)">FOTOS APÓS RESOLUÇÃO</strong><div class="photo-grid" style="margin-top:8px">${c.fotosdepois.map(f=>`<div class="photo-thumb"><img src="${f}"></div>`).join('')}</div></div>`:''}
-    ${c.obs?`<p style="font-size:13px;color:var(--text2);margin-top:10px">Resolução: ${c.obs}</p>`:''}
-  `;
-  document.getElementById('modal-ver-chamado').classList.remove('hidden');
-}
-
-function iniciarFechamentoChamado(id){
-  chamadoFecharId=id;
-  fotosTemp['data-ch-depois']=[]; document.getElementById('grid-ch-depois').innerHTML='';
-  document.getElementById('fechar-ch-obs').value='';
-  document.getElementById('fechar-ch-id').value=id;
-  document.getElementById('modal-fechar-chamado').classList.remove('hidden');
-}
-
-function fecharChamado(){
-  const fotos=fotosTemp['data-ch-depois']||[];
-  if(!fotos.length){ alert('Adicione a foto do serviço concluído.'); return; }
-  const idx=DB.chamados.findIndex(x=>x.id===chamadoFecharId);
-  if(idx>=0){
-    DB.chamados[idx].status='fechado';
-    DB.chamados[idx].fotosdepois=fotos;
-    DB.chamados[idx].obs=document.getElementById('fechar-ch-obs').value.trim();
-    DB.chamados[idx].dataFechamento=new Date().toISOString().slice(0,10);
-    salvarDB();
-    adicionarPendente({acao:'fecharChamado',dados:DB.chamados[idx]});
+  // Mini calendário semanal
+  const semana=document.getElementById('crono-semana');
+  const hoje=new Date();
+  const diasNomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let semanaHTML='';
+  for(let i=0;i<7;i++){
+    const d=new Date(hoje);
+    d.setDate(hoje.getDate()-hoje.getDay()+i);
+    const ds=d.toISOString().slice(0,10);
+    const isHoje=ds===hoje.toISOString().slice(0,10);
+    const temFeito=lerLocal('mjl_crono_feitos_'+ds+'_'+(colAtual?.id||''),[]).length>0;
+    semanaHTML+=`<div class="dia-semana${isHoje?' hoje':''}${temFeito&&!isHoje?' tem-feito':''}"><div class="ds-num">${d.getDate()}</div><div class="ds-dia">${diasNomes[d.getDay()]}</div></div>`;
   }
-  fecharModal('modal-fechar-chamado');
-  renderChamadosCol(); atualizarBadges();
-  mostrarSucesso('✅','Chamado resolvido!','Ótimo trabalho! A MJL foi informada.');
-}
+  semana.innerHTML=semanaHTML;
 
-// ===== INFORMATIVOS =====
-function renderInformativosCol(){
-  const el=document.getElementById('lista-informativos-col');
-  const infos=JSON.parse(localStorage.getItem('mjl_informativos')||'[]');
-  DB.informativos=infos;
-  if(!infos.length){ el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum aviso no momento.</p>'; return; }
-  el.innerHTML=infos.map(inf=>{
-    const assinado=JSON.parse(localStorage.getItem('mjl_assinatura_'+inf.id+'_'+(colAtual?.id||''))||'null');
-    const lido=!!assinado;
-    return `<div class="info-item ${lido?'':'nao-lido'}" onclick="verInformativo('${inf.id}')">
-      <div class="info-top">
-        <span class="info-title">${inf.titulo}</span>
-        ${lido?'<span style="color:var(--green);font-size:18px">✅</span>':'<div class="notif-dot"></div>'}
+  const el=document.getElementById('crono-locais');
+  if(!meus.length){
+    el.innerHTML='<div class="card" style="text-align:center;padding:28px"><div style="font-size:48px;margin-bottom:10px">📅</div><p style="color:var(--text3);font-size:14px">Nenhum cronograma definido ainda.<br>A MJL irá criar o seu em breve.</p></div>';
+    return;
+  }
+
+  // Agrupar por local
+  const porLocal={};
+  meus.forEach(c=>{if(!porLocal[c.cliente])porLocal[c.cliente]=[];porLocal[c.cliente].push(c);});
+
+  el.innerHTML=Object.entries(porLocal).map(([local,items])=>{
+    const hoje2=new Date().toISOString().slice(0,10);
+    const feitosHoje=lerLocal('mjl_crono_feitos_'+hoje2+'_'+(colAtual?.id||''),[]);
+    const totalHoje=items.length;
+    const feitosCount=items.filter(i=>feitosHoje.includes(i.id)).length;
+    const tarefasHTML=items.map(item=>{
+      const feito=feitosHoje.includes(item.id);
+      const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
+      return `<div class="crono-item${feito?' feito':''}" onclick="marcarCrono('${item.id}','${local}')">
+        <div class="ci-box">✓</div>
+        <div class="ci-info">
+          <div class="ci-label">${item.tarefa}</div>
+          <div class="ci-freq">${item.frequencia||'Diário'}</div>
+          ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="crono-local">
+      <div class="crono-local-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <h3>📍 ${local}</h3>
+        <span class="prog">${feitosCount}/${totalHoje} hoje</span>
       </div>
-      <div class="info-desc">${inf.resumo||''}</div>
-      <div class="info-meta">📅 ${inf.data} · ${inf.tipo} ${lido?'· Assinado':'· ⚠️ Aguardando sua assinatura'}</div>
+      <div class="crono-local-body">${tarefasHTML}</div>
     </div>`;
   }).join('');
+}
+
+function marcarCrono(itemId, local){
+  const hoje=new Date().toISOString().slice(0,10);
+  const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
+  const feitos=lerLocal(key,[]);
+  const idx=feitos.indexOf(itemId);
+  const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if(idx>=0){
+    feitos.splice(idx,1);
+    localStorage.removeItem('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''));
+  } else {
+    feitos.push(itemId);
+    salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
+    // Registra no pendente
+    adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,local,data:hoje,hora:agora,feito:true}});
+  }
+  salvarLocal(key,feitos);
+  renderCronograma();
   atualizarBadges();
 }
 
-function verInformativo(id){
-  const infos=JSON.parse(localStorage.getItem('mjl_informativos')||'[]');
-  const inf=infos.find(x=>x.id===id); if(!inf) return;
-  infoAtualId=id;
+// ===== CHAMADOS =====
+let urgSel2='normal';
+function selUrg(el,v){document.querySelectorAll('#modal-chamado .ouv-tipo').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');urgSel2=v;}
+
+function abrirModalChamado(){
+  fotosData['fotos-ch']=[];document.getElementById('grid-ch').innerHTML='';
+  document.getElementById('ch-tipo').value='';document.getElementById('ch-desc').value='';
+  document.getElementById('modal-chamado').classList.remove('hidden');
+}
+
+function salvarChamado(){
+  const tipo=document.getElementById('ch-tipo').value;
+  if(!tipo){alert('Escolha o tipo.');return;}
+  if(!(fotosData['fotos-ch']||[]).length){alert('Adicione foto do problema.');return;}
+  const ch={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,cliente:colAtual.cliente||'',
+    tipo,desc:document.getElementById('ch-desc').value.trim(),urgencia:urgSel2,
+    fotosAntes:fotosData['fotos-ch']||[],fotosdepois:[],status:'aberto',
+    dataAbertura:new Date().toISOString().slice(0,10),timestamp:Date.now(),origem:'colaborador'};
+  const chs=lerLocal('mjl_chamados_local',[]);chs.push(ch);salvarLocal('mjl_chamados_local',chs);
+  adicionarPendente({acao:'novoChamado',dados:{...ch,fotosAntes:ch.fotosAntes.length+' foto(s)'}});
+  fecharModal('modal-chamado');renderChamados();atualizarBadges();
+  mostrarSucesso('🔧','Chamado enviado!','A MJL foi notificada.');
+}
+
+function renderChamados(){
+  const el=document.getElementById('lista-chamados');
+  const lista=[...lerLocal('mjl_chamados_local',[]),...lerLocal('mjl_chamados_recebidos',[])].filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente).sort((a,b)=>b.timestamp-a.timestamp);
+  if(!lista.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum chamado ainda.</p>';return;}
+  const bMap={aberto:'b-aberto',andamento:'b-andamento',fechado:'b-fechado'};
+  const tMap={aberto:'Aberto',andamento:'Em andamento',fechado:'Concluído'};
+  el.innerHTML=lista.map(c=>`<div class="item-card">
+    ${c.urgencia==='urgente'?'<div class="urgente-strip">🔴 URGENTE</div>':''}
+    <div class="it-top"><span class="it-title">${c.tipo}</span><span class="badge ${bMap[c.status]||''}">${tMap[c.status]||c.status}</span></div>
+    <div class="it-sub">${c.desc||''}</div>
+    <div class="it-meta">📅 ${c.dataAbertura} · 📍 ${c.cliente||'—'}</div>
+    ${c.status!=='fechado'?`<button class="btn btn-green" style="margin-top:10px;padding:11px;" onclick="iniciarFechamento('${c.id}')">✅ Marcar como resolvido</button>`:''}
+  </div>`).join('');
+}
+
+function iniciarFechamento(id){
+  fotosData['fotos-depois']=[];document.getElementById('grid-depois').innerHTML='';
+  document.getElementById('fechar-ch-obs').value='';document.getElementById('fechar-ch-id').value=id;
+  document.getElementById('modal-fechar-ch').classList.remove('hidden');
+}
+
+function fecharChamado(){
+  if(!(fotosData['fotos-depois']||[]).length){alert('Adicione foto do serviço concluído.');return;}
+  const id=document.getElementById('fechar-ch-id').value;
+  const chs=lerLocal('mjl_chamados_local',[]);
+  const idx=chs.findIndex(x=>x.id===id);
+  if(idx>=0){chs[idx].status='fechado';chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});}
+  fecharModal('modal-fechar-ch');renderChamados();atualizarBadges();
+  mostrarSucesso('✅','Chamado resolvido!','Ótimo trabalho!');
+}
+
+// ===== INFORMATIVOS / PDF =====
+function renderInformativos(){
+  const el=document.getElementById('lista-informativos');
+  const infos=lerLocal('mjl_informativos',[]);
+  if(!infos.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum aviso no momento.</p>';return;}
+  el.innerHTML=infos.map(inf=>{
+    const assinado=lerLocal('mjl_assinatura_'+inf.id+'_'+(colAtual?.id||''),null);
+    const lido=!!assinado;
+    const temPdf=!!inf.pdfLink;
+    return `<div class="item-card${lido?'':' '}" style="${!lido?'border-color:var(--brand);background:var(--brand-light)':''}" onclick="verInfo('${inf.id}')">
+      <div class="it-top">
+        <span class="it-title">${inf.titulo}</span>
+        ${lido?'<span style="color:var(--green);font-size:18px">✅</span>':'<div style="width:10px;height:10px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:3px;"></div>'}
+      </div>
+      <div class="it-sub">${inf.resumo||''}</div>
+      <div class="it-meta">📅 ${inf.data} · ${inf.tipo}${temPdf?' · 📄 PDF':''} ${lido?'· Assinado':'· ⚠️ Aguardando assinatura'}</div>
+    </div>`;
+  }).join('');
+}
+
+function verInfo(id){
+  const infos=lerLocal('mjl_informativos',[]);
+  const inf=infos.find(x=>x.id===id);if(!inf)return;
+  infoId=id;
   document.getElementById('mi-title').textContent=inf.titulo;
-  document.getElementById('mi-body').innerHTML=`
-    <div class="badge b-info" style="margin-bottom:10px">${inf.tipo}</div>
-    <p style="font-size:15px;line-height:1.7;color:var(--text)">${inf.conteudo}</p>
-    ${inf.exigeAssinatura?'<div class="alert alert-warn" style="margin-top:12px">✍️ Este documento precisa da sua assinatura.</div>':''}
-  `;
-  const assinado=JSON.parse(localStorage.getItem('mjl_assinatura_'+id+'_'+(colAtual?.id||''))||'null');
-  const jaEl=document.getElementById('mi-ja-assinado');
-  const assEl=document.getElementById('mi-assinar-area');
-  if(assinado){
-    jaEl.classList.remove('hidden'); assEl.classList.add('hidden');
-    document.getElementById('mi-data-assinatura').textContent=assinado.dataHora;
-  } else if(inf.exigeAssinatura){
-    assEl.classList.remove('hidden'); jaEl.classList.add('hidden');
-    initCanvas();
-    obterGeoParaAssinatura();
-  } else {
-    assEl.classList.add('hidden'); jaEl.classList.add('hidden');
-  }
+  document.getElementById('mi-body').innerHTML=`<div class="badge b-info" style="background:var(--brand-light);color:var(--brand);margin-bottom:10px">${inf.tipo}</div><p style="font-size:14px;line-height:1.7;color:var(--text)">${inf.conteudo}</p>`;
+  // PDF
+  const pdfEl=document.getElementById('mi-pdf-area');
+  const pdfLink=document.getElementById('mi-pdf-link');
+  if(inf.pdfLink){pdfEl.classList.remove('hidden');pdfLink.href=inf.pdfLink;}
+  else pdfEl.classList.add('hidden');
+  // Assinatura
+  const assinado=lerLocal('mjl_assinatura_'+id+'_'+(colAtual?.id||''),null);
+  const assEl=document.getElementById('mi-assinar');
+  const assOkEl=document.getElementById('mi-assinado');
+  if(assinado){assEl.classList.add('hidden');assOkEl.classList.remove('hidden');document.getElementById('mi-data-ass').textContent=assinado.dataHora;}
+  else if(inf.exigeAssinatura){assEl.classList.remove('hidden');assOkEl.classList.add('hidden');initSign();obterGeoAss();}
+  else{assEl.classList.add('hidden');assOkEl.classList.add('hidden');}
   document.getElementById('modal-info').classList.remove('hidden');
 }
 
-function obterGeoParaAssinatura(){
-  const el=document.getElementById('mi-geo-status');
-  if(!el) return;
-  if(geoAtual){ el.className='geo-bar geo-ok'; el.textContent='📍 Localização capturada'; return; }
-  navigator.geolocation?.getCurrentPosition(pos=>{
-    geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
-    el.className='geo-bar geo-ok'; el.textContent='📍 Localização capturada';
-  });
+function obterGeoAss(){
+  const el=document.getElementById('mi-geo-ass');
+  if(geoAtual){el.className='geo-bar geo-ok';el.textContent='📍 Localização capturada';return;}
+  navigator.geolocation?.getCurrentPosition(pos=>{geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};el.className='geo-bar geo-ok';el.textContent='📍 Localização capturada';});
 }
 
-function initCanvas(){
-  signCanvas=document.getElementById('canvas-assinatura');
-  signCtx=signCanvas.getContext('2d');
+function initSign(){
+  signCanvas=document.getElementById('canvas-sign');signCtx=signCanvas.getContext('2d');
   signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);
-  signCtx.strokeStyle='#1a4f7a'; signCtx.lineWidth=2.5; signCtx.lineCap='round';
+  signCtx.strokeStyle='#1a4f7a';signCtx.lineWidth=2.5;signCtx.lineCap='round';
   signing=false;
-  signCanvas.addEventListener('touchstart',e=>{e.preventDefault();signing=true;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));},{passive:false});
-  signCanvas.addEventListener('touchmove',e=>{e.preventDefault();if(!signing)return;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.lineTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));signCtx.stroke();},{passive:false});
-  signCanvas.addEventListener('touchend',()=>{signing=false;});
-  signCanvas.addEventListener('mousedown',e=>{signing=true;const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo(e.clientX-r.left,e.clientY-r.top);});
-  signCanvas.addEventListener('mousemove',e=>{if(!signing)return;const r=signCanvas.getBoundingClientRect();signCtx.lineTo(e.clientX-r.left,e.clientY-r.top);signCtx.stroke();});
-  signCanvas.addEventListener('mouseup',()=>{signing=false;});
+  signCanvas.ontouchstart=e=>{e.preventDefault();signing=true;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));};
+  signCanvas.ontouchmove=e=>{e.preventDefault();if(!signing)return;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.lineTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));signCtx.stroke();};
+  signCanvas.ontouchend=()=>{signing=false;};
+  signCanvas.onmousedown=e=>{signing=true;const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo(e.clientX-r.left,e.clientY-r.top);};
+  signCanvas.onmousemove=e=>{if(!signing)return;const r=signCanvas.getBoundingClientRect();signCtx.lineTo(e.clientX-r.left,e.clientY-r.top);signCtx.stroke();};
+  signCanvas.onmouseup=()=>{signing=false;};
 }
-
-function limparAssinatura(){ if(signCtx) signCtx.clearRect(0,0,signCanvas.width,signCanvas.height); }
+function limparSign(){if(signCtx)signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);}
 
 function confirmarLeitura(){
   const pixels=signCtx?.getImageData(0,0,signCanvas.width,signCanvas.height).data;
-  const temAssinatura=pixels&&Array.from(pixels).some((v,i)=>i%4===3&&v>0);
-  if(!temAssinatura){ alert('Por favor, assine no campo acima antes de confirmar.'); return; }
-  const assinatura={
-    colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
-    informativoId:infoAtualId,
-    assinaturaBase64:signCanvas.toDataURL(),
-    geo:geoAtual, geoLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',
-    dataHora:new Date().toLocaleString('pt-BR'),
-    timestamp:Date.now(), validade:'Art. 10 MP 2200-2/2001 — Assinatura eletrônica com localização e timestamp'
-  };
-  localStorage.setItem('mjl_assinatura_'+infoAtualId+'_'+colAtual.id, JSON.stringify(assinatura));
-  adicionarPendente({acao:'registrarAssinatura',dados:assinatura});
-  fecharModal('modal-info');
-  renderInformativosCol(); atualizarBadges();
-  mostrarSucesso('✅','Documento assinado!','Sua assinatura foi registrada com data, hora e localização.');
+  const temAss=pixels&&Array.from(pixels).some((v,i)=>i%4===3&&v>0);
+  if(!temAss){alert('Assine no campo antes de confirmar.');return;}
+  const ass={colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,informativoId:infoId,
+    assinaturaBase64:signCanvas.toDataURL(),geo:geoAtual,
+    geoLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',
+    dataHora:new Date().toLocaleString('pt-BR'),timestamp:Date.now(),
+    validade:'Art. 10 MP 2200-2/2001 — Assinatura eletrônica com localização e timestamp'};
+  salvarLocal('mjl_assinatura_'+infoId+'_'+colAtual.id,ass);
+  adicionarPendente({acao:'registrarAssinatura',dados:ass});
+  fecharModal('modal-info');renderInformativos();atualizarBadges();
+  mostrarSucesso('✅','Documento assinado!','Assinatura registrada com data, hora e localização.');
 }
 
 // ===== OUVIDORIA =====
-function selOuvTipo(el,v){
-  document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel'));
-  el.classList.add('sel'); ouvTipoSel=v;
-}
-function toggleAnon(){
-  anonimo=!anonimo;
-  document.getElementById('anon-box').classList.toggle('on',anonimo);
-  document.getElementById('anon-label').textContent=anonimo?'Enviando como anônimo':'Enviar como anônimo';
-}
+function selOuvTipo(el,v){document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');ouvTipo=v;}
+function toggleAnon(){anonimo=!anonimo;document.getElementById('anon-box').classList.toggle('on',anonimo);document.getElementById('anon-label').textContent=anonimo?'Enviando como anônimo':'Enviar como anônimo';}
 function enviarOuvidoria(){
   const msg=document.getElementById('ouv-msg').value.trim();
-  if(!ouvTipoSel){ alert('Escolha o tipo da mensagem.'); return; }
-  if(!msg){ alert('Escreva sua mensagem.'); return; }
-  const ouv={
-    id:gid(), tipo:ouvTipoSel, mensagem:msg,
-    anonimo, colaboradorId:anonimo?null:colAtual?.id,
-    colaboradorNome:anonimo?'Anônimo':colAtual?.nome,
-    data:new Date().toISOString().slice(0,10), timestamp:Date.now(), lido:false
-  };
+  if(!ouvTipo){alert('Escolha o tipo da mensagem.');return;}
+  if(!msg){alert('Escreva sua mensagem.');return;}
+  const ouv={id:gid(),tipo:ouvTipo,mensagem:msg,anonimo,colaboradorId:anonimo?null:colAtual?.id,
+    colaboradorNome:anonimo?'Anônimo':colAtual?.nome,data:new Date().toISOString().slice(0,10),timestamp:Date.now(),lido:false};
   adicionarPendente({acao:'novaOuvidoria',dados:ouv});
   document.getElementById('ouv-msg').value='';
-  document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel')); ouvTipoSel='';
-  mostrarSucesso('💬','Mensagem enviada!',anonimo?'Sua mensagem anônima foi enviada à MJL.':'Sua mensagem foi enviada à MJL. Obrigado pelo contato.');
+  document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel'));ouvTipo='';
+  mostrarSucesso('💬','Mensagem enviada!',anonimo?'Mensagem anônima enviada à MJL.':'Mensagem enviada à MJL. Obrigado!');
 }
 
-// ===== FOTOS =====
-function addFotos(e, gridId, dataKey){
-  if(!fotosTemp[dataKey]) fotosTemp[dataKey]=[];
-  Array.from(e.target.files).forEach(f=>{
-    const r=new FileReader();
-    r.onload=ev=>{
-      fotosTemp[dataKey].push(ev.target.result);
-      const grid=document.getElementById(gridId);
-      const div=document.createElement('div'); div.className='photo-thumb';
-      const i=document.createElement('img'); i.src=ev.target.result;
-      const idx=fotosTemp[dataKey].length-1;
-      const del=document.createElement('button'); del.className='photo-del'; del.innerHTML='×';
-      del.onclick=()=>{ fotosTemp[dataKey].splice(idx,1); div.remove(); };
-      div.appendChild(i); div.appendChild(del); grid.appendChild(div);
-    };
-    r.readAsDataURL(f);
-  });
-}
-
-// ===== PENDENTES / SYNC =====
-function adicionarPendente(item){
-  const p=JSON.parse(localStorage.getItem('mjl_pendentes_campo')||'[]');
-  p.push({...item,timestamp:Date.now()});
-  localStorage.setItem('mjl_pendentes_campo',JSON.stringify(p));
+// ===== CONFIG APP =====
+function salvarURLApp(){
+  const url=document.getElementById('cfg-url-app').value.trim();
+  if(!url||!url.startsWith('https://')){alert('URL inválida.');return;}
+  localStorage.setItem('mjl_script_url',url);
+  document.getElementById('cfg-app-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ Salvo!</span>';
   if(navigator.onLine) enviarPendentes();
 }
 
-function enviarRegistro(reg){
-  const url=localStorage.getItem('mjl_script_url'); if(!url) return;
-  fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({acao:'salvarRegistro',dados:{...reg,fotos:reg.fotos.length+' foto(s)'}})}).catch(()=>{});
+// ===== FOTOS =====
+function addFotos(e,gridId,dataKey){
+  if(!fotosData[dataKey])fotosData[dataKey]=[];
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      fotosData[dataKey].push(ev.target.result);
+      const g=document.getElementById(gridId);if(!g)return;
+      const d=document.createElement('div');d.className='photo-thumb';
+      const img=document.createElement('img');img.src=ev.target.result;
+      const idx=fotosData[dataKey].length-1;
+      const del=document.createElement('button');del.className='photo-del';del.innerHTML='×';
+      del.onclick=()=>{fotosData[dataKey].splice(idx,1);d.remove();};
+      d.appendChild(img);d.appendChild(del);g.appendChild(d);
+    };r.readAsDataURL(f);
+  });
+}
+
+// ===== PENDENTES =====
+function adicionarPendente(item){
+  const p=lerLocal('mjl_pendentes_campo',[]);
+  p.push({...item,timestamp:Date.now()});
+  salvarLocal('mjl_pendentes_campo',p);
+  if(navigator.onLine)enviarPendentes();
 }
 
 function enviarPendentes(){
-  const url=localStorage.getItem('mjl_script_url'); if(!url) return;
-  const p=JSON.parse(localStorage.getItem('mjl_pendentes_campo')||'[]');
-  p.forEach(item=>{
-    fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)}).catch(()=>{});
-  });
-  // Buscar colaboradores atualizados
-  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(data=>{
-    if(data?.colaboradores) localStorage.setItem('mjl_colaboradores',JSON.stringify(data.colaboradores));
-  }).catch(()=>{});
-  // Buscar informativos
-  fetch(url+'?acao=getInformativos').then(r=>r.json()).then(data=>{
-    if(data?.informativos) localStorage.setItem('mjl_informativos',JSON.stringify(data.informativos));
-    renderInformativosCol?.();
-  }).catch(()=>{});
-  // Buscar chamados
-  fetch(url+'?acao=getChamados').then(r=>r.json()).then(data=>{
-    if(data?.chamados){
-      const novos=data.chamados.filter(c=>c.cliente===colAtual?.cliente);
-      novos.forEach(c=>{ if(!DB.chamados.find(x=>x.id===c.id)) DB.chamados.push(c); });
-      salvarDB(); renderChamadosCol?.();
-    }
-  }).catch(()=>{});
+  const url=localStorage.getItem('mjl_script_url');if(!url)return;
+  const p=lerLocal('mjl_pendentes_campo',[]);
+  p.forEach(item=>{fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)}).catch(()=>{});});
+  // Buscar atualizações
+  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(d=>{if(d?.colaboradores)salvarLocal('mjl_colaboradores',d.colaboradores);}).catch(()=>{});
+  fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
+  fetch(url+'?acao=getChamados').then(r=>r.json()).then(d=>{if(d?.chamados){const meus=d.chamados.filter(c=>c.cliente===colAtual?.cliente);salvarLocal('mjl_chamados_recebidos',meus);renderChamados?.();}}).catch(()=>{});
+  fetch(url+'?acao=getCronogramas').then(r=>r.json()).then(d=>{if(d?.cronogramas){salvarLocal('mjl_cronogramas',d.cronogramas);renderCronograma?.();}}).catch(()=>{});
 }
 
 // ===== BADGES =====
 function atualizarBadges(){
-  const infos=JSON.parse(localStorage.getItem('mjl_informativos')||'[]');
-  const naoLidos=infos.filter(inf=>inf.exigeAssinatura&&!JSON.parse(localStorage.getItem('mjl_assinatura_'+inf.id+'_'+(colAtual?.id||''))||'null')).length;
+  const infos=lerLocal('mjl_informativos',[]);
+  const naoLidos=infos.filter(i=>i.exigeAssinatura&&!lerLocal('mjl_assinatura_'+i.id+'_'+(colAtual?.id||''),null)).length;
   const nbInfo=document.getElementById('nb-info');
-  nbInfo.style.display=naoLidos?'flex':'none'; nbInfo.textContent=naoLidos;
-  const chamAbertos=DB.chamados.filter(c=>(c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente)&&c.status!=='fechado').length;
+  nbInfo.style.display=naoLidos?'flex':'none';nbInfo.textContent=naoLidos;
+  document.getElementById('home-info-sub').textContent=naoLidos?naoLidos+' para assinar':'Documentos';
+
+  const chs=[...lerLocal('mjl_chamados_local',[]),...lerLocal('mjl_chamados_recebidos',[])].filter(c=>c.status!=='fechado').length;
   const nbCh=document.getElementById('nb-ch');
-  nbCh.style.display=chamAbertos?'flex':'none'; nbCh.textContent=chamAbertos;
-  document.getElementById('home-info-sub').textContent=naoLidos?naoLidos+' para assinar':'Comunicados';
-  document.getElementById('home-ch-sub').textContent=chamAbertos?chamAbertos+' em aberto':'Manutenção';
+  nbCh.style.display=chs?'flex':'none';nbCh.textContent=chs;
+  document.getElementById('home-ch-sub').textContent=chs?chs+' em aberto':'Manutenção';
+
+  // Cronograma pendente hoje
+  const cronos=lerLocal('mjl_cronogramas',[]);
+  const hoje=new Date().toISOString().slice(0,10);
+  const feitos=lerLocal('mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||''),[]);
+  const pendente=cronos.length-feitos.length;
+  const nbCrono=document.getElementById('nb-crono');
+  nbCrono.style.display=pendente>0?'flex':'none';nbCrono.textContent=pendente;
+  document.getElementById('home-crono-sub').textContent=pendente>0?pendente+' tarefas pendentes':'Tarefas do dia';
 }
 
 // ===== SUCESSO =====
 function mostrarSucesso(ico,titulo,sub){
-  document.getElementById('suc-ico').textContent=ico;
-  document.getElementById('suc-title').textContent=titulo;
-  document.getElementById('suc-sub').textContent=sub;
-  ir('scr-sucesso');
+  document.getElementById('suc-ico').textContent=ico;document.getElementById('suc-title').textContent=titulo;document.getElementById('suc-sub').textContent=sub;ir('scr-sucesso');
 }
 
 // ===== MODAIS =====
-function fecharModal(id){ document.getElementById(id).classList.add('hidden'); }
-document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.add('hidden'); }));
+function fecharModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
 
 checkOnline();
-atualizarURLAtual();
-
-function salvarURLCampo(){
-  const url = document.getElementById('cfg-url-campo').value.trim();
-  if(!url){ alert('Cole a URL antes de salvar.'); return; }
-  if(!url.startsWith('https://')){ alert('A URL deve começar com https://'); return; }
-  localStorage.setItem('mjl_script_url', url);
-  const el = document.getElementById('cfg-status-campo');
-  el.innerHTML = '<span style="color:var(--green);font-weight:700;">✅ URL salva com sucesso! O app já está conectado.</span>';
-  atualizarURLAtual();
-  if(navigator.onLine) enviarPendentes();
-}
-
-function atualizarURLAtual(){
-  const url = localStorage.getItem('mjl_script_url') || 'Não configurada';
-  const el = document.getElementById('cfg-url-atual');
-  if(el){ el.textContent = url === 'Não configurada' ? url : url.slice(0,60)+'...'; }
-  const inp = document.getElementById('cfg-url-campo');
-  if(inp && url !== 'Não configurada') inp.value = url;
-}
-
 </script>
 </body>
 </html>
