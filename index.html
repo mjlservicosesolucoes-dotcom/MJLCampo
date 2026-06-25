@@ -585,20 +585,20 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <!-- FOTO — usando input direto na tela sem modal -->
+    <!-- FOTO — input DENTRO do label (método 1 testado e funcionando) -->
     <div style="margin-bottom:14px;">
       <p style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;" id="ps-foto-label">📷 Foto obrigatória</p>
-      <label for="input-ps-foto" style="display:block;cursor:pointer;">
-        <div id="ps-foto-btn" class="photo-add-btn">
-          <div class="ico">📸</div>
-          <span>Toque aqui para tirar a foto</span>
-        </div>
+      <label style="display:block;cursor:pointer;">
         <input type="file" 
                id="input-ps-foto" 
                accept="image/*" 
                capture="environment"
                style="display:none;"
                onchange="capturarFotoPS(event)">
+        <div id="ps-foto-btn" class="photo-add-btn">
+          <div class="ico">📸</div>
+          <span>Toque aqui para tirar a foto</span>
+        </div>
       </label>
       <img id="ps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:220px;object-fit:cover;display:none;margin-top:8px;">
     </div>
