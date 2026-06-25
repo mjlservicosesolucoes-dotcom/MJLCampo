@@ -423,11 +423,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="ps-label">Entrada</div>
             <div class="ps-hora" id="phora-entrada">Aguardando...</div>
           </div>
-          <button class="btn-ps btn-ps-entrada" id="pbtn-entrada" onclick="irParaPontoStep('entrada')">📷 Bater</button>
+          <button class="btn-ps btn-ps-entrada" id="pbtn-entrada" onclick="irParaPontoStep('entrada')">✅ Bater</button>
         </div>
-        <div id="pfoto-entrada-area" style="display:none;margin-top:10px;display:none;">
-          <img id="pfoto-entrada-img" src="" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid #9ad1b0;">
-          <span style="font-size:11px;color:var(--green);margin-left:8px;vertical-align:middle;">📍 GPS registrado</span>
+        <div id="pfoto-entrada-area" style="display:none;margin-top:8px;">
+          <span style="font-size:12px;color:var(--green);font-weight:700;">📍 GPS registrado</span>
         </div>
       </div>
 
@@ -454,11 +453,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="ps-top">
           <div class="ps-ico">🔴</div>
           <div class="ps-info"><div class="ps-label">Saída</div><div class="ps-hora" id="phora-saida">—</div></div>
-          <button class="btn-ps btn-ps-saida" id="pbtn-saida" onclick="irParaPontoStep('saida')" disabled>📷 Bater</button>
+          <button class="btn-ps btn-ps-saida" id="pbtn-saida" onclick="irParaPontoStep('saida')" disabled>✅ Bater</button>
         </div>
-        <div id="pfoto-saida-area" style="display:none;margin-top:10px;">
-          <img id="pfoto-saida-img" src="" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid #f5c6c2;">
-          <span style="font-size:11px;color:var(--red);margin-left:8px;vertical-align:middle;">📍 GPS registrado</span>
+        <div id="pfoto-saida-area" style="display:none;margin-top:8px;">
+          <span style="font-size:12px;color:var(--red);font-weight:700;">📍 GPS registrado</span>
         </div>
       </div>
 
@@ -561,51 +559,39 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   </div>
 
 
-  <!-- SCREEN BATER PONTO (entrada/saída) -->
+  <!-- SCREEN BATER PONTO (entrada/saída) — SEM FOTO, SÓ GPS -->
   <div class="screen" id="scr-ponto-step">
     <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-ponto')">← Voltar</button>
-    
-    <div class="card" style="text-align:center;padding:20px;">
-      <h2 style="font-size:20px;font-weight:700;color:var(--brand);margin-bottom:6px;" id="ps-titulo">Bater Ponto</h2>
-      <div style="font-size:42px;font-weight:700;color:var(--brand);letter-spacing:-1px;margin:10px 0;" id="ps-hora-display">--:--</div>
-      <div id="ps-geo-status" style="font-size:12px;color:var(--text3);margin-bottom:14px;">📍 Buscando localização...</div>
-    </div>
 
-    <!-- Alerta horário -->
-    <div id="ps-alerta" class="hidden" style="background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);padding:12px;margin-bottom:12px;">
-      <div style="font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:6px;" id="ps-alerta-titulo">⚠️ Atenção</div>
-      <div style="font-size:12px;color:var(--yellow);" id="ps-alerta-msg"></div>
-    </div>
-
-    <!-- Justificativa -->
-    <div id="ps-just-area" class="hidden" style="margin-bottom:14px;">
-      <div class="fg">
-        <label>Justificativa obrigatória *</label>
-        <textarea id="ps-just-txt" placeholder="Explique o motivo de estar batendo fora do horário..." style="width:100%;padding:12px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:14px;resize:none;min-height:80px;font-family:inherit;" oninput="verificarBtnPS()"></textarea>
+    <div class="card" style="text-align:center;padding:28px 20px;">
+      <div style="font-size:56px;margin-bottom:10px;" id="ps-ico-tipo">🟢</div>
+      <h2 style="font-size:22px;font-weight:700;color:var(--brand);margin-bottom:8px;" id="ps-titulo">Bater Entrada</h2>
+      <div style="font-size:52px;font-weight:700;color:var(--brand);letter-spacing:-2px;line-height:1;margin:12px 0;" id="ps-hora-display">--:--</div>
+      <div id="ps-geo-status" class="geo-bar geo-wait" style="justify-content:center;margin:14px 0 0;">
+        ⏳ Buscando localização...
       </div>
     </div>
 
-    <!-- FOTO — input DENTRO do label (método 1 testado e funcionando) -->
-    <div style="margin-bottom:14px;">
-      <p style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;" id="ps-foto-label">📷 Foto obrigatória</p>
-      <label style="display:block;cursor:pointer;">
-        <input type="file" 
-               id="input-ps-foto" 
-               accept="image/*" 
-               capture="environment"
-               style="display:none;"
-               onchange="capturarFotoPS(event)">
-        <div id="ps-foto-btn" class="photo-add-btn">
-          <div class="ico">📸</div>
-          <span>Toque aqui para tirar a foto</span>
-        </div>
-      </label>
-      <img id="ps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:220px;object-fit:cover;display:none;margin-top:8px;">
+    <!-- Alerta horário -->
+    <div id="ps-alerta" class="hidden alert alert-warn" style="margin-top:12px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;" id="ps-alerta-titulo">⚠️ Atenção</div>
+      <div style="font-size:12px;" id="ps-alerta-msg"></div>
     </div>
 
-    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled>
+    <!-- Justificativa (só aparece se fora do horário) -->
+    <div id="ps-just-area" class="hidden" style="margin-top:12px;">
+      <div class="fg">
+        <label>Justificativa obrigatória *</label>
+        <textarea id="ps-just-txt" placeholder="Explique o motivo de estar batendo fora do horário..." style="width:100%;padding:12px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:15px;resize:none;min-height:90px;font-family:inherit;" oninput="verificarBtnPS()"></textarea>
+      </div>
+    </div>
+
+    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled style="margin-top:16px;">
       ✅ Confirmar ponto
     </button>
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;">
+      📍 Localização registrada automaticamente para segurança
+    </p>
   </div>
 
 </div><!-- end screens -->
@@ -1317,6 +1303,103 @@ function mostrarSucesso(ico,titulo,sub){
 // ===== MODAIS =====
 function fecharModal(id){document.getElementById(id).classList.add('hidden');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
+
+
+// ===== PONTO STEP — SEM FOTO, SÓ GPS =====
+var psTimer = null;
+
+function irParaPontoStep(tipo){
+  pontoTipoAtual = tipo;
+  document.getElementById('btn-confirmar-ps').disabled = true;
+  document.getElementById('ps-just-area').classList.add('hidden');
+  document.getElementById('ps-alerta').classList.add('hidden');
+  document.getElementById('ps-just-txt').value = '';
+
+  if(tipo === 'entrada'){
+    document.getElementById('ps-titulo').textContent = 'Bater Entrada';
+    document.getElementById('ps-ico-tipo').textContent = '🟢';
+    var check = verificarTolerancia();
+    if(check && !check.ok){
+      document.getElementById('ps-alerta').classList.remove('hidden');
+      document.getElementById('ps-alerta-titulo').textContent = '⚠️ Fora do horário previsto';
+      document.getElementById('ps-alerta-msg').textContent = check.msg;
+      document.getElementById('ps-just-area').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('ps-titulo').textContent = 'Bater Saída';
+    document.getElementById('ps-ico-tipo').textContent = '🔴';
+  }
+
+  if(psTimer) clearInterval(psTimer);
+  psTimer = setInterval(function(){
+    var el = document.getElementById('ps-hora-display');
+    if(el) el.textContent = new Date().toTimeString().slice(0,5);
+  }, 1000);
+  document.getElementById('ps-hora-display').textContent = new Date().toTimeString().slice(0,5);
+
+  var geoEl = document.getElementById('ps-geo-status');
+  geoEl.className = 'geo-bar geo-wait';
+  geoEl.textContent = '⏳ Buscando localização...';
+
+  obterGeo(function(geo){
+    if(geo){
+      geoEl.className = 'geo-bar geo-ok';
+      geoEl.innerHTML = '📍 Localização capturada (±'+geo.acc+'m)';
+    } else {
+      geoEl.className = 'geo-bar geo-err';
+      geoEl.textContent = '⚠️ GPS não disponível — pode continuar';
+    }
+    verificarBtnPS();
+  });
+
+  ir('scr-ponto-step');
+}
+
+function verificarBtnPS(){
+  var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
+  var temJust = (document.getElementById('ps-just-txt').value || '').trim().length > 0;
+  document.getElementById('btn-confirmar-ps').disabled = (needJust && !temJust);
+}
+
+function confirmarPontoStep(){
+  var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
+  var just = (document.getElementById('ps-just-txt').value || '').trim();
+  if(needJust && !just){ alert('Informe o motivo de estar fora do horário.'); return; }
+
+  var agora = new Date();
+  var hora = agora.toTimeString().slice(0,5);
+
+  if(!pontoHoje) pontoHoje = {entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',fotoEntrada:null,fotoSaida:null,geo_e:null,geo_s:null,ajustes:[]};
+
+  if(pontoTipoAtual === 'entrada'){
+    pontoHoje.entrada = hora;
+    pontoHoje.geo_e = geoAtual;
+    if(just) pontoHoje.just_entrada = just;
+  } else {
+    pontoHoje.saida = hora;
+    pontoHoje.geo_s = geoAtual;
+    if(just) pontoHoje.just_saida = just;
+    pontoHoje.horas_trab = calcHorasTrabP();
+    pontoHoje.saldo_dia = calcSaldoDiaP();
+    pontoHoje.feriado = (document.getElementById('ponto-obs').value === 'Feriado');
+    pontoHoje.noturno = isNocturno(pontoHoje.entrada) || isNocturno(hora);
+  }
+
+  pontoHoje.obs = document.getElementById('ponto-obs').value;
+  pontoHoje.colaboradorId = colAtual.id;
+  pontoHoje.colaboradorNome = colAtual.nome;
+  pontoHoje.data = new Date().toISOString().slice(0,10);
+
+  if(psTimer){ clearInterval(psTimer); psTimer = null; }
+
+  salvarPontoHoje();
+  ir('scr-ponto');
+  atualizarStepsPonto();
+  atualizarBancoPonto();
+  renderHistoricoPonto();
+  atualizarAlertasPonto();
+}
+// ===== FIM PONTO STEP =====
 
 checkOnline();
 </script>
