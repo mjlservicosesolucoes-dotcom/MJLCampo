@@ -423,7 +423,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
             <div class="ps-label">Entrada</div>
             <div class="ps-hora" id="phora-entrada">Aguardando...</div>
           </div>
-          <button class="btn-ps btn-ps-entrada" id="pbtn-entrada" onclick="abrirModalPontoStep('entrada')">📷 Bater</button>
+          <button class="btn-ps btn-ps-entrada" id="pbtn-entrada" onclick="irParaPontoStep('entrada')">📷 Bater</button>
         </div>
         <div id="pfoto-entrada-area" style="display:none;margin-top:10px;display:none;">
           <img id="pfoto-entrada-img" src="" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid #9ad1b0;">
@@ -454,7 +454,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div class="ps-top">
           <div class="ps-ico">🔴</div>
           <div class="ps-info"><div class="ps-label">Saída</div><div class="ps-hora" id="phora-saida">—</div></div>
-          <button class="btn-ps btn-ps-saida" id="pbtn-saida" onclick="abrirModalPontoStep('saida')" disabled>📷 Bater</button>
+          <button class="btn-ps btn-ps-saida" id="pbtn-saida" onclick="irParaPontoStep('saida')" disabled>📷 Bater</button>
         </div>
         <div id="pfoto-saida-area" style="display:none;margin-top:10px;">
           <img id="pfoto-saida-img" src="" style="width:60px;height:60px;border-radius:8px;object-fit:cover;border:2px solid #f5c6c2;">
@@ -558,6 +558,54 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="success-sub" id="suc-sub"></div>
       <button class="btn btn-primary" onclick="ir('scr-home')">← Voltar ao início</button>
     </div>
+  </div>
+
+
+  <!-- SCREEN BATER PONTO (entrada/saída) -->
+  <div class="screen" id="scr-ponto-step">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-ponto')">← Voltar</button>
+    
+    <div class="card" style="text-align:center;padding:20px;">
+      <h2 style="font-size:20px;font-weight:700;color:var(--brand);margin-bottom:6px;" id="ps-titulo">Bater Ponto</h2>
+      <div style="font-size:42px;font-weight:700;color:var(--brand);letter-spacing:-1px;margin:10px 0;" id="ps-hora-display">--:--</div>
+      <div id="ps-geo-status" style="font-size:12px;color:var(--text3);margin-bottom:14px;">📍 Buscando localização...</div>
+    </div>
+
+    <!-- Alerta horário -->
+    <div id="ps-alerta" class="hidden" style="background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);padding:12px;margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:6px;" id="ps-alerta-titulo">⚠️ Atenção</div>
+      <div style="font-size:12px;color:var(--yellow);" id="ps-alerta-msg"></div>
+    </div>
+
+    <!-- Justificativa -->
+    <div id="ps-just-area" class="hidden" style="margin-bottom:14px;">
+      <div class="fg">
+        <label>Justificativa obrigatória *</label>
+        <textarea id="ps-just-txt" placeholder="Explique o motivo de estar batendo fora do horário..." style="width:100%;padding:12px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:14px;resize:none;min-height:80px;font-family:inherit;" oninput="verificarBtnPS()"></textarea>
+      </div>
+    </div>
+
+    <!-- FOTO — usando input direto na tela sem modal -->
+    <div style="margin-bottom:14px;">
+      <p style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;" id="ps-foto-label">📷 Foto obrigatória</p>
+      <label for="input-ps-foto" style="display:block;cursor:pointer;">
+        <div id="ps-foto-btn" class="photo-add-btn">
+          <div class="ico">📸</div>
+          <span>Toque aqui para tirar a foto</span>
+        </div>
+        <input type="file" 
+               id="input-ps-foto" 
+               accept="image/*" 
+               capture="environment"
+               style="display:none;"
+               onchange="capturarFotoPS(event)">
+      </label>
+      <img id="ps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:220px;object-fit:cover;display:none;margin-top:8px;">
+    </div>
+
+    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled>
+      ✅ Confirmar ponto
+    </button>
   </div>
 
 </div><!-- end screens -->
@@ -789,6 +837,7 @@ function ir(scrId){
   document.getElementById('screens').scrollTop=0;
   if(scrId==='scr-registro'){mostrarEtapa(0);obterGeo();}
   if(scrId==='scr-ponto'){iniciarRelogioPonto();carregarPontoHoje();}
+  if(scrId!=='scr-ponto-step' && psTimer){clearInterval(psTimer);psTimer=null;}
   if(scrId==='scr-cronograma'){renderCronograma();}
   if(scrId==='scr-chamados'){renderChamados();}
   if(scrId==='scr-informativos'){renderInformativos();}
