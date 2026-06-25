@@ -586,11 +586,29 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       </div>
     </div>
 
-    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled style="margin-top:16px;">
+    <!-- FOTO — Método 1 testado e aprovado no iPhone -->
+    <div style="margin-bottom:14px;">
+      <p style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;" id="ps-foto-label">📷 Foto obrigatória</p>
+      <label style="display:block;cursor:pointer;">
+        <input type="file"
+               id="input-ps-foto"
+               accept="image/*"
+               capture="environment"
+               style="display:none;"
+               onchange="capturarFotoPS(event)">
+        <div class="photo-add-btn" id="ps-foto-btn">
+          <div class="ico">📸</div>
+          <span>Toque aqui para tirar a foto</span>
+        </div>
+      </label>
+      <img id="ps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:220px;object-fit:cover;display:none;margin-top:8px;">
+    </div>
+
+    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled style="margin-top:4px;">
       ✅ Confirmar ponto
     </button>
     <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;">
-      📍 Localização registrada automaticamente para segurança
+      📷 Foto + 📍 GPS registrados para segurança
     </p>
   </div>
 
@@ -1310,10 +1328,17 @@ var psTimer = null;
 
 function irParaPontoStep(tipo){
   pontoTipoAtual = tipo;
+  fotoPS = null;
   document.getElementById('btn-confirmar-ps').disabled = true;
   document.getElementById('ps-just-area').classList.add('hidden');
   document.getElementById('ps-alerta').classList.add('hidden');
   document.getElementById('ps-just-txt').value = '';
+  var btnFoto2 = document.getElementById('ps-foto-btn');
+  if(btnFoto2) btnFoto2.style.display='';
+  var prev2 = document.getElementById('ps-foto-prev');
+  if(prev2){ prev2.src=''; prev2.style.display='none'; }
+  var inp = document.getElementById('input-ps-foto');
+  if(inp) inp.value='';
 
   if(tipo === 'entrada'){
     document.getElementById('ps-titulo').textContent = 'Bater Entrada';
@@ -1372,10 +1397,37 @@ function irParaPontoStep(tipo){
   ir('scr-ponto-step');
 }
 
+
+function capturarFotoPS(e){
+  var file = e.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var w=img.width, h=img.height, max=640;
+      if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+      canvas.width=w; canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      var q=0.65, r=canvas.toDataURL('image/jpeg',q);
+      while(r.length>80*1024*1.37&&q>0.1){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
+      fotoPS = r;
+      var prev = document.getElementById('ps-foto-prev');
+      if(prev){ prev.src=r; prev.style.display='block'; }
+      var btn = document.getElementById('ps-foto-btn');
+      if(btn) btn.style.display='none';
+      verificarBtnPS();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function verificarBtnPS(){
   var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
   var temJust = (document.getElementById('ps-just-txt').value || '').trim().length > 0;
-  document.getElementById('btn-confirmar-ps').disabled = (needJust && !temJust);
+  var temFoto = !!fotoPS;
+  document.getElementById('btn-confirmar-ps').disabled = !temFoto || (needJust && !temJust);
 }
 
 function confirmarPontoStep(){
@@ -1390,10 +1442,12 @@ function confirmarPontoStep(){
 
   if(pontoTipoAtual === 'entrada'){
     pontoHoje.entrada = hora;
+    pontoHoje.fotoEntrada = fotoPS;
     pontoHoje.geo_e = geoAtual;
     if(just) pontoHoje.just_entrada = just;
   } else {
     pontoHoje.saida = hora;
+    pontoHoje.fotoSaida = fotoPS;
     pontoHoje.geo_s = geoAtual;
     if(just) pontoHoje.just_saida = just;
     pontoHoje.horas_trab = calcHorasTrabP();
@@ -1410,6 +1464,11 @@ function confirmarPontoStep(){
   if(psTimer){ clearInterval(psTimer); psTimer = null; }
 
   salvarPontoHoje();
+  fotoPS = null;
+  var btnFoto = document.getElementById('ps-foto-btn');
+  if(btnFoto) btnFoto.style.display='';
+  var prev = document.getElementById('ps-foto-prev');
+  if(prev){ prev.src=''; prev.style.display='none'; }
   ir('scr-ponto');
   atualizarStepsPonto();
   atualizarBancoPonto();
