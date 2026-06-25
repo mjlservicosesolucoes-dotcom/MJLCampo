@@ -364,10 +364,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="reg-step-3" class="hidden">
       <div class="card" style="margin-bottom:14px;">
         <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">📷</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Foto do dia</h2></div>
-        <label for="foto-reg" style="display:block;cursor:pointer;">
-          <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
-        </label>
-        <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-reg','fotos-reg')">
+        <div class="photo-add-btn" onclick="triggerFoto('foto-reg')"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="position:absolute;opacity:0;width:1px;height:1px;" onchange="addFotos(event,'grid-reg','fotos-reg')">
         <div class="photo-grid" id="grid-reg" style="margin-bottom:12px;"></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
@@ -600,10 +598,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="fg"><label>Descreva o problema</label><textarea id="ch-desc" placeholder="O que está acontecendo?" style="font-size:14px;"></textarea></div>
   <div style="margin-bottom:14px;">
     <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (obrigatório)</label>
-    <label for="foto-ch" style="display:block;cursor:pointer;">
-      <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
-    </label>
-    <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-ch','fotos-ch')">
+    <div class="photo-add-btn" onclick="triggerFoto('foto-ch')"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="position:absolute;opacity:0;width:1px;height:1px;" onchange="addFotos(event,'grid-ch','fotos-ch')">
     <div class="photo-grid" id="grid-ch"></div>
   </div>
   <div class="fg"><label>Urgência</label>
@@ -659,6 +655,12 @@ let colAtual=null, geoAtual=null, ouvTipo='', anonimo=false, urgSel='normal';
 let infoId=null, signCanvas=null, signCtx=null, signing=false;
 let fotosData={};
 let cronoFeitosLocal={};
+
+
+function triggerFoto(inputId){
+  var el = document.getElementById(inputId);
+  if(el){ el.value=''; el.click(); }
+}
 
 function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
 function salvarLocal(k,v){localStorage.setItem(k,JSON.stringify(v));}
