@@ -337,8 +337,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div style="font-size:13px;font-weight:700;color:var(--green);">⏰ Entrada: <span id="reg-hora-entrada" style="font-size:18px;"></span></div>
           <div id="reg-geo-entrada" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
         </div>
-        <div class="photo-add-btn" onclick="document.getElementById('foto-entrada').click()"><div class="ico">📷</div><span>Tirar foto de entrada</span></div>
+        <label style="display:block;cursor:pointer;">
         <input type="file" id="foto-entrada" accept="image/*" capture="environment" style="display:none" onchange="fotoEntrada(event)">
+        <div class="photo-add-btn"><div class="ico">📷</div><span>Tirar foto de entrada</span></div>
+      </label>
         <div id="preview-entrada" style="margin-bottom:12px;"></div>
         <button class="btn btn-primary" id="btn-entrada-ok" onclick="proximaEtapa(2)" disabled>Continuar →</button>
       </div>
@@ -364,8 +366,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="reg-step-3" class="hidden">
       <div class="card" style="margin-bottom:14px;">
         <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">📷</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Foto do dia</h2></div>
-        <div class="photo-add-btn" onclick="triggerFoto('foto-reg')"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
-        <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="position:absolute;opacity:0;width:1px;height:1px;" onchange="addFotos(event,'grid-reg','fotos-reg')">
+        <label style="display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none;" onchange="addFotos(event,'grid-reg','fotos-reg')">
+          <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        </label>
         <div class="photo-grid" id="grid-reg" style="margin-bottom:12px;"></div>
       </div>
       <div class="card" style="margin-bottom:14px;">
@@ -376,8 +380,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div style="font-size:13px;font-weight:700;color:var(--green);">⏰ Saída: <span id="reg-hora-saida" style="font-size:18px;"></span></div>
         <div id="reg-geo-saida" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
       </div>
-      <div class="photo-add-btn" onclick="document.getElementById('foto-saida').click()"><div class="ico">📷</div><span>Foto de saída (obrigatório)</span></div>
-      <input type="file" id="foto-saida" accept="image/*" capture="environment" style="display:none" onchange="fotoSaida(event)">
+      <label style="display:block;cursor:pointer;">
+        <input type="file" id="foto-saida" accept="image/*" capture="environment" style="display:none" onchange="fotoSaida(event)">
+        <div class="photo-add-btn"><div class="ico">📷</div><span>Foto de saída (obrigatório)</span></div>
+      </label>
       <div id="preview-saida" style="margin-bottom:14px;"></div>
       <button class="btn btn-green" id="btn-salvar-reg" onclick="salvarRegistro()" disabled>💾 Salvar ponto do dia</button>
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="proximaEtapa(2)">← Voltar</button>
@@ -580,11 +586,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="just-title" id="mps-just-titulo">⚠️ Fora do horário previsto</div>
     <textarea id="mps-just-txt" placeholder="Informe o motivo obrigatoriamente..." style="width:100%;padding:10px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:14px;resize:none;min-height:80px;font-family:inherit;" oninput="verificarBtnPonto()"></textarea>
   </div>
-  <div class="photo-add-btn" onclick="document.getElementById('input-foto-ps').click()">
-    <div class="ico">📷</div><span id="mps-foto-label">Tirar foto</span>
-    <span style="font-size:11px;opacity:.7;">Obrigatório</span>
-  </div>
-  <input type="file" id="input-foto-ps" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoPonto(event)">
+  <label style="display:block;cursor:pointer;">
+    <input type="file" id="input-foto-ps" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoPonto(event)">
+    <div class="photo-add-btn">
+      <div class="ico">📷</div><span id="mps-foto-label">Tirar foto</span>
+      <span style="font-size:11px;opacity:.7;">Obrigatório</span>
+    </div>
+  </label>
   <img id="mps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:200px;object-fit:cover;display:none;margin-bottom:12px;">
   <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled>✅ Confirmar ponto</button>
 </div></div>
@@ -598,8 +606,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="fg"><label>Descreva o problema</label><textarea id="ch-desc" placeholder="O que está acontecendo?" style="font-size:14px;"></textarea></div>
   <div style="margin-bottom:14px;">
     <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (obrigatório)</label>
-    <div class="photo-add-btn" onclick="triggerFoto('foto-ch')"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
-    <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="position:absolute;opacity:0;width:1px;height:1px;" onchange="addFotos(event,'grid-ch','fotos-ch')">
+    <label style="display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+      <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="display:none;" onchange="addFotos(event,'grid-ch','fotos-ch')">
+      <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    </label>
     <div class="photo-grid" id="grid-ch"></div>
   </div>
   <div class="fg"><label>Urgência</label>
