@@ -793,13 +793,13 @@ function entrar(col){
   document.getElementById('hdr-cargo').textContent=col.funcao+(locais?' — '+locais:'');
   const hoje=new Date();
   document.getElementById('home-data').textContent=hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
-  document.getElementById('reg-entrada').value=hoje.toTimeString().slice(0,5);
+  const elRegEntrada=document.getElementById('reg-entrada'); if(elRegEntrada) elRegEntrada.value=hoje.toTimeString().slice(0,5);
   checkOnline(); obterGeo();
   initPonto();
   renderCronograma(); renderChamados(); renderInformativos(); atualizarBadges();
   // Config URL app
   const url=localStorage.getItem('mjl_script_url')||'';
-  if(url) document.getElementById('cfg-url-app').value=url;
+  const elCfgUrl=document.getElementById('cfg-url-app'); if(elCfgUrl) elCfgUrl.value=url;
   // Verificar aceite LGPD
   verificarAceite();
 }
@@ -992,8 +992,8 @@ function salvarRegistro(){
   const tarefas=Array.from(document.querySelectorAll('#ck-lista .ck-item')).map(el=>({texto:el.querySelector('.ck-label').textContent,feita:el.classList.contains('done')}));
   const reg={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,colaboradorFuncao:colAtual.funcao,
     cliente:colAtual.cliente||'',data:new Date().toISOString().slice(0,10),timestamp:Date.now(),
-    entrada:document.getElementById('reg-entrada').value,saida:document.getElementById('reg-saida').value,
-    obs:document.getElementById('reg-obs').value.trim(),tarefas,fotos:fotosData['fotos-reg']||[],
+    entrada:(document.getElementById('reg-entrada')||{value:''}).value,saida:(document.getElementById('reg-saida')||{value:''}).value,
+    obs:(document.getElementById('reg-obs')||{}).value?.trim()||'',tarefas,fotos:fotosData['fotos-reg']||[],
     geo:geoAtual,geoMapsLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',enviado:false};
   adicionarPendente({acao:'salvarRegistro',dados:{...reg,fotos:reg.fotos.length+' foto(s)'}});
   fotosData['fotos-reg']=[]; document.getElementById('grid-reg').innerHTML='';
@@ -1400,6 +1400,217 @@ function confirmarPontoStep(){
   atualizarAlertasPonto();
 }
 // ===== FIM PONTO STEP =====
+
+
+// ===================================================================
+// MÓDULO DE PONTO ELETRÔNICO — COMPLETO
+// ===================================================================
+var pontoTimerRel = null;
+var pontoHoje = null;
+var pontoTipoAtual = null;
+var fotoPS = null;
+
+function parseHoraP(str){ if(!str) return 0; var p=(str+'').split(':').map(Number); return (p[0]||0)*60+(p[1]||0); }
+function minToHHMM(min){ var neg=min<0; var abs=Math.abs(min); var h=Math.floor(abs/60).toString().padStart(2,'0'); var m=(abs%60).toString().padStart(2,'0'); return (neg?'-':'')+h+':'+m; }
+function isNocturno(hora){ if(!hora) return false; var m=parseHoraP(hora); return m>=22*60||m<5*60; }
+
+function iniciarRelogioPonto(){
+  if(pontoTimerRel) return;
+  var meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var dias=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  pontoTimerRel = setInterval(function(){
+    var now = new Date();
+    var el = document.getElementById('rp-hora');
+    if(el) el.textContent = now.toTimeString().slice(0,8);
+    var elD = document.getElementById('rp-data');
+    if(elD) elD.textContent = now.getDate()+' de '+meses[now.getMonth()]+' de '+now.getFullYear();
+    var elDi = document.getElementById('rp-dia');
+    if(elDi) elDi.textContent = dias[now.getDay()];
+  }, 1000);
+  var now=new Date();
+  var el=document.getElementById('rp-hora');
+  if(el) el.textContent=now.toTimeString().slice(0,8);
+}
+
+function carregarPontoHoje(){
+  if(!colAtual) return;
+  var hoje=new Date().toISOString().slice(0,10);
+  var key='ponto_'+colAtual.id+'_'+hoje;
+  var salvo=localStorage.getItem(key);
+  pontoHoje=salvo?JSON.parse(salvo):{entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',geo_e:null,geo_s:null,ajustes:[]};
+  atualizarStepsPonto();
+  atualizarBancoPonto();
+  renderHistoricoPonto();
+  atualizarAlertasPonto();
+}
+
+function salvarPontoHoje(){
+  if(!colAtual||!pontoHoje) return;
+  var hoje=new Date().toISOString().slice(0,10);
+  localStorage.setItem('ponto_'+colAtual.id+'_'+hoje, JSON.stringify(pontoHoje));
+  adicionarPendente({acao:'salvarPonto',dados:{
+    colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+    colaboradorFuncao:colAtual.funcao,cliente:colAtual.cliente||'',
+    data:pontoHoje.data||hoje,entrada:pontoHoje.entrada,
+    saida_alm:pontoHoje.saida_alm,volta_alm:pontoHoje.volta_alm,
+    saida:pontoHoje.saida,obs:pontoHoje.obs,
+    horas_trab:pontoHoje.horas_trab,saldo_dia:pontoHoje.saldo_dia,
+    feriado:pontoHoje.feriado,noturno:pontoHoje.noturno,
+    geo_e:pontoHoje.geo_e,geo_s:pontoHoje.geo_s,
+    just_entrada:pontoHoje.just_entrada,just_saida:pontoHoje.just_saida,
+    ajustes:pontoHoje.ajustes,timestamp:Date.now()
+  }});
+}
+
+function atualizarStepsPonto(){
+  if(!pontoHoje) return;
+  var p=pontoHoje;
+  if(p.entrada){ setStepP('entrada','feito',p.entrada); liberarStepP('saida-alm'); }
+  else setStepP('entrada','ativo',null);
+  if(p.saida_alm){ setStepP('saida-alm','feito',p.saida_alm); liberarStepP('volta-alm'); }
+  if(p.volta_alm){ setStepP('volta-alm','feito',p.volta_alm); liberarStepP('saida'); }
+  if(p.saida){ setStepP('saida','feito',p.saida); }
+  if(p.obs){ var el=document.getElementById('ponto-obs'); if(el) el.value=p.obs; }
+  var nb=document.getElementById('nb-ponto');
+  if(nb) nb.style.display=(!p.entrada)?'flex':'none';
+  var sub=document.getElementById('home-ponto-sub');
+  if(sub){ if(p.saida) sub.textContent='Concluido ✅'; else if(p.entrada) sub.textContent='Em andamento'; else sub.textContent='Bater ponto'; }
+}
+
+function setStepP(tipo,estado,hora){
+  var step=document.getElementById('pstep-'+tipo);
+  var btn=document.getElementById('pbtn-'+tipo);
+  var horaEl=document.getElementById('phora-'+tipo);
+  if(!step) return;
+  step.classList.remove('ps-ativo','ps-feito','ps-bloq');
+  if(estado==='feito'){
+    step.classList.add('ps-feito');
+    if(horaEl) horaEl.textContent=hora+(isNocturno(hora)?' 🌙':'');
+    if(btn){ btn.disabled=true; btn.textContent='✓'; btn.className='btn-ps btn-ps-feito'; }
+    var fa=document.getElementById('pfoto-'+tipo.replace('-','')+'entrada'==='entrada'?'entrada':'saida'+'-area');
+    var faE=document.getElementById('pfoto-entrada-area');
+    var faS=document.getElementById('pfoto-saida-area');
+    if(tipo==='entrada'&&faE) faE.style.display='block';
+    if(tipo==='saida'&&faS) faS.style.display='block';
+  } else if(estado==='ativo'){
+    step.classList.add('ps-ativo');
+    if(horaEl) horaEl.textContent='Aguardando...';
+  } else {
+    step.classList.add('ps-bloq');
+  }
+}
+
+function liberarStepP(tipo){
+  var step=document.getElementById('pstep-'+tipo);
+  var btn=document.getElementById('pbtn-'+tipo);
+  if(step){ step.classList.remove('ps-bloq'); step.classList.add('ps-ativo'); }
+  if(btn) btn.disabled=false;
+}
+
+function verificarTolerancia(){
+  if(!colAtual||!colAtual.horario_entrada) return {ok:true};
+  var previsto=parseHoraP(colAtual.horario_entrada);
+  var now=new Date(); var atual=now.getHours()*60+now.getMinutes();
+  var diff=atual-previsto;
+  if(diff<-5) return {ok:false,msg:'Chegando '+minToHHMM(Math.abs(diff))+' antes do horário ('+colAtual.horario_entrada+'). Justifique.'};
+  return {ok:true};
+}
+
+function baterPontoSimples(tipo){
+  var hora=new Date().toTimeString().slice(0,5);
+  if(!pontoHoje) pontoHoje={entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',geo_e:null,geo_s:null,ajustes:[]};
+  pontoHoje[tipo]=hora;
+  pontoHoje.colaboradorId=colAtual.id;
+  pontoHoje.data=new Date().toISOString().slice(0,10);
+  salvarPontoHoje();
+  atualizarStepsPonto();
+}
+
+function salvarObsDia(){
+  if(!pontoHoje) return;
+  pontoHoje.obs=document.getElementById('ponto-obs').value;
+  salvarPontoHoje();
+  atualizarAlertasPonto();
+}
+
+function calcHorasTrabP(){
+  if(!pontoHoje||!pontoHoje.entrada||!pontoHoje.saida) return 0;
+  var e=parseHoraP(pontoHoje.entrada),s=parseHoraP(pontoHoje.saida);
+  if(s<e) s+=24*60;
+  var t=s-e;
+  if(pontoHoje.saida_alm&&pontoHoje.volta_alm){ var sa=parseHoraP(pontoHoje.saida_alm),va=parseHoraP(pontoHoje.volta_alm); if(va<sa)va+=24*60; t-=(va-sa); }
+  else t-=60;
+  return Math.max(0,t);
+}
+
+function calcSaldoDiaP(){
+  var obs=pontoHoje&&pontoHoje.obs||'';
+  if(obs==='Folga'||obs==='Domingo'||obs==='Ferias'||obs==='Falta Justificada') return 0;
+  var carga=parseHoraP(colAtual&&colAtual.carga_diaria||'07:20');
+  var prev=colAtual&&colAtual.escala==='12x36'?720:carga;
+  if(obs==='Falta') return -prev;
+  if(obs==='Feriado'||pontoHoje&&pontoHoje.feriado) return calcHorasTrabP();
+  return calcHorasTrabP()-prev;
+}
+
+function calcBancoMesP(){
+  if(!colAtual) return 0;
+  var hoje=new Date(),ano=hoje.getFullYear(),mes=String(hoje.getMonth()+1).padStart(2,'0');
+  var total=0;
+  for(var d=1;d<=hoje.getDate();d++){
+    var data=ano+'-'+mes+'-'+String(d).padStart(2,'0');
+    var salvo=localStorage.getItem('ponto_'+colAtual.id+'_'+data);
+    if(salvo){ var p=JSON.parse(salvo); if(p.saldo_dia!==undefined) total+=p.saldo_dia; }
+  }
+  return total+parseHoraP(colAtual.saldo_anterior||'00:00');
+}
+
+function atualizarBancoPonto(){
+  if(!colAtual) return;
+  var banco=calcBancoMesP();
+  var el=document.getElementById('banco-pill-el');
+  var val=document.getElementById('banco-val-el');
+  var badge=document.getElementById('banco-badge-el');
+  if(!el) return;
+  el.classList.remove('hidden','banco-pos','banco-neg','banco-zer');
+  if(val) val.textContent=minToHHMM(banco);
+  if(banco>0){ el.classList.add('banco-pos'); if(badge) badge.innerHTML='<span class="badge-cre">a favor</span>'; }
+  else if(banco<0){ el.classList.add('banco-neg'); if(badge) badge.innerHTML='<span class="badge-deb">a compensar</span>'; }
+  else el.classList.add('banco-zer');
+}
+
+function atualizarAlertasPonto(){
+  var area=document.getElementById('ponto-alertas'); if(!area) return;
+  area.innerHTML='';
+  var obs=pontoHoje&&pontoHoje.obs||'';
+  if(obs==='Feriado') area.innerHTML+='<div class="alerta alerta-warn">Feriado — horas contam 100% extra.</div>';
+  var banco=calcBancoMesP();
+  if(banco<-60) area.innerHTML+='<div class="alerta alerta-warn">'+minToHHMM(Math.abs(banco))+' a compensar neste mes.</div>';
+}
+
+function renderHistoricoPonto(){
+  var el=document.getElementById('ponto-historico'); if(!el||!colAtual) return;
+  var hoje=new Date(),ano=hoje.getFullYear(),mes=String(hoje.getMonth()+1).padStart(2,'0');
+  var dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sab'],itens=[];
+  for(var d=hoje.getDate();d>=1;d--){
+    var data=ano+'-'+mes+'-'+String(d).padStart(2,'0');
+    var salvo=localStorage.getItem('ponto_'+colAtual.id+'_'+data);
+    if(!salvo) continue;
+    var p=JSON.parse(salvo);
+    var dt=new Date(data+'T12:00:00');
+    var saldo=p.saldo_dia||0,trab=p.horas_trab||0;
+    itens.push('<div class="hist-ponto"><div class="hp-top"><div class="hp-data">'+dias[dt.getDay()]+', '+String(d).padStart(2,'0')+'/'+mes+(p.obs==='Feriado'?' 🔴':'')+(p.noturno?' 🌙':'')+'</div><div class="hp-saldo '+(saldo>=0?'saldo-pos':'saldo-neg')+'">'+(saldo>=0?'+':'')+minToHHMM(saldo)+'</div></div><div class="hp-horas">'+(p.entrada||'—')+' / '+(p.saida||'—')+(trab?' ('+minToHHMM(trab)+')':'')+'</div>'+(p.obs?'<div class="hp-obs">'+p.obs+'</div>':'')+'</div>');
+  }
+  el.innerHTML=itens.join('')||'<p style="color:var(--text3);font-size:13px;text-align:center;padding:10px;">Nenhum registro.</p>';
+}
+
+function initPonto(){
+  iniciarRelogioPonto();
+  carregarPontoHoje();
+}
+// ===================================================================
+// FIM MÓDULO PONTO
+// ===================================================================
 
 checkOnline();
 </script>
