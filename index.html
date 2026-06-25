@@ -338,7 +338,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
           <div id="reg-geo-entrada" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
         </div>
         <div class="photo-add-btn" onclick="document.getElementById('foto-entrada').click()"><div class="ico">📷</div><span>Tirar foto de entrada</span></div>
-        <input type="file" id="foto-entrada" accept="image/*" capture="user" style="display:none" onchange="fotoEntrada(event)">
+        <input type="file" id="foto-entrada" accept="image/*" capture="environment" style="display:none" onchange="fotoEntrada(event)">
         <div id="preview-entrada" style="margin-bottom:12px;"></div>
         <button class="btn btn-primary" id="btn-entrada-ok" onclick="proximaEtapa(2)" disabled>Continuar →</button>
       </div>
@@ -364,7 +364,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div id="reg-step-3" class="hidden">
       <div class="card" style="margin-bottom:14px;">
         <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">📷</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Foto do dia</h2></div>
-        <div class="photo-add-btn" onclick="document.getElementById('foto-reg').click()"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        <label for="foto-reg" style="display:block;cursor:pointer;">
+          <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        </label>
         <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-reg','fotos-reg')">
         <div class="photo-grid" id="grid-reg" style="margin-bottom:12px;"></div>
       </div>
@@ -377,7 +379,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
         <div id="reg-geo-saida" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
       </div>
       <div class="photo-add-btn" onclick="document.getElementById('foto-saida').click()"><div class="ico">📷</div><span>Foto de saída (obrigatório)</span></div>
-      <input type="file" id="foto-saida" accept="image/*" capture="user" style="display:none" onchange="fotoSaida(event)">
+      <input type="file" id="foto-saida" accept="image/*" capture="environment" style="display:none" onchange="fotoSaida(event)">
       <div id="preview-saida" style="margin-bottom:14px;"></div>
       <button class="btn btn-green" id="btn-salvar-reg" onclick="salvarRegistro()" disabled>💾 Salvar ponto do dia</button>
       <button class="btn btn-ghost" style="margin-top:10px;" onclick="proximaEtapa(2)">← Voltar</button>
@@ -584,7 +586,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="ico">📷</div><span id="mps-foto-label">Tirar foto</span>
     <span style="font-size:11px;opacity:.7;">Obrigatório</span>
   </div>
-  <input type="file" id="input-foto-ps" accept="image/*" capture="user" style="display:none" onchange="capturarFotoPonto(event)">
+  <input type="file" id="input-foto-ps" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoPonto(event)">
   <img id="mps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:200px;object-fit:cover;display:none;margin-bottom:12px;">
   <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled>✅ Confirmar ponto</button>
 </div></div>
@@ -598,7 +600,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="fg"><label>Descreva o problema</label><textarea id="ch-desc" placeholder="O que está acontecendo?" style="font-size:14px;"></textarea></div>
   <div style="margin-bottom:14px;">
     <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (obrigatório)</label>
-    <div class="photo-add-btn" onclick="document.getElementById('foto-ch').click()"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    <label for="foto-ch" style="display:block;cursor:pointer;">
+      <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    </label>
     <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-ch','fotos-ch')">
     <div class="photo-grid" id="grid-ch"></div>
   </div>
@@ -617,7 +621,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="modal-hdr"><h3>✅ Resolver Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-fechar-ch')">×</button></div>
   <input type="hidden" id="fechar-ch-id">
   <div class="alert alert-warn">📷 Foto do serviço concluído é <strong>obrigatória</strong>.</div>
-  <div class="photo-add-btn" onclick="document.getElementById('foto-depois').click()"><div class="ico">📸</div><span>Foto do serviço concluído</span></div>
+  <label for="foto-depois" style="display:block;cursor:pointer;">
+    <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Foto do serviço concluído</span></div>
+  </label>
   <input type="file" id="foto-depois" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-depois','fotos-depois')">
   <div class="photo-grid" id="grid-depois" style="margin-bottom:14px;"></div>
   <div class="fg"><label>Como foi resolvido?</label><textarea id="fechar-ch-obs" placeholder="Descreva o que foi feito..." style="font-size:14px;"></textarea></div>
