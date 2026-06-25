@@ -1341,14 +1341,31 @@ function irParaPontoStep(tipo){
   geoEl.className = 'geo-bar geo-wait';
   geoEl.textContent = '⏳ Buscando localização...';
 
+  // GPS tenta capturar — botão habilita após 5 segundos de qualquer forma
+  var btnPS = document.getElementById('btn-confirmar-ps');
+  var gpsOk = false;
+
+  // Timeout de segurança — habilita após 5s mesmo sem GPS
+  var gpsTimeout = setTimeout(function(){
+    if(!gpsOk){
+      geoEl.className = 'geo-bar geo-err';
+      geoEl.innerHTML = '⚠️ GPS não disponível — ponto registrado sem localização';
+      btnPS.disabled = false;
+      verificarBtnPS();
+    }
+  }, 5000);
+
   obterGeo(function(geo){
+    clearTimeout(gpsTimeout);
+    gpsOk = true;
     if(geo){
       geoEl.className = 'geo-bar geo-ok';
       geoEl.innerHTML = '📍 Localização capturada (±'+geo.acc+'m)';
     } else {
       geoEl.className = 'geo-bar geo-err';
-      geoEl.textContent = '⚠️ GPS não disponível — pode continuar';
+      geoEl.innerHTML = '⚠️ GPS não disponível — ponto registrado sem localização';
     }
+    btnPS.disabled = false;
     verificarBtnPS();
   });
 
