@@ -1279,10 +1279,32 @@ function adicionarPendente(item){
   if(navigator.onLine)enviarPendentes();
 }
 
+let _enviandoPendentes=false;
 function enviarPendentes(){
   const url=localStorage.getItem('mjl_script_url');if(!url)return;
-  const p=lerLocal('mjl_pendentes_campo',[]);
-  p.forEach(item=>{fetch(url,{method:'POST',mode:'no-cors',headers:{'Content-Type':'application/json'},body:JSON.stringify(item)}).catch(()=>{});});
+  // CORREÇÃO: antes, a fila NUNCA era limpa — os mesmos registros eram
+  // reenviados a cada sync, duplicando pontos na planilha. Agora cada item
+  // é enviado com confirmação de entrega e SÓ sai da fila quando o servidor
+  // responde OK. Se falhar (sem internet, erro), fica guardado e tenta de novo.
+  if(navigator.onLine&&!_enviandoPendentes){
+    _enviandoPendentes=true;
+    (async function(){
+      try{
+        let fila=lerLocal('mjl_pendentes_campo',[]);
+        const restantes=[];
+        for(let i=0;i<fila.length;i++){
+          try{
+            const r=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(fila[i])});
+            if(!r.ok){restantes.push(fila[i]);for(let j=i+1;j<fila.length;j++)restantes.push(fila[j]);break;}
+          }catch(e){restantes.push(fila[i]);for(let j=i+1;j<fila.length;j++)restantes.push(fila[j]);break;}
+        }
+        // Junta com itens novos que chegaram DURANTE o envio
+        const atual=lerLocal('mjl_pendentes_campo',[]);
+        const novos=atual.slice(fila.length);
+        salvarLocal('mjl_pendentes_campo',restantes.concat(novos));
+      }finally{_enviandoPendentes=false;}
+    })();
+  }
   // Buscar atualizações
   fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(d=>{if(d?.colaboradores)salvarLocal('mjl_colaboradores',d.colaboradores);}).catch(()=>{});
   fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
@@ -1689,6 +1711,11 @@ function initPonto(){
 // ===================================================================
 
 checkOnline();
+
+// ===== OFFLINE: service worker guarda o app no aparelho =====
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('./sw.js').catch(function(){});
+}
 </script>
 </body>
 </html>
