@@ -1035,9 +1035,30 @@ function salvarRegistro(){
 }
 
 // ===== CRONOGRAMA =====
+function cronogramasDeHoje(){
+  const brutos=lerLocal('mjl_cronogramas',[]);
+  const diaHoje=new Date().getDay(); // 0=Dom ... 6=Sáb
+  const lista=[];
+  brutos.forEach(cr=>{
+    if(!cr) return;
+    if(cr.tarefasPorDia){
+      // Formato novo (Gestão): {cliente, dias:[1,5], tarefasPorDia:{1:[...],5:[...]}}
+      if(cr.ativo===false) return;
+      const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
+      doDia.forEach((t,ix)=>{
+        const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
+        if(!txt) return;
+        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',colaboradorId:cr.colaboradorId,todos:cr.todos});
+      });
+    } else if(cr.tarefa){
+      lista.push(cr); // formato antigo, já é a tarefa direta
+    }
+  });
+  return lista;
+}
 function renderCronograma(){
   if(!colAtual) return;
-  const cronos=lerLocal('mjl_cronogramas',[]);
+  const cronos=cronogramasDeHoje();
   // Filtrar cronogramas do colaborador (por cliente/local)
   const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes:[colAtual.cliente||''];
   const meus=cronos.filter(c=>meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
