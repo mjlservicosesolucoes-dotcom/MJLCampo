@@ -675,6 +675,14 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div></div>
 
 <!-- MODAL FECHAR CHAMADO -->
+<div id="modal-crono-ok" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>✅ Concluir Tarefa</h3><button class="modal-cls" onclick="fecharModal('modal-crono-ok')">×</button></div>
+  <p id="crono-ok-desc" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></p>
+  <button class="btn btn-ghost" style="width:100%;margin-bottom:10px;" onclick="document.getElementById('input-foto-crono').click()">📷 Tirar foto do serviço (opcional)</button>
+  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoCrono(event)">
+  <div id="crono-ok-prev" style="text-align:center;margin-bottom:10px;"></div>
+  <button class="btn btn-green" style="width:100%;padding:13px;" onclick="confirmarCronoFeito()">✅ Confirmar conclusão</button>
+</div></div>
 <div id="modal-fechar-ch" class="modal-overlay hidden"><div class="modal">
   <div class="modal-hdr"><h3>✅ Resolver Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-fechar-ch')">×</button></div>
   <input type="hidden" id="fechar-ch-id">
@@ -1086,24 +1094,65 @@ function renderCronograma(){
   }).join('');
 }
 
+let _cronoPend=null,_fotoCrono=null;
 function marcarCrono(itemId, local){
   const hoje=new Date().toISOString().slice(0,10);
   const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
   const feitos=lerLocal(key,[]);
   const idx=feitos.indexOf(itemId);
-  const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if(idx>=0){
+    // Desmarcar: instantâneo
     feitos.splice(idx,1);
     localStorage.removeItem('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''));
-  } else {
-    feitos.push(itemId);
-    salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
-    // Registra no pendente
-    adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,local,data:hoje,hora:agora,feito:true}});
+    salvarLocal(key,feitos);
+    renderCronograma();
+    atualizarBadges();
+    return;
+  }
+  // v8: marcar como feito abre confirmação com foto OPCIONAL do serviço
+  _cronoPend={itemId:itemId,local:local};
+  _fotoCrono=null;
+  document.getElementById('crono-ok-prev').innerHTML='';
+  document.getElementById('crono-ok-desc').textContent='📍 '+(local||colAtual?.cliente||'');
+  document.getElementById('modal-crono-ok').classList.remove('hidden');
+}
+function capturarFotoCrono(e){
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    comprimirFoto(ev.target.result,function(comp){
+      _fotoCrono=comp;
+      document.getElementById('crono-ok-prev').innerHTML='<img src="'+comp+'" style="max-width:140px;border-radius:10px;border:2px solid var(--green);">';
+    });
+  };
+  r.readAsDataURL(f);
+  e.target.value='';
+}
+function confirmarCronoFeito(){
+  if(!_cronoPend) return;
+  const itemId=_cronoPend.itemId, local=_cronoPend.local;
+  const temFoto=!!_fotoCrono;
+  const hoje=new Date().toISOString().slice(0,10);
+  const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
+  const feitos=lerLocal(key,[]);
+  const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if(!feitos.includes(itemId)) feitos.push(itemId);
+  salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
+  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,local,data:hoje,hora:agora,feito:true,foto:temFoto?'1 foto':''}});
+  if(temFoto){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Cronograma',etapa:'tarefa',refId:itemId,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,
+      img:_fotoCrono,timestamp:Date.now()
+    }});
   }
   salvarLocal(key,feitos);
+  _cronoPend=null;_fotoCrono=null;
+  fecharModal('modal-crono-ok');
   renderCronograma();
   atualizarBadges();
+  mostrarSucesso('📋','Tarefa concluída!',temFoto?'Foto registrada e enviada para a MJL.':'Registrado com sucesso.');
 }
 
 // ===== CHAMADOS =====
@@ -1116,17 +1165,20 @@ function abrirModalChamado(){
   document.getElementById('modal-chamado').classList.remove('hidden');
 }
 
+let _salvandoCh=false;
 function salvarChamado(){
   const tipo=document.getElementById('ch-tipo').value;
   if(!tipo){alert('Escolha o tipo.');return;}
   if(!(fotosData['fotos-ch']||[]).length){alert('Adicione foto do problema.');return;}
+  if(_salvandoCh)return; _salvandoCh=true; setTimeout(()=>{_salvandoCh=false;},3000);
+  fecharModal('modal-chamado'); // fecha a tela imediatamente — evita toque duplo
   const ch={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,cliente:colAtual.cliente||'',
     tipo,desc:document.getElementById('ch-desc').value.trim(),urgencia:urgSel2,
     fotosAntes:fotosData['fotos-ch']||[],fotosdepois:[],status:'aberto',
     dataAbertura:new Date().toISOString().slice(0,10),timestamp:Date.now(),origem:'colaborador'};
   const chs=lerLocal('mjl_chamados_local',[]);chs.push(ch);salvarLocal('mjl_chamados_local',chs);
   adicionarPendente({acao:'novoChamado',dados:{...ch,fotosAntes:ch.fotosAntes.length+' foto(s)'}});
-  // v7: fotos do problema vão para o Drive (MJL Fotos/Chamados/AAAA-MM)
+  // fotos do problema vão para o Drive (MJL Fotos/Chamados/AAAA-MM)
   (ch.fotosAntes||[]).forEach(function(img){
     adicionarPendente({acao:'salvarFoto',dados:{
       tipo:'Chamados',etapa:'antes',refId:ch.id,
@@ -1134,14 +1186,26 @@ function salvarChamado(){
       cliente:colAtual.cliente||'',data:ch.dataAbertura,img:img,timestamp:Date.now()
     }});
   });
-  fecharModal('modal-chamado');renderChamados();atualizarBadges();
+  renderChamados();atualizarBadges();
   mostrarSucesso('🔧','Chamado enviado!','A MJL foi notificada.');
 }
 
+function chamadosAtivos(){
+  // Junta locais + recebidos SEM duplicar (o status vindo da MJL/Gestão vence)
+  const map=new Map();
+  lerLocal('mjl_chamados_local',[]).forEach(c=>{if(c&&c.id)map.set(c.id,c);});
+  lerLocal('mjl_chamados_recebidos',[]).forEach(c=>{
+    if(!c||!c.id)return;
+    const loc=map.get(c.id);
+    map.set(c.id,loc?{...loc,status:c.status||loc.status,obs:c.obs||loc.obs,dataFechamento:c.dataFechamento||loc.dataFechamento}:c);
+  });
+  return Array.from(map.values()).filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente);
+}
 function renderChamados(){
   const el=document.getElementById('lista-chamados');
-  const lista=[...lerLocal('mjl_chamados_local',[]),...lerLocal('mjl_chamados_recebidos',[])].filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente).sort((a,b)=>b.timestamp-a.timestamp);
-  if(!lista.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum chamado ainda.</p>';return;}
+  // v8: mostra só os PENDENTES (aberto/em andamento) — concluído sai da tela
+  const lista=chamadosAtivos().filter(c=>c.status!=='fechado').sort((a,b)=>b.timestamp-a.timestamp);
+  if(!lista.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">✅ Nenhum chamado pendente.</p>';return;}
   const bMap={aberto:'b-aberto',andamento:'b-andamento',fechado:'b-fechado'};
   const tMap={aberto:'Aberto',andamento:'Em andamento',fechado:'Concluído'};
   el.innerHTML=lista.map(c=>`<div class="item-card">
@@ -1159,9 +1223,12 @@ function iniciarFechamento(id){
   document.getElementById('modal-fechar-ch').classList.remove('hidden');
 }
 
+let _fechandoCh=false;
 function fecharChamado(){
   if(!(fotosData['fotos-depois']||[]).length){alert('Adicione foto do serviço concluído.');return;}
+  if(_fechandoCh)return; _fechandoCh=true; setTimeout(()=>{_fechandoCh=false;},3000);
   const id=document.getElementById('fechar-ch-id').value;
+  fecharModal('modal-fechar-ch'); // fecha a tela imediatamente — evita toque duplo
   const chs=lerLocal('mjl_chamados_local',[]);
   const idx=chs.findIndex(x=>x.id===id);
   if(idx>=0){chs[idx].status='fechado';chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});
@@ -1172,7 +1239,7 @@ function fecharChamado(){
         cliente:colAtual.cliente||'',data:chs[idx].dataFechamento,img:img,timestamp:Date.now()
       }});
     });}
-  fecharModal('modal-fechar-ch');renderChamados();atualizarBadges();
+  renderChamados();atualizarBadges();
   mostrarSucesso('✅','Chamado resolvido!','Ótimo trabalho!');
 }
 
@@ -1277,25 +1344,48 @@ function salvarURLApp(){
 }
 
 // ===== FOTOS =====
+function comprimirFoto(dataUrl,cb){
+  var img=new Image();
+  img.onload=function(){
+    var canvas=document.createElement('canvas');
+    var w=img.width,h=img.height,max=800;
+    if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+    canvas.width=w;canvas.height=h;
+    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    var q=0.7,r=canvas.toDataURL('image/jpeg',q);
+    while(r.length>120*1024*1.37&&q>0.2){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
+    cb(r);
+  };
+  img.onerror=function(){cb(dataUrl);};
+  img.src=dataUrl;
+}
 function addFotos(e,gridId,dataKey){
   if(!fotosData[dataKey])fotosData[dataKey]=[];
   Array.from(e.target.files).forEach(f=>{
     const r=new FileReader();
     r.onload=ev=>{
-      fotosData[dataKey].push(ev.target.result);
-      const g=document.getElementById(gridId);if(!g)return;
-      const d=document.createElement('div');d.className='photo-thumb';
-      const img=document.createElement('img');img.src=ev.target.result;
-      const idx=fotosData[dataKey].length-1;
-      const del=document.createElement('button');del.className='photo-del';del.innerHTML='×';
-      del.onclick=()=>{fotosData[dataKey].splice(idx,1);d.remove();};
-      d.appendChild(img);d.appendChild(del);g.appendChild(d);
+      // v8: comprime ANTES de guardar — foto original do celular (3-8MB)
+      // estourava o armazenamento local e travava o envio
+      comprimirFoto(ev.target.result,function(comp){
+        fotosData[dataKey].push(comp);
+        const g=document.getElementById(gridId);if(!g)return;
+        const d=document.createElement('div');d.className='photo-thumb';
+        const img=document.createElement('img');img.src=comp;
+        const idx=fotosData[dataKey].length-1;
+        const del=document.createElement('button');del.className='photo-del';del.innerHTML='×';
+        del.onclick=()=>{fotosData[dataKey].splice(idx,1);d.remove();};
+        d.appendChild(img);d.appendChild(del);g.appendChild(d);
+      });
     };r.readAsDataURL(f);
   });
 }
 
 // ===== PENDENTES =====
 function adicionarPendente(item){
+  try{ _adicionarPendenteInterno(item); }
+  catch(e){ alert('⚠️ Memória do aparelho cheia. A foto/registro pode não ter sido guardado para envio. Conecte na internet e sincronize para liberar espaço.'); }
+}
+function _adicionarPendenteInterno(item){
   const p=lerLocal('mjl_pendentes_campo',[]);
   p.push({...item,timestamp:Date.now()});
   salvarLocal('mjl_pendentes_campo',p);
@@ -1343,7 +1433,7 @@ function atualizarBadges(){
   nbInfo.style.display=naoLidos?'flex':'none';nbInfo.textContent=naoLidos;
   document.getElementById('home-info-sub').textContent=naoLidos?naoLidos+' para assinar':'Documentos';
 
-  const chs=[...lerLocal('mjl_chamados_local',[]),...lerLocal('mjl_chamados_recebidos',[])].filter(c=>c.status!=='fechado').length;
+  const chs=chamadosAtivos().filter(c=>c.status!=='fechado').length;
   const nbCh=document.getElementById('nb-ch');
   nbCh.style.display=chs?'flex':'none';nbCh.textContent=chs;
   document.getElementById('home-ch-sub').textContent=chs?chs+' em aberto':'Manutenção';
