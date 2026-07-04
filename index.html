@@ -1014,6 +1014,14 @@ function salvarRegistro(){
     obs:(document.getElementById('reg-obs')||{}).value?.trim()||'',tarefas,fotos:fotosData['fotos-reg']||[],
     geo:geoAtual,geoMapsLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',enviado:false};
   adicionarPendente({acao:'salvarRegistro',dados:{...reg,fotos:reg.fotos.length+' foto(s)'}});
+  // v7: cada foto do registro do dia vai para o Drive (MJL Fotos/Cronograma/AAAA-MM)
+  (reg.fotos||[]).forEach(function(img){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Cronograma',etapa:'registro',refId:reg.id,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:reg.data,img:img,timestamp:Date.now()
+    }});
+  });
   fotosData['fotos-reg']=[]; document.getElementById('grid-reg').innerHTML='';
   mostrarSucesso('✅','Dia registrado!',navigator.onLine?'Enviado para a MJL.':'Salvo. Enviará quando tiver Wi-Fi.');
 }
@@ -1118,6 +1126,14 @@ function salvarChamado(){
     dataAbertura:new Date().toISOString().slice(0,10),timestamp:Date.now(),origem:'colaborador'};
   const chs=lerLocal('mjl_chamados_local',[]);chs.push(ch);salvarLocal('mjl_chamados_local',chs);
   adicionarPendente({acao:'novoChamado',dados:{...ch,fotosAntes:ch.fotosAntes.length+' foto(s)'}});
+  // v7: fotos do problema vão para o Drive (MJL Fotos/Chamados/AAAA-MM)
+  (ch.fotosAntes||[]).forEach(function(img){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Chamados',etapa:'antes',refId:ch.id,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:ch.dataAbertura,img:img,timestamp:Date.now()
+    }});
+  });
   fecharModal('modal-chamado');renderChamados();atualizarBadges();
   mostrarSucesso('🔧','Chamado enviado!','A MJL foi notificada.');
 }
@@ -1148,7 +1164,14 @@ function fecharChamado(){
   const id=document.getElementById('fechar-ch-id').value;
   const chs=lerLocal('mjl_chamados_local',[]);
   const idx=chs.findIndex(x=>x.id===id);
-  if(idx>=0){chs[idx].status='fechado';chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});}
+  if(idx>=0){chs[idx].status='fechado';chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});
+    (chs[idx].fotosdepois||[]).forEach(function(img){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Chamados',etapa:'depois',refId:chs[idx].id,
+        colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+        cliente:colAtual.cliente||'',data:chs[idx].dataFechamento,img:img,timestamp:Date.now()
+      }});
+    });}
   fecharModal('modal-fechar-ch');renderChamados();atualizarBadges();
   mostrarSucesso('✅','Chamado resolvido!','Ótimo trabalho!');
 }
@@ -1486,6 +1509,16 @@ function confirmarPontoStep(){
   if(psTimer){ clearInterval(psTimer); psTimer = null; }
 
   salvarPontoHoje();
+  // v7: envia a foto do ponto para o Drive da MJL (organizada em MJL Fotos/Ponto/AAAA-MM)
+  if(fotoPS){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Ponto',etapa:(pontoTipoAtual==='entrada'?'entrada':'saida'),
+      refId:colAtual.id+'_'+pontoHoje.data,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:pontoHoje.data,hora:hora,
+      img:fotoPS,timestamp:Date.now()
+    }});
+  }
   fotoPS = null;
   var btnFoto = document.getElementById('ps-foto-btn');
   if(btnFoto) btnFoto.style.display='';
