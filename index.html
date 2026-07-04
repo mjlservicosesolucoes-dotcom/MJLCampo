@@ -1041,6 +1041,10 @@ function renderCronograma(){
   // Filtrar cronogramas do colaborador (por cliente/local)
   const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes:[colAtual.cliente||''];
   const meus=cronos.filter(c=>meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
+  // v9: volante/cobertura vê TODOS os locais — o posto fixo aparece aberto
+  // no topo e os demais condomínios ficam logo abaixo, fechados (toque para abrir)
+  const idsMeus=new Set(meus.map(c=>c.id));
+  const outros=cronos.filter(c=>c.cliente&&!idsMeus.has(c.id));
 
   // Mini calendário semanal
   const semana=document.getElementById('crono-semana');
@@ -1058,16 +1062,21 @@ function renderCronograma(){
   semana.innerHTML=semanaHTML;
 
   const el=document.getElementById('crono-locais');
-  if(!meus.length){
+  if(!meus.length&&!outros.length){
     el.innerHTML='<div class="card" style="text-align:center;padding:28px"><div style="font-size:48px;margin-bottom:10px">📅</div><p style="color:var(--text3);font-size:14px">Nenhum cronograma definido ainda.<br>A MJL irá criar o seu em breve.</p></div>';
     return;
   }
 
-  // Agrupar por local
-  const porLocal={};
+  // Agrupar por local: meu posto primeiro (aberto); demais locais fechados
+  const porLocal={},porLocalOutros={};
   meus.forEach(c=>{if(!porLocal[c.cliente])porLocal[c.cliente]=[];porLocal[c.cliente].push(c);});
-
-  el.innerHTML=Object.entries(porLocal).map(([local,items])=>{
+  outros.forEach(c=>{if(!porLocalOutros[c.cliente])porLocalOutros[c.cliente]=[];porLocalOutros[c.cliente].push(c);});
+  const nMeus=Object.keys(porLocal).length;
+  const blocos=[
+    ...Object.entries(porLocal).map(([l,i])=>[l,i,true]),
+    ...Object.entries(porLocalOutros).sort((a,b)=>a[0].localeCompare(b[0])).map(([l,i])=>[l,i,false])
+  ];
+  el.innerHTML=blocos.map(([local,items,aberto],bi)=>{
     const hoje2=new Date().toISOString().slice(0,10);
     const feitosHoje=lerLocal('mjl_crono_feitos_'+hoje2+'_'+(colAtual?.id||''),[]);
     const totalHoje=items.length;
@@ -1084,12 +1093,13 @@ function renderCronograma(){
         </div>
       </div>`;
     }).join('');
-    return `<div class="crono-local">
+    const divisorHTML=(nMeus>0&&bi===nMeus)?'<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--text3);margin:16px 2px 8px;">🔁 OUTROS LOCAIS — COBERTURA / VOLANTE</div>':'';
+    return `${divisorHTML}<div class="crono-local">
       <div class="crono-local-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
         <h3>📍 ${local}</h3>
-        <span class="prog">${feitosCount}/${totalHoje} hoje</span>
+        <span class="prog">${aberto?'':'▸ '}${feitosCount}/${totalHoje} hoje</span>
       </div>
-      <div class="crono-local-body">${tarefasHTML}</div>
+      <div class="crono-local-body" style="display:${aberto?'block':'none'}">${tarefasHTML}</div>
     </div>`;
   }).join('');
 }
