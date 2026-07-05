@@ -1882,6 +1882,21 @@ function initPonto(){
 
 checkOnline();
 
+// ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
+const APP_VERSAO='v12';
+(function(){
+  const b=document.createElement('div');
+  b.id='mjl-versao-badge';
+  b.style.cssText='position:fixed;bottom:4px;right:8px;font-size:10px;color:#9aa5b1;z-index:9999;pointer-events:none;background:rgba(255,255,255,.75);padding:1px 6px;border-radius:8px;';
+  document.body.appendChild(b);
+  function atualizarBadgeVersao(){
+    const n=lerLocal('mjl_pendentes_campo',[]).length;
+    b.textContent='MJL Campo '+APP_VERSAO+(n?' · fila: '+n:' · fila vazia');
+  }
+  atualizarBadgeVersao();
+  setInterval(atualizarBadgeVersao,5000);
+})();
+
 // ===== OFFLINE: service worker guarda o app no aparelho =====
 if('serviceWorker' in navigator && location.protocol==='https:'){
   navigator.serviceWorker.register('./sw.js').catch(function(){});
