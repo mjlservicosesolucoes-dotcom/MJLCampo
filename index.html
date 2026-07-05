@@ -1225,10 +1225,18 @@ function chamadosAtivos(){
   // Junta locais + recebidos SEM duplicar (o status vindo da MJL/Gestão vence)
   const map=new Map();
   lerLocal('mjl_chamados_local',[]).forEach(c=>{if(c&&c.id)map.set(c.id,c);});
+  const rankSt={aberto:0,andamento:1,fechado:2};
   lerLocal('mjl_chamados_recebidos',[]).forEach(c=>{
     if(!c||!c.id)return;
     const loc=map.get(c.id);
-    map.set(c.id,loc?{...loc,status:c.status||loc.status,obs:c.obs||loc.obs,dataFechamento:c.dataFechamento||loc.dataFechamento}:c);
+    if(!loc){map.set(c.id,c);return;}
+    // v13: quem mexeu por último vence; sem carimbo, vence o status mais
+    // avançado — um "fechado" local nunca volta a "aberto" por cópia velha
+    if(Number(loc.upC||0)>Number(c.upC||0)||(rankSt[loc.status]||0)>(rankSt[c.status]||0)){
+      map.set(c.id,{...c,...loc});
+    } else {
+      map.set(c.id,{...loc,...c});
+    }
   });
   return Array.from(map.values()).filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente);
 }
@@ -1261,8 +1269,15 @@ function fecharChamado(){
   const id=document.getElementById('fechar-ch-id').value;
   fecharModal('modal-fechar-ch'); // fecha a tela imediatamente — evita toque duplo
   const chs=lerLocal('mjl_chamados_local',[]);
-  const idx=chs.findIndex(x=>x.id===id);
-  if(idx>=0){chs[idx].status='fechado';chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});
+  let idx=chs.findIndex(x=>x.id===id);
+  // v13: se o chamado foi criado em OUTRO aparelho (veio dos "recebidos"),
+  // traz ele pro local antes de fechar — antes o fechamento era ignorado
+  // em silêncio e o chamado "nunca fechava"
+  if(idx<0){
+    const rec=lerLocal('mjl_chamados_recebidos',[]).find(x=>x.id===id);
+    if(rec){chs.push({...rec});idx=chs.length-1;}
+  }
+  if(idx>=0){chs[idx].status='fechado';chs[idx].upC=Date.now();chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});
     (chs[idx].fotosdepois||[]).forEach(function(img){
       adicionarPendente({acao:'salvarFoto',dados:{
         tipo:'Chamados',etapa:'depois',refId:chs[idx].id,
@@ -1883,7 +1898,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v12';
+const APP_VERSAO='v13';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
