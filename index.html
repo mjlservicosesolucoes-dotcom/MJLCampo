@@ -1434,18 +1434,34 @@ function enviarPendentes(){
     _enviandoPendentes=true;
     (async function(){
       try{
-        let fila=lerLocal('mjl_pendentes_campo',[]);
+        const filaOrig=lerLocal('mjl_pendentes_campo',[]);
+        const lenOrig=filaOrig.length;
+        // v11: LIMPEZA — descarta fotos gigantes de versões antigas (sem
+        // compressão) que travavam a fila e bloqueavam tudo que vinha depois
+        let fila=filaOrig.filter(function(it){
+          if(it&&it.acao==='salvarFoto'&&it.dados&&it.dados.img&&it.dados.img.length>450000) return false;
+          return true;
+        });
         const restantes=[];
+        let quebrou=false;
         for(let i=0;i<fila.length;i++){
+          if(quebrou){restantes.push(fila[i]);continue;}
           try{
             const r=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(fila[i])});
-            if(!r.ok){restantes.push(fila[i]);for(let j=i+1;j<fila.length;j++)restantes.push(fila[j]);break;}
-          }catch(e){restantes.push(fila[i]);for(let j=i+1;j<fila.length;j++)restantes.push(fila[j]);break;}
+            if(!r.ok){
+              // v11: item recusado não trava a fila — os próximos seguem;
+              // ele fica para tentar de novo (até 8 tentativas, depois descarta)
+              fila[i]._tent=(fila[i]._tent||0)+1;
+              if(fila[i]._tent<8) restantes.push(fila[i]);
+            }
+          }catch(e){
+            // Sem rede/erro de conexão: para tudo e tenta na próxima
+            restantes.push(fila[i]);quebrou=true;
+          }
         }
         // Junta com itens novos que chegaram DURANTE o envio
         const atual=lerLocal('mjl_pendentes_campo',[]);
-        const novos=atual.slice(fila.length);
-        salvarLocal('mjl_pendentes_campo',restantes.concat(novos));
+        salvarLocal('mjl_pendentes_campo',restantes.concat(atual.slice(lenOrig)));
       }finally{_enviandoPendentes=false;}
     })();
   }
