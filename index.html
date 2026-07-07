@@ -1563,33 +1563,21 @@ function irParaPontoStep(tipo){
   geoEl.className = 'geo-bar geo-wait';
   geoEl.textContent = '⏳ Buscando localização...';
 
-  // GPS tenta capturar — botão habilita após 5 segundos de qualquer forma
+  // v14: usa a localização JÁ capturada (geoAtual) e atualiza direto do
+  // navegador — sem callback fantasma que causava o falso "GPS não disponível"
   var btnPS = document.getElementById('btn-confirmar-ps');
-  var gpsOk = false;
-
-  // Timeout de segurança — habilita após 5s mesmo sem GPS
-  var gpsTimeout = setTimeout(function(){
-    if(!gpsOk){
-      geoEl.className = 'geo-bar geo-err';
-      geoEl.innerHTML = '⚠️ GPS não disponível — ponto registrado sem localização';
-      btnPS.disabled = false;
-      verificarBtnPS();
-    }
-  }, 5000);
-
-  obterGeo(function(geo){
-    clearTimeout(gpsTimeout);
-    gpsOk = true;
-    if(geo){
-      geoEl.className = 'geo-bar geo-ok';
-      geoEl.innerHTML = '📍 Localização capturada (±'+geo.acc+'m)';
-    } else {
-      geoEl.className = 'geo-bar geo-err';
-      geoEl.innerHTML = '⚠️ GPS não disponível — ponto registrado sem localização';
-    }
-    btnPS.disabled = false;
-    verificarBtnPS();
-  });
+  btnPS.disabled = false; verificarBtnPS();
+  function _mostraGeo(){
+    if(geoAtual){ geoEl.className='geo-bar geo-ok'; geoEl.innerHTML='📍 Localização capturada (±'+geoAtual.acc+'m)'; }
+    else { geoEl.className='geo-bar geo-wait'; geoEl.innerHTML='⏳ Buscando localização... (o ponto pode ser batido)'; }
+  }
+  _mostraGeo();
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+      _mostraGeo();
+    },function(){ if(!geoAtual){ geoEl.className='geo-bar geo-err'; geoEl.innerHTML='⚠️ Sem GPS agora — ponto registrado sem localização'; } },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+  }
 
   ir('scr-ponto-step');
 }
@@ -1898,7 +1886,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v13';
+const APP_VERSAO='v14';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
