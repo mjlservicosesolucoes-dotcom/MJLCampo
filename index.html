@@ -1044,11 +1044,15 @@ function cronogramasDeHoje(){
     if(cr.tarefasPorDia){
       // Formato novo (Gestão): {cliente, dias:[1,5], tarefasPorDia:{1:[...],5:[...]}}
       if(cr.ativo===false) return;
+      // v15: cronograma restrito a colaboradores específicos só aparece pra eles
+      if(cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
+      // se for por função, respeita a função do colaborador (quando definida)
+      if((!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
       const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
       doDia.forEach((t,ix)=>{
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
         if(!txt) return;
-        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',colaboradorId:cr.colaboradorId,todos:cr.todos});
+        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos});
       });
     } else if(cr.tarefa){
       lista.push(cr); // formato antigo, já é a tarefa direta
@@ -1061,7 +1065,7 @@ function renderCronograma(){
   const cronos=cronogramasDeHoje();
   // Filtrar cronogramas do colaborador (por cliente/local)
   const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes:[colAtual.cliente||''];
-  const meus=cronos.filter(c=>meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
+  const meus=cronos.filter(c=>(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual.id))||meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
   // v9: volante/cobertura vê TODOS os locais — o posto fixo aparece aberto
   // no topo e os demais condomínios ficam logo abaixo, fechados (toque para abrir)
   const idsMeus=new Set(meus.map(c=>c.id));
@@ -1886,7 +1890,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v14';
+const APP_VERSAO='v15';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
