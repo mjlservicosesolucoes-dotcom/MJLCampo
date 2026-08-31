@@ -1481,7 +1481,15 @@ function enviarPendentes(){
         // Junta com itens novos que chegaram DURANTE o envio
         const atual=lerLocal('mjl_pendentes_campo',[]);
         salvarLocal('mjl_pendentes_campo',restantes.concat(atual.slice(lenOrig)));
-      }finally{_enviandoPendentes=false;}
+      }finally{
+        _enviandoPendentes=false;
+        // v16: corrige corrida entre ponto e foto — se algo novo chegou
+        // na fila ENQUANTO este envio rodava (ex: a foto do ponto logo
+        // depois do registro), ele ficava esperando parado. Agora,
+        // assim que um envio termina, verifica se sobrou pendente e
+        // dispara de novo automaticamente.
+        if(navigator.onLine && lerLocal('mjl_pendentes_campo',[]).length) enviarPendentes();
+      }
     })();
   }
   // Buscar atualizações
@@ -1940,3 +1948,4 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
 </script>
 </body>
 </html>
+ 
