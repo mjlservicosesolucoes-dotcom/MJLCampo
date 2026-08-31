@@ -1587,6 +1587,30 @@ function irParaPontoStep(tipo){
 }
 
 
+// v9: carimbo discreto (condomínio + data/hora) desenhado na própria foto,
+// no momento da captura — funciona 100% offline (cliente vem do cache local,
+// data/hora vem do relógio do aparelho). Não usa nome do colaborador.
+function desenharCarimboFoto(canvas, ctx, linha1, linha2){
+  if(!linha1 && !linha2) return;
+  var w = canvas.width, h = canvas.height;
+  var fontSize = Math.max(11, Math.round(w*0.032));
+  ctx.font = fontSize+'px Arial, sans-serif';
+  var padX = Math.round(fontSize*0.6), padY = Math.round(fontSize*0.45);
+  var textos = [linha1, linha2].filter(Boolean);
+  var largura = 0;
+  textos.forEach(function(t){ largura = Math.max(largura, ctx.measureText(t).width); });
+  largura += padX*2;
+  var linhaAltura = Math.round(fontSize*1.25);
+  var altura = linhaAltura*textos.length + padY*2 - Math.round(fontSize*0.25);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, h-altura, largura, altura);
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'top';
+  textos.forEach(function(t, i){
+    ctx.fillText(t, padX, h-altura+padY+ (i*linhaAltura));
+  });
+}
+
 function capturarFotoPS(e){
   var file = e.target.files[0]; if(!file) return;
   var reader = new FileReader();
@@ -1597,7 +1621,12 @@ function capturarFotoPS(e){
       var w=img.width, h=img.height, max=640;
       if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
       canvas.width=w; canvas.height=h;
-      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var agora = new Date();
+      var dataHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toTimeString().slice(0,5);
+      var condominio = (colAtual && colAtual.cliente) ? colAtual.cliente : '';
+      desenharCarimboFoto(canvas, ctx, condominio, dataHora);
       var q=0.65, r=canvas.toDataURL('image/jpeg',q);
       while(r.length>80*1024*1.37&&q>0.1){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
       fotoPS = r;
@@ -1911,4 +1940,3 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
 </script>
 </body>
 </html>
- 
