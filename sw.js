@@ -2,7 +2,7 @@
 // Guarda o app no aparelho: abre mesmo SEM internet.
 // Quando há internet, baixa a versão nova em segundo plano —
 // na próxima abertura, o app já vem atualizado.
-const CACHE = 'mjl-app-v1';
+const CACHE = 'mjl-app-v2';
 
 self.addEventListener('install', function(e){
   self.skipWaiting();
@@ -10,7 +10,13 @@ self.addEventListener('install', function(e){
 });
 
 self.addEventListener('activate', function(e){
-  e.waitUntil(self.clients.claim());
+  // v2: remove caches de versões antigas (ex: mjl-app-v1) pra não
+  // ficar lixo acumulado e garantir que a versão nova seja usada
+  e.waitUntil(
+    caches.keys().then(function(nomes){
+      return Promise.all(nomes.filter(function(n){ return n!==CACHE; }).map(function(n){ return caches.delete(n); }));
+    }).then(function(){ return self.clients.claim(); })
+  );
 });
 
 self.addEventListener('fetch', function(e){
