@@ -547,7 +547,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="fila-lista" style="font-size:12px;line-height:1.6;"></div>
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
         <button class="btn btn-primary" style="flex:1;" onclick="reenviarFila()">🔄 Reenviar agora</button>
-        <button class="btn btn-ghost" style="flex:1;" onclick="copiarFila()">📋 Copiar fila</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="enviarFilaWhats()">💬 Enviar p/ MJL</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="copiarFila()">📋 Copiar</button>
       </div>
       <div id="fila-status" style="margin-top:8px;font-size:12px;text-align:center;min-height:16px;"></div>
     </div>
@@ -1405,7 +1406,7 @@ function renderFila(){
   const el=document.getElementById('fila-lista');if(!el)return;
   const f=lerLocal('mjl_pendentes_campo',[]);const er=lerLocal('mjl_fila_erros',[]);
   let h=f.length?f.map(function(it,i){return '<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 0;border-bottom:1px solid #eef2f6;"><span>'+(i+1)+'. '+_descItem(it)+'</span><button onclick="removerDaFila('+i+')" style="border:0;background:none;color:var(--red);font-size:14px;">✖</button></div>';}).join(''):'<div style="color:var(--green);font-weight:700;">✅ Fila vazia — tudo enviado</div>';
-  if(er.length) h+='<div style="margin-top:8px;color:var(--red);font-weight:700;">❌ '+er.length+' item(ns) desistidos após 8 tentativas (use "Copiar fila" para recuperar)</div>';
+  if(er.length) h+='<div style="margin-top:8px;color:var(--red);font-weight:700;">❌ '+er.length+' item(ns) desistidos após 8 tentativas (use "Enviar p/ MJL" para não perder)</div>';
   el.innerHTML=h;
 }
 function removerDaFila(i){
@@ -1420,12 +1421,36 @@ function reenviarFila(){
   st.textContent='⏳ Enviando...';enviarPendentes();
   let n=0;const t=setInterval(function(){renderFila();n++;const q=lerLocal('mjl_pendentes_campo',[]).length;if(!q||n>12){clearInterval(t);st.textContent=q?'⚠️ Ainda restam '+q+' item(ns). Veja o motivo (⚠️) na lista.':'✅ Tudo enviado!';}},2500);
 }
-function copiarFila(){
+function _resumoItem(it){
+  const d=it.dados||{};const g=function(x){return x&&x.lat?x.lat.toFixed(5)+','+x.lng.toFixed(5):'';};
+  const dt=d.data?d.data.split('-').reverse().join('/'):'';
+  switch(it.acao){
+    case 'salvarPonto': return '⏱ PONTO '+dt+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+')\n  Entrada '+(d.entrada||'--')+' | Alm. '+(d.saida_alm||'--')+'-'+(d.volta_alm||'--')+' | Saída '+(d.saida||'--')+(g(d.geo_e)?'\n  GPS ent: '+g(d.geo_e):'')+(g(d.geo_s)?'\n  GPS saí: '+g(d.geo_s):'')+(d.just_entrada?'\n  Just. ent: '+d.just_entrada:'')+(d.just_saida?'\n  Just. saí: '+d.just_saida:'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'salvarFoto': return '📷 FOTO '+(d.tipo||'')+' '+(d.etapa||'')+' '+dt+' '+(d.hora||'')+' — '+(d.colaboradorNome||'')+' (foto fica no celular)';
+    case 'salvarRegistro': return '📝 REGISTRO '+dt+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+') '+(d.entrada||'')+'-'+(d.saida||'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'registrarCrono': return '✅ TAREFA '+dt+' '+(d.hora||'')+' — '+(d.colaboradorNome||'')+' — '+(d.local||'')+' (item '+(d.itemId||'')+')';
+    case 'novoChamado': return '🔧 CHAMADO '+(d.dataAbertura?d.dataAbertura.split('-').reverse().join('/'):'')+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+') '+(d.tipo||'')+' '+(d.urgencia||'')+'\n  '+(d.desc||'');
+    case 'fecharChamado': return '✔ FECHAR CHAMADO '+(d.id||'')+' — '+(d.colaboradorNome||'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'novaOuvidoria': return '💬 OUVIDORIA '+dt+' — '+(d.colaboradorNome||'')+' — '+(d.tipo||'')+'\n  '+(d.msg||d.mensagem||'');
+    case 'registrarAssinatura': return '✍ ASSINATURA informativo '+(d.informativoId||d.id||'')+' — '+(d.colaboradorNome||'');
+    default: return '• '+(it.acao||'?');
+  }
+}
+function _textoFila(){
   const f=lerLocal('mjl_pendentes_campo',[]).concat(lerLocal('mjl_fila_erros',[]));
-  const txt=f.map(function(it){const c={...it};if(c.dados&&c.dados.img)c.dados={...c.dados,img:'[foto '+Math.round(c.dados.img.length/1024)+'KB]'};return JSON.stringify(c);}).join('\n');
-  const st=document.getElementById('fila-status');
-  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){st.textContent='📋 Copiado! Cole no WhatsApp da MJL.';}).catch(function(){prompt('Copie o texto:',txt);});}
+  if(!f.length) return '';
+  return 'MJL Campo — registros pendentes ('+(colAtual?colAtual.nome:'')+')\n\n'+f.map(function(it,i){return (i+1)+'. '+_resumoItem(it);}).join('\n\n');
+}
+function copiarFila(){
+  const txt=_textoFila();const st=document.getElementById('fila-status');
+  if(!txt){st.textContent='Nada para copiar — fila vazia.';return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){st.textContent='📋 Copiado!';}).catch(function(){prompt('Copie o texto:',txt);});}
   else prompt('Copie o texto:',txt);
+}
+function enviarFilaWhats(){
+  const txt=_textoFila();const st=document.getElementById('fila-status');
+  if(!txt){st.textContent='Nada para enviar — fila vazia.';return;}
+  window.open('https://wa.me/5521968381313?text='+encodeURIComponent(txt.slice(0,3000)),'_blank');
 }
 
 // ===== CONFIG APP =====
