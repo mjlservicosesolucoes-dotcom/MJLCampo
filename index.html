@@ -1112,20 +1112,23 @@ function cronogramasDeHoje(){
       // Formato novo (Gestão): {cliente, dias:[1,5], tarefasPorDia:{1:[...],5:[...]}}
       if(cr.ativo===false) return;
       // v15: cronograma restrito a colaboradores específicos só aparece pra eles
-      if(cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
+      const _cobPre=(cr.coberturas||[]).some(function(cb){ return cb&&cb.colabId===(colAtual&&colAtual.id)&&cb.de&&cb.ate&&hojeStr>=cb.de&&hojeStr<=cb.ate; });
+      if(!_cobPre&&cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
       // se for por função, respeita a função do colaborador (quando definida)
-      if((!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
+      if(!_cobPre&&(!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
+      // v17: cobertura (falta/atestado/férias) — local aparece pra quem está cobrindo
+      const _cob=_cobPre;
       const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
       doDia.forEach((t,ix)=>{
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
         if(!txt) return;
-        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos});
+        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
       });
       // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
       (cr.periodicas||[]).forEach(function(t){
         if(!t||!t.texto) return;
         if(!periodicaCaiNoDia(t,hojeStr,cr.dias||[])) return;
-        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos});
+        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
       });
     } else if(cr.tarefa){
       lista.push(cr); // formato antigo, já é a tarefa direta
@@ -1137,8 +1140,11 @@ function renderCronograma(){
   if(!colAtual) return;
   const cronos=cronogramasDeHoje();
   // Filtrar cronogramas do colaborador (por cliente/local)
-  const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes:[colAtual.cliente||''];
-  const meus=cronos.filter(c=>(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual.id))||meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
+  // v17: colaborador em mais de um condomínio — o Gestão envia "Local A | Local B"
+  const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes
+    :(typeof colAtual.clientes==='string'&&colAtual.clientes?colAtual.clientes.split('|').map(x=>x.trim()).filter(Boolean)
+    :[colAtual.cliente||'']);
+  const meus=cronos.filter(c=>c.cobertura||(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual.id))||meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
   // v9: volante/cobertura vê TODOS os locais — o posto fixo aparece aberto
   // no topo e os demais condomínios ficam logo abaixo, fechados (toque para abrir)
   const idsMeus=new Set(meus.map(c=>c.id));
@@ -1196,7 +1202,7 @@ function renderCronograma(){
     const divisorHTML=(nMeus>0&&bi===nMeus)?'<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--text3);margin:16px 2px 8px;">🔁 OUTROS LOCAIS — COBERTURA / VOLANTE</div>':'';
     return `${divisorHTML}<div class="crono-local">
       <div class="crono-local-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
-        <h3>📍 ${local}</h3>
+        <h3>📍 ${local}${items.some(i=>i.cobertura)?' <span style="font-size:10px;background:#1e7e4a;color:#fff;padding:2px 7px;border-radius:10px;vertical-align:middle;">🔄 COBERTURA</span>':''}</h3>
         <span class="prog">${aberto?'':'▸ '}${feitosCount}/${totalHoje} hoje</span>
       </div>
       <div class="crono-local-body" style="display:${aberto?'block':'none'}">${tarefasHTML}</div>
