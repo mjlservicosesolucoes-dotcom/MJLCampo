@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -695,7 +694,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <label for="input-foto-crono" style="display:block;cursor:pointer;">
     <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Adicionar foto(s) do serviço</span></div>
   </label>
-  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-crono-ok','fotos-crono')">
+  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-crono-ok','fotos-crono',_cronoPend&&_cronoPend.local)">
   <div class="photo-grid" id="grid-crono-ok" style="margin-bottom:12px;"></div>
   <div class="fg"><label>📝 Observação (opcional)</label>
     <textarea id="crono-ok-obs" placeholder="Algo a relatar nesta tarefa? Ex: torneira do 3º andar vazando, faltou produto..." style="font-size:14px;"></textarea>
@@ -1550,14 +1549,24 @@ function salvarURLApp(){
 }
 
 // ===== FOTOS =====
-function comprimirFoto(dataUrl,cb){
+function comprimirFoto(dataUrl,cb,local){
   var img=new Image();
   img.onload=function(){
     var canvas=document.createElement('canvas');
     var w=img.width,h=img.height,max=800;
     if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
     canvas.width=w;canvas.height=h;
-    canvas.getContext('2d').drawImage(img,0,0,w,h);
+    var ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    // v18: MESMO carimbo da foto do ponto (local + data/hora) agora em TODA
+    // foto do app — cronograma, chamados e registro do dia. Antes só o ponto
+    // tinha, porque essas fotos passavam por aqui e não pelo capturarFotoPS.
+    try{
+      var _ag=new Date();
+      var _dh=_ag.toLocaleDateString('pt-BR')+' '+_ag.toTimeString().slice(0,5);
+      var _loc=local||(colAtual&&colAtual.cliente)||'';
+      if(typeof desenharCarimboFoto==='function') desenharCarimboFoto(canvas,ctx,_loc,_dh);
+    }catch(e){}
     var q=0.7,r=canvas.toDataURL('image/jpeg',q);
     while(r.length>120*1024*1.37&&q>0.2){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
     cb(r);
@@ -1565,7 +1574,7 @@ function comprimirFoto(dataUrl,cb){
   img.onerror=function(){cb(dataUrl);};
   img.src=dataUrl;
 }
-function addFotos(e,gridId,dataKey){
+function addFotos(e,gridId,dataKey,local){
   if(!fotosData[dataKey])fotosData[dataKey]=[];
   Array.from(e.target.files).forEach(f=>{
     const r=new FileReader();
@@ -1581,7 +1590,7 @@ function addFotos(e,gridId,dataKey){
         const del=document.createElement('button');del.className='photo-del';del.innerHTML='×';
         del.onclick=()=>{fotosData[dataKey].splice(idx,1);d.remove();};
         d.appendChild(img);d.appendChild(del);g.appendChild(d);
-      });
+      },local);
     };r.readAsDataURL(f);
   });
 }
