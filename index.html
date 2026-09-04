@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -688,10 +689,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 <!-- MODAL FECHAR CHAMADO -->
 <div id="modal-crono-ok" class="modal-overlay hidden"><div class="modal">
   <div class="modal-hdr"><h3>✅ Concluir Tarefa</h3><button class="modal-cls" onclick="fecharModal('modal-crono-ok')">×</button></div>
-  <p id="crono-ok-desc" style="font-size:13px;color:var(--text2);margin-bottom:12px;"></p>
-  <button class="btn btn-ghost" style="width:100%;margin-bottom:10px;" onclick="document.getElementById('input-foto-crono').click()">📷 Tirar foto do serviço (opcional)</button>
-  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoCrono(event)">
-  <div id="crono-ok-prev" style="text-align:center;margin-bottom:10px;"></div>
+  <p id="crono-ok-desc" style="font-size:13px;color:var(--text2);margin-bottom:4px;"></p>
+  <p id="crono-ok-tarefa" style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:12px;"></p>
+  <div class="alert alert-warn">📷 A foto do serviço é <strong>obrigatória</strong>. Você pode enviar mais de uma (antes/depois, cada andar...).</div>
+  <label for="input-foto-crono" style="display:block;cursor:pointer;">
+    <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Adicionar foto(s) do serviço</span></div>
+  </label>
+  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-crono-ok','fotos-crono')">
+  <div class="photo-grid" id="grid-crono-ok" style="margin-bottom:12px;"></div>
+  <div class="fg"><label>📝 Observação (opcional)</label>
+    <textarea id="crono-ok-obs" placeholder="Algo a relatar nesta tarefa? Ex: torneira do 3º andar vazando, faltou produto..." style="font-size:14px;"></textarea>
+  </div>
   <button class="btn btn-green" style="width:100%;padding:13px;" onclick="confirmarCronoFeito()">✅ Confirmar conclusão</button>
 </div></div>
 <div id="modal-fechar-ch" class="modal-overlay hidden"><div class="modal">
@@ -1196,6 +1204,7 @@ function renderCronograma(){
           <div class="ci-label">${item.tarefa}</div>
           <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}</div>
           ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
+          ${feito&&lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),null)?`<div style="font-size:11px;color:var(--text2);background:#fff8e1;border-radius:6px;padding:4px 7px;margin-top:4px;">📝 ${lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),'')}</div>`:''}
         </div>
       </div>`;
     }).join('');
@@ -1225,11 +1234,14 @@ function marcarCrono(itemId, local){
     atualizarBadges();
     return;
   }
-  // v8: marcar como feito abre confirmação com foto OPCIONAL do serviço
+  // v18: foto OBRIGATÓRIA, várias por tarefa, + observação do colaborador
   _cronoPend={itemId:itemId,local:local};
-  _fotoCrono=null;
-  document.getElementById('crono-ok-prev').innerHTML='';
+  fotosData['fotos-crono']=[];
+  document.getElementById('grid-crono-ok').innerHTML='';
+  document.getElementById('crono-ok-obs').value='';
   document.getElementById('crono-ok-desc').textContent='📍 '+(local||colAtual?.cliente||'');
+  const _t=(cronogramasDeHoje().find(x=>x.id===itemId)||{}).tarefa||'';
+  document.getElementById('crono-ok-tarefa').textContent=_t;
   document.getElementById('modal-crono-ok').classList.remove('hidden');
 }
 function capturarFotoCrono(e){
@@ -1247,28 +1259,33 @@ function capturarFotoCrono(e){
 function confirmarCronoFeito(){
   if(!_cronoPend) return;
   const itemId=_cronoPend.itemId, local=_cronoPend.local;
-  const temFoto=!!_fotoCrono;
+  const fotos=fotosData['fotos-crono']||[];
+  if(!fotos.length){ alert('📷 Tire pelo menos uma foto do serviço para confirmar a tarefa.'); return; }
+  const obs=(document.getElementById('crono-ok-obs').value||'').trim();
+  const temFoto=fotos.length>0;
   const hoje=new Date().toISOString().slice(0,10);
   const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
   const feitos=lerLocal(key,[]);
   const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if(!feitos.includes(itemId)) feitos.push(itemId);
   salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
-  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,local,data:hoje,hora:agora,feito:true,foto:temFoto?'1 foto':''}});
-  if(temFoto){
+  const _tarefaNome=(cronogramasDeHoje().find(x=>x.id===itemId)||{}).tarefa||'';
+  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,local,data:hoje,hora:agora,feito:true,obs:obs,foto:fotos.length+' foto(s)'}});
+  if(obs) salvarLocal('mjl_crono_obs_'+hoje+'_'+itemId+'_'+(colAtual?.id||''),obs);
+  fotos.forEach(function(img){
     adicionarPendente({acao:'salvarFoto',dados:{
       tipo:'Cronograma',etapa:'tarefa',refId:itemId,
       colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
-      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,
-      img:_fotoCrono,timestamp:Date.now()
+      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,tarefa:_tarefaNome,obs:obs,
+      img:img,timestamp:Date.now()
     }});
-  }
+  });
   salvarLocal(key,feitos);
-  _cronoPend=null;_fotoCrono=null;
+  _cronoPend=null;fotosData['fotos-crono']=[];
   fecharModal('modal-crono-ok');
   renderCronograma();
   atualizarBadges();
-  mostrarSucesso('📋','Tarefa concluída!',temFoto?'Foto registrada e enviada para a MJL.':'Registrado com sucesso.');
+  mostrarSucesso('📋','Tarefa concluída!',fotos.length+' foto(s) enviada(s) para a MJL.'+(obs?' Observação registrada.':''));
 }
 
 // ===== CHAMADOS =====
@@ -2078,7 +2095,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v17';
+const APP_VERSAO='v18';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
