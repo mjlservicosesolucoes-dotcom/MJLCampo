@@ -542,6 +542,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="cfg-app-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
     </div>
     <div class="card" style="margin-top:14px;">
+      <div class="card-title">📤 Fila de envio</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Registros guardados neste aparelho que ainda não chegaram na MJL.</p>
+      <div id="fila-lista" style="font-size:12px;line-height:1.6;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" style="flex:1;" onclick="reenviarFila()">🔄 Reenviar agora</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="copiarFila()">📋 Copiar fila</button>
+      </div>
+      <div id="fila-status" style="margin-top:8px;font-size:12px;text-align:center;min-height:16px;"></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
       <div class="card-title">📱 Salvar na tela inicial</div>
       <p style="font-size:13px;color:var(--text2);margin-bottom:6px;line-height:1.6;"><strong>Android:</strong> 3 pontinhos ⋮ → Adicionar à tela inicial</p>
       <p style="font-size:13px;color:var(--text2);line-height:1.6;"><strong>iPhone:</strong> Compartilhar □↑ → Adicionar à Tela de Início</p>
@@ -840,7 +850,7 @@ window.addEventListener('load',()=>{
 });
 
 // ===== NAV =====
-function ir(scrId){
+function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(scrId).classList.add('active');
   document.querySelectorAll('.bnav-link').forEach(a=>a.classList.remove('active'));
@@ -1384,6 +1394,40 @@ function enviarOuvidoria(){
   mostrarSucesso('💬','Mensagem enviada!',anonimo?'Mensagem anônima enviada à MJL.':'Mensagem enviada à MJL. Obrigado!');
 }
 
+// ===== v16: DIAGNÓSTICO DA FILA =====
+function _descItem(it){
+  const d=it.dados||{};const nome={salvarPonto:'Ponto',salvarRegistro:'Registro',salvarFoto:'Foto',novoChamado:'Chamado',fecharChamado:'Fechar chamado',novaOuvidoria:'Ouvidoria',registrarAssinatura:'Assinatura',registrarCrono:'Tarefa'}[it.acao]||it.acao||'?';
+  const q=it.timestamp?new Date(it.timestamp).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  const tam=Math.round(JSON.stringify(it).length/1024);
+  return nome+(d.tipo?' '+d.tipo:'')+(d.etapa?' '+d.etapa:'')+' · '+q+' · '+tam+'KB'+(it._tent?' · tent. '+it._tent:'')+(it._erro?' · ⚠️ '+String(it._erro).slice(0,40):'');
+}
+function renderFila(){
+  const el=document.getElementById('fila-lista');if(!el)return;
+  const f=lerLocal('mjl_pendentes_campo',[]);const er=lerLocal('mjl_fila_erros',[]);
+  let h=f.length?f.map(function(it,i){return '<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 0;border-bottom:1px solid #eef2f6;"><span>'+(i+1)+'. '+_descItem(it)+'</span><button onclick="removerDaFila('+i+')" style="border:0;background:none;color:var(--red);font-size:14px;">✖</button></div>';}).join(''):'<div style="color:var(--green);font-weight:700;">✅ Fila vazia — tudo enviado</div>';
+  if(er.length) h+='<div style="margin-top:8px;color:var(--red);font-weight:700;">❌ '+er.length+' item(ns) desistidos após 8 tentativas (use "Copiar fila" para recuperar)</div>';
+  el.innerHTML=h;
+}
+function removerDaFila(i){
+  const f=lerLocal('mjl_pendentes_campo',[]);if(!f[i])return;
+  if(!confirm('Remover "'+_descItem(f[i])+'" da fila? Esse registro NÃO chegará na MJL. Copie a fila antes, se precisar.'))return;
+  f.splice(i,1);salvarLocal('mjl_pendentes_campo',f);renderFila();
+}
+function reenviarFila(){
+  const st=document.getElementById('fila-status');
+  if(!navigator.onLine){st.textContent='📵 Sem internet.';return;}
+  if(!localStorage.getItem('mjl_script_url')){st.textContent='⚠️ URL do sistema não configurada.';return;}
+  st.textContent='⏳ Enviando...';enviarPendentes();
+  let n=0;const t=setInterval(function(){renderFila();n++;const q=lerLocal('mjl_pendentes_campo',[]).length;if(!q||n>12){clearInterval(t);st.textContent=q?'⚠️ Ainda restam '+q+' item(ns). Veja o motivo (⚠️) na lista.':'✅ Tudo enviado!';}},2500);
+}
+function copiarFila(){
+  const f=lerLocal('mjl_pendentes_campo',[]).concat(lerLocal('mjl_fila_erros',[]));
+  const txt=f.map(function(it){const c={...it};if(c.dados&&c.dados.img)c.dados={...c.dados,img:'[foto '+Math.round(c.dados.img.length/1024)+'KB]'};return JSON.stringify(c);}).join('\n');
+  const st=document.getElementById('fila-status');
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){st.textContent='📋 Copiado! Cole no WhatsApp da MJL.';}).catch(function(){prompt('Copie o texto:',txt);});}
+  else prompt('Copie o texto:',txt);
+}
+
 // ===== CONFIG APP =====
 function salvarURLApp(){
   const url=document.getElementById('cfg-url-app').value.trim();
@@ -1461,7 +1505,7 @@ function enviarPendentes(){
           if(it&&it.acao==='salvarFoto'&&it.dados&&it.dados.img&&it.dados.img.length>450000) return false;
           return true;
         });
-        const restantes=[];
+        const restantes=[];const atrasados=[];
         let quebrou=false;
         for(let i=0;i<fila.length;i++){
           if(quebrou){restantes.push(fila[i]);continue;}
@@ -1472,15 +1516,27 @@ function enviarPendentes(){
               // ele fica para tentar de novo (até 8 tentativas, depois descarta)
               fila[i]._tent=(fila[i]._tent||0)+1;
               if(fila[i]._tent<8) restantes.push(fila[i]);
+              else { const er=lerLocal('mjl_fila_erros',[]);er.push(fila[i]);salvarLocal('mjl_fila_erros',er.slice(-30)); }
             }
           }catch(e){
-            // Sem rede/erro de conexão: para tudo e tenta na próxima
-            restantes.push(fila[i]);quebrou=true;
+            // v16: antes, QUALQUER erro de conexão parava a fila inteira no
+            // item da frente — se um item fazia o doPost quebrar (resposta sem
+            // CORS), os outros nunca saíam. Agora: se o aparelho está online,
+            // conta a tentativa; após 3 falhas o item vai para o FIM da fila
+            // (os demais seguem) e após 8 vai para "mjl_fila_erros" (não perde).
+            fila[i]._erro=(e&&e.message)||String(e);
+            if(!navigator.onLine){ restantes.push(fila[i]);quebrou=true; }
+            else{
+              fila[i]._tent=(fila[i]._tent||0)+1;
+              if(fila[i]._tent>=8){ const er=lerLocal('mjl_fila_erros',[]);er.push(fila[i]);salvarLocal('mjl_fila_erros',er.slice(-30)); }
+              else if(fila[i]._tent>=3){ atrasados.push(fila[i]); }
+              else { restantes.push(fila[i]);quebrou=true; }
+            }
           }
         }
         // Junta com itens novos que chegaram DURANTE o envio
         const atual=lerLocal('mjl_pendentes_campo',[]);
-        salvarLocal('mjl_pendentes_campo',restantes.concat(atual.slice(lenOrig)));
+        salvarLocal('mjl_pendentes_campo',restantes.concat(atrasados).concat(atual.slice(lenOrig)));
       }finally{
         _enviandoPendentes=false;
         // v16: corrige corrida entre ponto e foto — se algo novo chegou
@@ -1927,7 +1983,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v15';
+const APP_VERSAO='v16';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
