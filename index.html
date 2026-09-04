@@ -1046,9 +1046,65 @@ function salvarRegistro(){
 }
 
 // ===== CRONOGRAMA =====
+// ===== TAREFAS PERIÓDICAS (a cada N dias / mensal) — código compartilhado Campo+Gestão =====
+// Regra: a data "nominal" é calculada (início + N dias, ou dia X do mês). Se cair
+// num dia em que o cronograma não tem tarefas (ex.: domingo), a tarefa é ADIADA
+// para o próximo dia com cronograma. O ciclo seguinte continua contando da data nominal.
+function _pIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _pParse(s){ var p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function _pAjusta(d,dias){
+  if(!dias||!dias.length) return new Date(d);
+  var x=new Date(d);
+  for(var i=0;i<7;i++){ if(dias.indexOf(x.getDay())>=0) return x; x.setDate(x.getDate()+1); }
+  return new Date(d);
+}
+function _pNominais(t,de,ate){
+  var out=[];
+  if(t.tipo==='mensal'){
+    var dia=parseInt(t.diaMes)||1;
+    var m=new Date(de.getFullYear(),de.getMonth()-1,1);
+    while(m<=ate){
+      var ult=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+      var d=new Date(m.getFullYear(),m.getMonth(),Math.min(dia,ult));
+      if(d>=de&&d<=ate) out.push(d);
+      m=new Date(m.getFullYear(),m.getMonth()+1,1);
+    }
+  } else {
+    var n=parseInt(t.intervalo)||15; if(n<1) n=1;
+    if(!t.inicio) return out;
+    var d2=_pParse(t.inicio);
+    if(d2<de){ var pulos=Math.floor((de-d2)/(864e5*n)); d2.setDate(d2.getDate()+pulos*n); while(d2<de) d2.setDate(d2.getDate()+n); }
+    var guard=0;
+    while(d2<=ate&&guard++<400){ out.push(new Date(d2)); d2.setDate(d2.getDate()+n); }
+  }
+  return out;
+}
+function periodicaCaiNoDia(t,dataStr,dias){
+  var alvo=_pParse(dataStr);
+  var de=new Date(alvo); de.setDate(de.getDate()-8);
+  var noms=_pNominais(t,de,alvo);
+  for(var i=0;i<noms.length;i++){ if(_pIso(_pAjusta(noms[i],dias))===dataStr) return true; }
+  return false;
+}
+function proximasPeriodica(t,dias,qtd){
+  qtd=qtd||3;
+  var hoje=new Date(); hoje.setHours(0,0,0,0);
+  var de=new Date(hoje); de.setDate(de.getDate()-8);
+  var ate=new Date(hoje); ate.setDate(ate.getDate()+(t.tipo==='mensal'?32*qtd:(parseInt(t.intervalo)||15)*qtd)+8);
+  var noms=_pNominais(t,de,ate), out=[];
+  noms.forEach(function(n){ var e=_pAjusta(n,dias); if(e>=hoje&&out.length<qtd) out.push(e); });
+  return out;
+}
+function descPeriodica(t){
+  if(t.tipo==='mensal') return '📅 Mensal · dia '+(parseInt(t.diaMes)||1);
+  var n=parseInt(t.intervalo)||15;
+  return n===7?'🔁 Semanal':n===15?'🔁 Quinzenal':n===30?'🔁 A cada 30 dias':'🔁 A cada '+n+' dias';
+}
+
 function cronogramasDeHoje(){
   const brutos=lerLocal('mjl_cronogramas',[]);
   const diaHoje=new Date().getDay(); // 0=Dom ... 6=Sáb
+  const hojeStr=new Date().toISOString().slice(0,10);
   const lista=[];
   brutos.forEach(cr=>{
     if(!cr) return;
@@ -1064,6 +1120,12 @@ function cronogramasDeHoje(){
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
         if(!txt) return;
         lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos});
+      });
+      // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
+      (cr.periodicas||[]).forEach(function(t){
+        if(!t||!t.texto) return;
+        if(!periodicaCaiNoDia(t,hojeStr,cr.dias||[])) return;
+        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos});
       });
     } else if(cr.tarefa){
       lista.push(cr); // formato antigo, já é a tarefa direta
@@ -1087,9 +1149,11 @@ function renderCronograma(){
   const hoje=new Date();
   const diasNomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
   let semanaHTML='';
+  // v17: semana começa na SEGUNDA e termina no domingo (locais que trabalham fim de semana)
+  const offSeg=(hoje.getDay()+6)%7;
   for(let i=0;i<7;i++){
     const d=new Date(hoje);
-    d.setDate(hoje.getDate()-hoje.getDay()+i);
+    d.setDate(hoje.getDate()-offSeg+i);
     const ds=d.toISOString().slice(0,10);
     const isHoje=ds===hoje.toISOString().slice(0,10);
     const temFeito=lerLocal('mjl_crono_feitos_'+ds+'_'+(colAtual?.id||''),[]).length>0;
@@ -1124,7 +1188,7 @@ function renderCronograma(){
         <div class="ci-box">✓</div>
         <div class="ci-info">
           <div class="ci-label">${item.tarefa}</div>
-          <div class="ci-freq">${item.frequencia||'Diário'}</div>
+          <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}</div>
           ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
         </div>
       </div>`;
@@ -2008,7 +2072,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v16';
+const APP_VERSAO='v17';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
