@@ -2104,7 +2104,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v18';
+const APP_VERSAO='v19';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -2120,8 +2120,43 @@ const APP_VERSAO='v18';
 
 // ===== OFFLINE: service worker guarda o app no aparelho =====
 if('serviceWorker' in navigator && location.protocol==='https:'){
-  navigator.serviceWorker.register('./sw.js').catch(function(){});
+  navigator.serviceWorker.register('./sw.js').then(function(reg){ try{reg.update();}catch(e){} }).catch(function(){});
 }
+
+// ===== v19: AVISO DE VERSÃO NOVA =====
+// O service worker guarda o app no aparelho, então depois de um deploy o
+// celular continuava abrindo a versão antiga até a 2ª abertura — e como o
+// selinho podia repetir o mesmo número, era impossível perceber. Agora o app
+// confere sozinho se há versão nova no servidor e avisa na tela.
+(function(){
+  if(location.protocol!=='https:') return;
+  function checarVersao(){
+    fetch('./index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){ return r.text(); }).then(function(txt){
+      var m=txt.match(/APP_VERSAO\s*=\s*'([^']+)'/);
+      if(!m||m[1]===APP_VERSAO) return;
+      if(document.getElementById('mjl-nova-versao')) return;
+      var d=document.createElement('div');
+      d.id='mjl-nova-versao';
+      d.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#1e7e4a;color:#fff;padding:13px 16px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 -3px 14px rgba(0,0,0,.25);cursor:pointer;';
+      d.innerHTML='<span style="flex:1;">🔄 Versão nova disponível ('+m[1]+') — toque para atualizar</span><span style="background:rgba(255,255,255,.22);padding:6px 12px;border-radius:8px;">Atualizar</span>';
+      d.onclick=function(){
+        d.innerHTML='<span style="flex:1;">⏳ Atualizando...</span>';
+        var fim=function(){ location.reload(true); };
+        try{
+          var ps=[];
+          if(window.caches&&caches.keys) ps.push(caches.keys().then(function(ns){ return Promise.all(ns.map(function(n){ return caches.delete(n); })); }));
+          if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations) ps.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); }));
+          Promise.all(ps).then(fim).catch(fim);
+          setTimeout(fim,4000);
+        }catch(e){ fim(); }
+      };
+      document.body.appendChild(d);
+    }).catch(function(){});
+  }
+  setTimeout(checarVersao,3000);
+  setInterval(checarVersao,600000);
+  window.addEventListener('online',function(){ setTimeout(checarVersao,2000); });
+})();
 </script>
 </body>
 </html>
