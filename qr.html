@@ -63,7 +63,7 @@ h1{font-size:24px;margin:0;font-weight:700;line-height:1.2;}
     <div class="att" id="att"></div>
   </div>
   <div class="pad" id="saida">
-    <div class="load"><div class="spin"></div>Buscando os registros...</div>
+    <div class="load"><div class="spin"></div>Buscando os registros...<div style="font-size:11px;margin-top:6px;">Na primeira vez do dia pode levar alguns segundos.</div></div>
   </div>
   <div class="rod">
     <b>MJL Serviços e Soluções</b><br>
@@ -89,12 +89,21 @@ function abrirFoto(id){document.getElementById('lbimg').src=thumb(id,1600);docum
 
 var CLI=par('c'), AREA=par('a');
 
+var LOG=[];
+function log(t){ LOG.push(new Date().toLocaleTimeString('pt-BR')+' — '+t); }
 function erro(msg,detalhe){
   document.getElementById('tit').textContent=CLI||'Serviços da MJL';
   document.getElementById('saida').innerHTML='<div class="erro"><div style="font-size:38px;margin-bottom:10px;">📶</div><strong>'+esc(msg)+'</strong>'+
     (detalhe?'<div style="font-size:12px;color:var(--txt3);margin-top:8px;">'+esc(detalhe)+'</div>':'')+
-    '<button class="btn" onclick="location.reload()">Tentar de novo</button></div>';
+    '<button class="btn" onclick="location.reload()">Tentar de novo</button>'+
+    '<div style="margin-top:14px;text-align:left;"><a href="#" onclick="var d=document.getElementById(\'diagbox\');d.style.display=d.style.display===\'block\'?\'none\':\'block\';return false;" style="font-size:11px;color:var(--txt3);">ver detalhes técnicos</a>'+
+    '<pre id="diagbox" style="display:none;white-space:pre-wrap;word-break:break-all;font-size:10px;color:var(--txt3);background:#f4f7fa;border:1px solid var(--bd);border-radius:8px;padding:9px;margin-top:8px;line-height:1.5;">'+esc(LOG.join('\n'))+'</pre></div>'+
+    '</div>';
 }
+// captura erros de script (ex.: a resposta veio como HTML em vez de JavaScript)
+window.addEventListener('error', function(ev){
+  if(ev && ev.message) log('ERRO DE SCRIPT: '+ev.message+(ev.filename?' @ '+String(ev.filename).slice(0,90):''));
+}, true);
 
 function render(d){
   document.getElementById('tit').textContent=d.cliente||CLI;
@@ -144,22 +153,40 @@ function render(d){
   document.getElementById('tit').textContent=CLI;
   if(AREA) document.getElementById('chip').innerHTML='<span class="area-chip">📍 '+esc(AREA).toUpperCase()+'</span>';
   if(!API||API.indexOf('http')!==0){ erro('Página ainda não configurada','Falta ligar a página ao sistema da MJL.'); return; }
-  // O navegador bloqueia por CORS a leitura direta do Apps Script a partir
-  // deste endereço, então buscamos por JSONP: a resposta chega como script.
   var base=API+(API.indexOf('?')>=0?'&':'?')+'acao=publico&c='+encodeURIComponent(CLI)+(AREA?'&a='+encodeURIComponent(AREA):'');
-  var fn='mjlQR'+Date.now();
-  var respondeu=false;
-  window[fn]=function(d){
-    respondeu=true;
-    try{ delete window[fn]; }catch(e){ window[fn]=undefined; }
+  var pronto=false;
+  log('endereço: '+base);
+
+  function ok(d,via){
+    if(pronto) return;
+    pronto=true; log('resposta recebida via '+via+' (itens: '+((d&&d.itens&&d.itens.length)||0)+')');
     if(!d||!d.ok){ erro('Não foi possível carregar', d&&d.erro?d.erro:''); return; }
     render(d);
-  };
+  }
+
+  // ESTRATÉGIA 1 — leitura direta (funciona se o Google mandar o cabeçalho CORS)
+  log('tentando leitura direta...');
+  fetch(base,{redirect:'follow'})
+    .then(function(r){ log('leitura direta respondeu: HTTP '+r.status+' · '+(r.headers.get('content-type')||'sem tipo')); return r.text(); })
+    .then(function(t){
+      var d=null; try{ d=JSON.parse(t); }catch(e){ log('leitura direta veio em formato inesperado: '+t.slice(0,120)); }
+      if(d) ok(d,'leitura direta');
+    })
+    .catch(function(e){ log('leitura direta falhou: '+(e&&e.message?e.message:e)); });
+
+  // ESTRATÉGIA 2 — JSONP (contorna o bloqueio de CORS)
+  var fn='mjlQR'+Date.now();
+  window[fn]=function(d){ try{ delete window[fn]; }catch(e){ window[fn]=undefined; } ok(d,'JSONP'); };
   var tag=document.createElement('script');
   tag.src=base+'&callback='+fn;
-  tag.onerror=function(){ if(!respondeu) erro('Não foi possível carregar','A página não conseguiu falar com o sistema da MJL. Tente de novo em alguns instantes.'); };
+  tag.onload=function(){ log('JSONP: arquivo carregou'+(pronto?'':' MAS não chamou a função — a resposta não era JavaScript válido')); };
+  tag.onerror=function(){ log('JSONP: o navegador recusou/não carregou o endereço'); };
+  log('tentando JSONP...');
   document.head.appendChild(tag);
-  setTimeout(function(){ if(!respondeu) erro('Sem resposta','Verifique a internet e toque em Tentar de novo.'); },20000);
+
+  setTimeout(function(){
+    if(!pronto) erro('Sem resposta','Não conseguimos falar com o sistema da MJL. Toque em "ver detalhes técnicos" e envie o print para a administração.');
+  },45000);
 })();
 </script>
 </body>
