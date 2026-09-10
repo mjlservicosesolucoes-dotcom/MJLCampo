@@ -144,11 +144,22 @@ function render(d){
   document.getElementById('tit').textContent=CLI;
   if(AREA) document.getElementById('chip').innerHTML='<span class="area-chip">📍 '+esc(AREA).toUpperCase()+'</span>';
   if(!API||API.indexOf('http')!==0){ erro('Página ainda não configurada','Falta ligar a página ao sistema da MJL.'); return; }
-  var url=API+(API.indexOf('?')>=0?'&':'?')+'acao=publico&c='+encodeURIComponent(CLI)+(AREA?'&a='+encodeURIComponent(AREA):'');
-  fetch(url,{redirect:'follow'}).then(function(r){return r.json();}).then(function(d){
+  // O navegador bloqueia por CORS a leitura direta do Apps Script a partir
+  // deste endereço, então buscamos por JSONP: a resposta chega como script.
+  var base=API+(API.indexOf('?')>=0?'&':'?')+'acao=publico&c='+encodeURIComponent(CLI)+(AREA?'&a='+encodeURIComponent(AREA):'');
+  var fn='mjlQR'+Date.now();
+  var respondeu=false;
+  window[fn]=function(d){
+    respondeu=true;
+    try{ delete window[fn]; }catch(e){ window[fn]=undefined; }
     if(!d||!d.ok){ erro('Não foi possível carregar', d&&d.erro?d.erro:''); return; }
     render(d);
-  }).catch(function(){ erro('Sem conexão','Verifique a internet do celular e tente de novo.'); });
+  };
+  var tag=document.createElement('script');
+  tag.src=base+'&callback='+fn;
+  tag.onerror=function(){ if(!respondeu) erro('Não foi possível carregar','A página não conseguiu falar com o sistema da MJL. Tente de novo em alguns instantes.'); };
+  document.head.appendChild(tag);
+  setTimeout(function(){ if(!respondeu) erro('Sem resposta','Verifique a internet e toque em Tentar de novo.'); },20000);
 })();
 </script>
 </body>
