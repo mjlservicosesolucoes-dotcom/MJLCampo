@@ -1128,14 +1128,15 @@ function cronogramasDeHoje(){
       const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
       doDia.forEach((t,ix)=>{
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
+        const _area=(t&&typeof t==='object'&&t.area)?t.area:'';
         if(!txt) return;
-        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
+        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:_area});
       });
       // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
       (cr.periodicas||[]).forEach(function(t){
         if(!t||!t.texto) return;
         if(!periodicaCaiNoDia(t,hojeStr,cr.dias||[])) return;
-        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
+        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,area:t.area||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
       });
     } else if(cr.tarefa){
       lista.push(cr); // formato antigo, já é a tarefa direta
@@ -1201,7 +1202,7 @@ function renderCronograma(){
         <div class="ci-box">✓</div>
         <div class="ci-info">
           <div class="ci-label">${item.tarefa}</div>
-          <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}</div>
+          <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}${item.area?' · 📍 '+item.area:''}</div>
           ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
           ${feito&&lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),null)?`<div style="font-size:11px;color:var(--text2);background:#fff8e1;border-radius:6px;padding:4px 7px;margin-top:4px;">📝 ${lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),'')}</div>`:''}
         </div>
@@ -1268,14 +1269,15 @@ function confirmarCronoFeito(){
   const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
   if(!feitos.includes(itemId)) feitos.push(itemId);
   salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
-  const _tarefaNome=(cronogramasDeHoje().find(x=>x.id===itemId)||{}).tarefa||'';
-  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,local,data:hoje,hora:agora,feito:true,obs:obs,foto:fotos.length+' foto(s)'}});
+  const _it=cronogramasDeHoje().find(x=>x.id===itemId)||{};
+  const _tarefaNome=_it.tarefa||'', _area=_it.area||'';
+  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,area:_area,local,data:hoje,hora:agora,feito:true,obs:obs,foto:fotos.length+' foto(s)'}});
   if(obs) salvarLocal('mjl_crono_obs_'+hoje+'_'+itemId+'_'+(colAtual?.id||''),obs);
   fotos.forEach(function(img){
     adicionarPendente({acao:'salvarFoto',dados:{
       tipo:'Cronograma',etapa:'tarefa',refId:itemId,
       colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
-      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,tarefa:_tarefaNome,obs:obs,
+      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,tarefa:_tarefaNome,area:_area,obs:obs,
       img:img,timestamp:Date.now()
     }});
   });
@@ -2104,7 +2106,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v19';
+const APP_VERSAO='v20';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
