@@ -304,10 +304,41 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="menu-btn teal" onclick="ir('scr-cronograma')"><div class="mico">📅</div><div class="mlabel">Cronograma</div><div class="msub" id="home-crono-sub">Tarefas do dia</div></div>
       <div class="menu-btn blue" onclick="ir('scr-chamados')"><div class="mico">🔧</div><div class="mlabel">Chamados</div><div class="msub" id="home-ch-sub">Manutenção</div></div>
       <div class="menu-btn orange" onclick="ir('scr-informativos')"><div class="mico">📢</div><div class="mlabel">Avisos</div><div class="msub" id="home-info-sub">Documentos</div></div>
+      <div class="menu-btn" id="home-btn-superv" style="display:none;border-color:#7b2d8b;background:#f6eefa;" onclick="ir('scr-superv')"><div class="mico">🔎</div><div class="mlabel">Supervisão</div><div class="msub" id="home-superv-sub">Visita ao local</div></div>
       <div class="menu-btn purple" onclick="ir('scr-ouvidoria')"><div class="mico">💬</div><div class="mlabel">Falar com MJL</div><div class="msub">Ouvidoria</div></div>
       <div class="menu-btn" style="border-color:#c8d8e8;background:#f0f4f8;" onclick="ir('scr-config')"><div class="mico">⚙️</div><div class="mlabel">Configurar</div><div class="msub">URL do sistema</div></div>
     </div>
     <button class="btn btn-ghost" style="margin-top:14px;font-size:14px;color:var(--text2);" onclick="logout()">🚪 Sair</button>
+  </div>
+
+
+  <!-- SUPERVISÃO — entrada da visita (só perfil encarregado/supervisor) -->
+  <div class="screen" id="scr-superv">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="sv-abertas"></div>
+    <div class="card">
+      <div class="card-title">🔎 Nova visita de supervisão</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">
+        Escolha o local, tire a foto de chegada e o app registra hora e localização.
+      </p>
+      <label style="font-size:13px;font-weight:600;">Condomínio / local</label>
+      <select id="sv-local" onchange="svMostrarRegra()" style="width:100%;margin:5px 0 6px;font-size:14px;"></select>
+      <div id="sv-regra" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
+      <label style="display:block;cursor:pointer;">
+        <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="iniciarVisita(event)">
+        <div class="btn btn-primary" style="pointer-events:none;width:100%;padding:13px;">📸 Foto de chegada e iniciar</div>
+      </label>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">🗂️ Minhas últimas visitas</div>
+      <div id="sv-hist" style="font-size:13px;"></div>
+    </div>
+  </div>
+
+  <!-- SUPERVISÃO — visita em andamento -->
+  <div class="screen" id="scr-visita">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-superv')">← Sair sem encerrar (fica salva)</button>
+    <div id="vs-body"></div>
   </div>
 
   <!-- REGISTRO -->
@@ -844,6 +875,8 @@ function entrar(col){
   // Config URL app
   const url=localStorage.getItem('mjl_script_url')||'';
   const elCfgUrl=document.getElementById('cfg-url-app'); if(elCfgUrl) elCfgUrl.value=url;
+  // v21: o botão de supervisão só existe para encarregado/supervisor
+  atualizarBotaoSuperv();
   // Verificar aceite LGPD
   verificarAceite();
 }
@@ -871,6 +904,8 @@ function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); }
   if(scrId==='scr-cronograma'){renderCronograma();}
   if(scrId==='scr-chamados'){renderChamados();}
   if(scrId==='scr-informativos'){renderInformativos();}
+  if(scrId==='scr-superv'){abrirSupervisao();svHistorico();}
+  if(scrId==='scr-visita'){renderVisita();}
 }
 document.querySelectorAll('.bnav-link').forEach(a=>a.addEventListener('click',()=>ir(a.dataset.scr)));
 
@@ -1672,10 +1707,36 @@ function enviarPendentes(){
     })();
   }
   // Buscar atualizações
-  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(d=>{if(d?.colaboradores)salvarLocal('mjl_colaboradores',d.colaboradores);}).catch(()=>{});
+  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(d=>{
+    if(d?.colaboradores){
+      salvarLocal('mjl_colaboradores',d.colaboradores);
+      // v21: se a MJL mudou o perfil deste colaborador (colaborador →
+      // encarregado, por exemplo), o botão de supervisão aparece na
+      // próxima sincronização, sem precisar sair e entrar de novo.
+      if(colAtual){
+        const at=d.colaboradores.find(c=>c.id===colAtual.id);
+        if(at){ colAtual.perfil=at.perfil||'colaborador'; atualizarBotaoSuperv(); }
+      }
+    }
+  }).catch(()=>{});
   fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
   fetch(url+'?acao=getChamados').then(r=>r.json()).then(d=>{if(d?.chamados){const meus=d.chamados.filter(c=>c.cliente===colAtual?.cliente);salvarLocal('mjl_chamados_recebidos',meus);renderChamados?.();}}).catch(()=>{});
   fetch(url+'?acao=getCronogramas').then(r=>r.json()).then(d=>{if(d?.cronogramas){salvarLocal('mjl_cronogramas',d.cronogramas);renderCronograma?.();}}).catch(()=>{});
+  // v21: SÓ quem supervisiona baixa a lista de condomínios e o que a
+  // equipe registrou. O celular do colaborador comum não carrega isso.
+  if(typeof ehSupervisor==='function' && ehSupervisor()){
+    fetch(url+'?acao=getClientes',{redirect:'follow',headers:{'Accept':'application/json'}}).then(r=>r.json()).then(d=>{
+      if(d?.clientes?.length){salvarLocal('mjl_clientes',d.clientes);}
+    }).catch(()=>{});
+    fetch(url+'?acao=getCronoFeitos',{redirect:'follow',headers:{'Accept':'application/json'}}).then(r=>r.json()).then(d=>{
+      if(d?.cronoFeitos){
+        // guarda só os últimos 10 dias — o resto não serve para a visita
+        const lim=new Date(); lim.setDate(lim.getDate()-10);
+        const ls=lim.toISOString().slice(0,10);
+        salvarLocal('mjl_crono_feitos_srv', d.cronoFeitos.filter(t=>t&&(t.data||'')>=ls));
+      }
+    }).catch(()=>{});
+  }
 }
 
 // ===== BADGES =====
@@ -2106,7 +2167,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v20';
+const APP_VERSAO='v21';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -2159,6 +2220,649 @@ if('serviceWorker' in navigator && location.protocol==='https:'){
   setInterval(checarVersao,600000);
   window.addEventListener('online',function(){ setTimeout(checarVersao,2000); });
 })();
+</script>
+<script>
+
+// ================================================================
+// SUPERVISÃO (v21) — visita de acompanhamento do encarregado
+// Aparece só para quem tem perfil "encarregado" ou "supervisor".
+//
+// REGRA DE OURO DESTE MÓDULO: a visita vai para a planilha como UM
+// JSON numa única célula, e célula do Sheets aceita ~50 mil
+// caracteres. Por isso NENHUMA foto entra no objeto da visita —
+// cada foto segue sozinha pela fila (acao salvarFoto) com refId da
+// visita, e aqui guardamos só a CONTAGEM. Mesmo padrão do cronograma.
+// ================================================================
+
+let visitaAtual = null;
+
+function ehSupervisor(){
+  var p = (colAtual && colAtual.perfil) || 'colaborador';
+  return p === 'encarregado' || p === 'supervisor';
+}
+
+function atualizarBotaoSuperv(){
+  var b = document.getElementById('home-btn-superv');
+  if(b) b.style.display = ehSupervisor() ? 'block' : 'none';
+}
+
+function svClientes(){ return lerLocal('mjl_clientes', []); }
+
+function svLocais(){
+  var nomes = [];
+  svClientes().forEach(function(c){ if(c && c.nome && nomes.indexOf(c.nome)<0) nomes.push(c.nome); });
+  if(!nomes.length){
+    // Sem o cadastro ainda? cai para os nomes que aparecem nos cronogramas
+    lerLocal('mjl_cronogramas',[]).forEach(function(cr){
+      if(cr && cr.cliente && nomes.indexOf(cr.cliente)<0) nomes.push(cr.cliente);
+    });
+  }
+  return nomes.sort();
+}
+
+function svRegraLocal(nome){
+  var c = svClientes().find(function(x){ return x && x.nome === nome; }) || {};
+  return {
+    assinatura: c.assinaturaVisita || 'opcional',
+    periodicidade: c.periodicidadeVisita || ''
+  };
+}
+
+function svVisitas(){ return lerLocal('mjl_visitas_campo', []); }
+function svSalvarVisitas(v){ salvarLocal('mjl_visitas_campo', v); }
+
+function svGravar(){
+  if(!visitaAtual) return;
+  var lista = svVisitas();
+  var i = lista.findIndex(function(v){ return v.id === visitaAtual.id; });
+  if(i >= 0) lista[i] = visitaAtual; else lista.push(visitaAtual);
+  // guarda no máximo as 40 visitas mais recentes no aparelho
+  svSalvarVisitas(lista.slice(-40));
+}
+
+function svEnviar(){
+  if(!visitaAtual) return;
+  svGravar();
+  adicionarPendente({ acao:'registrarVisita', dados: visitaAtual });
+}
+
+function svGeo(cb){
+  if(!navigator.geolocation){ cb(null); return; }
+  var respondeu = false;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(respondeu) return; respondeu = true;
+    cb({ lat:pos.coords.latitude, lng:pos.coords.longitude, acc:Math.round(pos.coords.accuracy) });
+  }, function(){ if(!respondeu){ respondeu = true; cb(null); } }, { enableHighAccuracy:true, timeout:12000, maximumAge:0 });
+  setTimeout(function(){ if(!respondeu){ respondeu = true; cb(null); } }, 13000);
+}
+
+function svData(d){ return d ? String(d).split('-').reverse().join('/') : ''; }
+function svMapsLink(g){ return g ? ('https://maps.google.com/?q='+g.lat+','+g.lng) : ''; }
+
+// Envia UMA foto pela fila e devolve só a contagem para o objeto da visita
+function svEnviarFoto(dataUrl, etapa, local){
+  adicionarPendente({ acao:'salvarFoto', dados:{
+    tipo:'Supervisao', etapa:etapa, refId:(visitaAtual?visitaAtual.id:''),
+    colaboradorId:(colAtual?colAtual.id:''), colaboradorNome:(colAtual?colAtual.nome:''),
+    cliente: local || (visitaAtual?visitaAtual.local:''),
+    data:(visitaAtual?visitaAtual.data:new Date().toISOString().slice(0,10)),
+    img:dataUrl, timestamp:Date.now()
+  }});
+}
+
+// ---------- TELA DE ENTRADA ----------
+function abrirSupervisao(){
+  var sel = document.getElementById('sv-local');
+  var locais = svLocais();
+  sel.innerHTML = locais.length
+    ? locais.map(function(n){ return '<option>'+n+'</option>'; }).join('')
+    : '<option value="">Nenhum local cadastrado — sincronize</option>';
+  svMostrarRegra();
+
+  var abertas = svVisitas().filter(function(v){ return v.status === 'aberta'; });
+  var el = document.getElementById('sv-abertas');
+  el.innerHTML = abertas.length ? (
+    '<div class="card" style="margin-bottom:14px;border-left:4px solid var(--yellow,#d68910);">'+
+    '<div class="card-title">🕒 Visitas em andamento</div>'+
+    abertas.map(function(v){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+        '<div style="flex:1;"><strong>'+v.local+'</strong>'+
+        '<div style="font-size:12px;color:var(--text3);">Iniciada '+(v.inicioHora||'')+' · '+svData(v.data)+'</div></div>'+
+        '<button class="btn btn-primary" style="flex:0 0 auto;width:auto;padding:8px 16px;font-size:13px;white-space:nowrap;" onclick="continuarVisita(\''+v.id+'\')">Continuar</button>'+
+        '</div>';
+    }).join('')+'</div>'
+  ) : '';
+}
+
+function svMostrarRegra(){
+  var nome = (document.getElementById('sv-local')||{}).value || '';
+  var r = svRegraLocal(nome);
+  var txtA = r.assinatura === 'obrigatoria' ? '✍️ Assinatura obrigatória ao encerrar'
+           : (r.assinatura === 'naoaplica' ? '📸 Sem assinatura neste local — foto de saída obrigatória'
+           : '✍️ Assinatura opcional');
+  var txtP = r.periodicidade ? (' · meta '+r.periodicidade) : '';
+  var el = document.getElementById('sv-regra');
+  if(el) el.textContent = txtA + txtP;
+}
+
+function iniciarVisita(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  var local = (document.getElementById('sv-local')||{}).value || '';
+  if(!local){ alert('Escolha o condomínio.'); return; }
+  var agora = new Date();
+  var r = svRegraLocal(local);
+  svAssImg = null; svCanvas = null; svCtx = null;
+
+  visitaAtual = {
+    id: gid(), tipo:'supervisao', status:'aberta',
+    local: local,
+    supervisorId: colAtual ? colAtual.id : '',
+    supervisorNome: colAtual ? colAtual.nome : '',
+    data: agora.toISOString().slice(0,10),
+    inicioHora: agora.toTimeString().slice(0,5),
+    inicioGeo: null, inicioMaps: '', fotosInicio: 0,
+    fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
+    regraAssinatura: r.assinatura,
+    itens: [], extras: [],
+    checklist: { uniforme:'', epi:'', cliente:'', livro:'' },
+    material: [], equipamentos: [],
+    diluicao: { feita:'', periodo:'', materiais:'', fotos:0 },
+    relatorio: '',
+    assinatura: null,
+    timestamp: Date.now()
+  };
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'inicio', local);
+      visitaAtual.fotosInicio = 1;
+      svGravar();
+      svGeo(function(g){
+        visitaAtual.inicioGeo = g; visitaAtual.inicioMaps = svMapsLink(g);
+        svEnviar();
+        renderVisita();
+      });
+      renderVisita();
+      ir('scr-visita');
+    }, local);
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
+}
+
+function continuarVisita(id){
+  svAssImg = null; svCanvas = null; svCtx = null;
+  visitaAtual = svVisitas().find(function(v){ return v.id === id; }) || null;
+  if(!visitaAtual){ alert('Visita não encontrada neste aparelho.'); return; }
+  renderVisita();
+  ir('scr-visita');
+}
+
+// ---------- TAREFAS DOS ÚLTIMOS 7 DIAS ----------
+// Vem da aba CronoFeitos (baixada só para quem supervisiona).
+// Mostra o que a equipe REGISTROU. O que não foi registrado o
+// encarregado acrescenta à mão no bloco "Apontar algo a mais".
+function svTarefas7(local){
+  var limite = new Date(); limite.setDate(limite.getDate()-7);
+  var lim = limite.toISOString().slice(0,10);
+  return lerLocal('mjl_crono_feitos_srv', [])
+    .filter(function(t){
+      return t && t.local && String(t.local).toLowerCase() === String(local).toLowerCase() && (t.data||'') >= lim;
+    })
+    .sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+}
+
+function svItemEstado(refId){
+  var it = (visitaAtual.itens||[]).find(function(x){ return x.refId === refId; });
+  return it || null;
+}
+
+function svAvaliar(refId, tarefa, area, data, colab, valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.itens) visitaAtual.itens = [];
+  var it = svItemEstado(refId);
+  if(!it){
+    it = { refId:refId, tarefa:tarefa, area:area||'', data:data||'', colaborador:colab||'', aval:'', just:'', fotos:0 };
+    visitaAtual.itens.push(it);
+  }
+  it.aval = valor;
+  if(valor === 'ok'){ it.just = ''; }
+  svGravar(); renderVisita();
+}
+
+function svJust(refId, txt){
+  var it = svItemEstado(refId); if(!it) return;
+  it.just = txt; svGravar();
+}
+
+function svFotoItem(ev, refId){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var it = svItemEstado(refId); if(!it) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'item-'+refId, visitaAtual.local);
+      it.fotos = (it.fotos||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
+}
+
+// ---------- APONTAMENTO LIVRE ----------
+function svAddExtra(){
+  var t = (document.getElementById('sv-extra-txt')||{}).value || '';
+  t = t.trim();
+  if(!t){ alert('Escreva o que foi observado.'); return; }
+  if(!visitaAtual.extras) visitaAtual.extras = [];
+  visitaAtual.extras.push({ id:gid(), texto:t, fotos:0 });
+  document.getElementById('sv-extra-txt').value = '';
+  svGravar(); renderVisita();
+}
+function svRemExtra(id){
+  visitaAtual.extras = (visitaAtual.extras||[]).filter(function(x){ return x.id !== id; });
+  svGravar(); renderVisita();
+}
+function svFotoExtra(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var ex = (visitaAtual.extras||[]).find(function(x){ return x.id === id; }); if(!ex) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'extra-'+id, visitaAtual.local);
+      ex.fotos = (ex.fotos||0)+1; svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- CHECKLIST ----------
+function svCheck(campo, valor){
+  if(!visitaAtual.checklist) visitaAtual.checklist = {};
+  visitaAtual.checklist[campo] = valor;
+  svGravar(); renderVisita();
+}
+
+// ---------- MATERIAL / EQUIPAMENTOS ----------
+function svAddMaterial(){
+  var n = (document.getElementById('sv-mat-nome')||{}).value || '';
+  n = n.trim(); if(!n){ alert('Escreva o nome do produto.'); return; }
+  if(!visitaAtual.material) visitaAtual.material = [];
+  visitaAtual.material.push({ id:gid(), nome:n, situacao:'tem' });
+  document.getElementById('sv-mat-nome').value='';
+  svGravar(); renderVisita();
+}
+function svSetMaterial(id, sit){
+  var m = (visitaAtual.material||[]).find(function(x){ return x.id===id; }); if(!m) return;
+  m.situacao = sit; svGravar(); renderVisita();
+}
+function svRemMaterial(id){
+  visitaAtual.material = (visitaAtual.material||[]).filter(function(x){ return x.id!==id; });
+  svGravar(); renderVisita();
+}
+function svAddEquip(){
+  var n = (document.getElementById('sv-eq-nome')||{}).value || '';
+  n = n.trim(); if(!n){ alert('Escreva o nome do equipamento.'); return; }
+  if(!visitaAtual.equipamentos) visitaAtual.equipamentos = [];
+  visitaAtual.equipamentos.push({ id:gid(), nome:n, estado:'ok', fotos:0 });
+  document.getElementById('sv-eq-nome').value='';
+  svGravar(); renderVisita();
+}
+function svSetEquip(id, est){
+  var e = (visitaAtual.equipamentos||[]).find(function(x){ return x.id===id; }); if(!e) return;
+  e.estado = est; svGravar(); renderVisita();
+}
+function svRemEquip(id){
+  visitaAtual.equipamentos = (visitaAtual.equipamentos||[]).filter(function(x){ return x.id!==id; });
+  svGravar(); renderVisita();
+}
+function svFotoEquip(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var eq = (visitaAtual.equipamentos||[]).find(function(x){ return x.id===id; }); if(!eq) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'equip-'+id, visitaAtual.local);
+      eq.fotos=(eq.fotos||0)+1; svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- DILUIÇÃO ----------
+function svDilui(campo, valor){
+  if(!visitaAtual.diluicao) visitaAtual.diluicao = {};
+  visitaAtual.diluicao[campo] = valor;
+  svGravar(); renderVisita();
+}
+// Campos de TEXTO não podem redesenhar a tela a cada letra digitada,
+// senão o teclado fecha e o texto se perde. Só gravam.
+function svDiluiTxt(valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.diluicao) visitaAtual.diluicao = {};
+  visitaAtual.diluicao.materiais = valor;
+  svGravar();
+}
+function svRelatorio(valor){
+  if(!visitaAtual) return;
+  visitaAtual.relatorio = valor;
+  svGravar();
+}
+function svFotoDilui(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'diluicao', visitaAtual.local);
+      visitaAtual.diluicao.fotos = (visitaAtual.diluicao.fotos||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- ASSINATURA ----------
+// svAssImg guarda o traço já desenhado. A tela da visita se redesenha
+// inteira a cada toque em qualquer botão, e isso apagaria o canvas.
+// Por isso, a cada traço terminado a assinatura é guardada aqui e
+// redesenhada quando o canvas volta.
+let svCanvas=null, svCtx=null, svDesenhando=false, svAssImg=null;
+function svGuardarTraco(){
+  if(svCanvas) { try { svAssImg = svCanvas.toDataURL(); } catch(e){} }
+}
+function svIniciarAssinatura(){
+  svCanvas = document.getElementById('sv-ass-canvas');
+  if(!svCanvas) return;
+  svCanvas.width = svCanvas.offsetWidth; svCanvas.height = 150;
+  svCtx = svCanvas.getContext('2d');
+  svCtx.lineWidth = 2; svCtx.lineCap='round'; svCtx.strokeStyle='#1c2b3a';
+  if(svAssImg){
+    var im = new Image();
+    im.onload = function(){ try { svCtx.drawImage(im,0,0); } catch(e){} };
+    im.src = svAssImg;
+  }
+  function pos(e){
+    var r = svCanvas.getBoundingClientRect();
+    var t = e.touches ? e.touches[0] : e;
+    return { x:t.clientX-r.left, y:t.clientY-r.top };
+  }
+  svCanvas.ontouchstart = function(e){ e.preventDefault(); svDesenhando=true; var p=pos(e); svCtx.beginPath(); svCtx.moveTo(p.x,p.y); };
+  svCanvas.ontouchmove = function(e){ e.preventDefault(); if(!svDesenhando)return; var p=pos(e); svCtx.lineTo(p.x,p.y); svCtx.stroke(); };
+  svCanvas.ontouchend = function(){ svDesenhando=false; svGuardarTraco(); };
+  svCanvas.onmousedown = function(e){ svDesenhando=true; var p=pos(e); svCtx.beginPath(); svCtx.moveTo(p.x,p.y); };
+  svCanvas.onmousemove = function(e){ if(!svDesenhando)return; var p=pos(e); svCtx.lineTo(p.x,p.y); svCtx.stroke(); };
+  svCanvas.onmouseup = function(){ svDesenhando=false; svGuardarTraco(); };
+}
+function svLimparAssinatura(){
+  svAssImg = null;
+  if(svCtx&&svCanvas) svCtx.clearRect(0,0,svCanvas.width,svCanvas.height);
+}
+function svTemAssinatura(){
+  if(!svCtx||!svCanvas) return !!svAssImg;
+  try {
+    var d = svCtx.getImageData(0,0,svCanvas.width,svCanvas.height).data;
+    for(var i=3;i<d.length;i+=4){ if(d[i]>0) return true; }
+  } catch(e){}
+  return !!svAssImg;
+}
+function svAssinaturaData(){
+  if(svCanvas){ try { return svCanvas.toDataURL(); } catch(e){} }
+  return svAssImg;
+}
+
+// ---------- ENCERRAR ----------
+function svPodeEncerrar(){
+  var r = visitaAtual.regraAssinatura || 'opcional';
+  var pend = (visitaAtual.itens||[]).filter(function(i){
+    return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
+  });
+  if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
+  if(r === 'obrigatoria' && !svTemAssinatura()) return 'Este condomínio exige assinatura de quem recebeu a visita.';
+  if(r === 'naoaplica' && !visitaAtual.fotosFim) return 'Neste local não há assinatura, então a foto de saída é obrigatória.';
+  return '';
+}
+
+function svFotoFim(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'fim', visitaAtual.local);
+      visitaAtual.fotosFim = (visitaAtual.fotosFim||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+function encerrarVisita(){
+  if(!visitaAtual) return;
+  visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
+  var erro = svPodeEncerrar();
+  if(erro){ alert('⚠️ '+erro); return; }
+  if(!confirm('Encerrar a visita em '+visitaAtual.local+'?')) return;
+
+  if(svTemAssinatura()){
+    visitaAtual.assinatura = {
+      nome: ((document.getElementById('sv-ass-nome')||{}).value||'').trim(),
+      funcao: ((document.getElementById('sv-ass-func')||{}).value||'').trim(),
+      img: svAssinaturaData(),
+      validade: 'Art. 10 MP 2200-2/2001 — Assinatura eletronica'
+    };
+  }
+  var agora = new Date();
+  visitaAtual.fimHora = agora.toTimeString().slice(0,5);
+  visitaAtual.status = 'encerrada';
+
+  svGeo(function(g){
+    visitaAtual.fimGeo = g; visitaAtual.fimMaps = svMapsLink(g);
+    // A assinatura é imagem: vai pela fila de fotos, não dentro do JSON
+    if(visitaAtual.assinatura && visitaAtual.assinatura.img){
+      svEnviarFoto(visitaAtual.assinatura.img, 'assinatura', visitaAtual.local);
+      visitaAtual.assinatura = {
+        nome: visitaAtual.assinatura.nome, funcao: visitaAtual.assinatura.funcao,
+        validade: visitaAtual.assinatura.validade, registrada: true
+      };
+    }
+    svEnviar();
+    var v = visitaAtual; visitaAtual = null;
+    svAssImg = null; svCanvas = null; svCtx = null;
+    mostrarSucesso('✅','Visita encerrada!', navigator.onLine ? ('Enviada para a MJL — '+v.local) : 'Salva. Enviará quando tiver internet.');
+  });
+}
+
+// ---------- RENDER ----------
+function _svBtn(ativo, cor, label, onclick){
+  return '<button onclick="'+onclick+'" style="flex:1;padding:9px 6px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;border:1.5px solid '+(ativo?cor:'#d7dee6')+';background:'+(ativo?cor:'#fff')+';color:'+(ativo?'#fff':'#5a6a7a')+';">'+label+'</button>';
+}
+function _svSel(campo, valor, opcoes){
+  return '<div style="display:flex;gap:6px;margin-top:6px;">'+opcoes.map(function(o){
+    return _svBtn(valor===o[0], o[2], o[1], "svCheck('"+campo+"','"+o[0]+"')");
+  }).join('')+'</div>';
+}
+
+function renderVisita(){
+  var el = document.getElementById('vs-body');
+  if(!el) return;
+  if(!visitaAtual){ el.innerHTML = '<div class="card">Nenhuma visita aberta.</div>'; return; }
+  var v = visitaAtual;
+  var h = '';
+
+  // cabeçalho
+  h += '<div class="card" style="margin-bottom:12px;border-left:4px solid var(--brand,#1a4f7a);">'+
+    '<div style="font-size:17px;font-weight:800;">'+v.local+'</div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-top:3px;">Supervisão de <strong>'+(v.supervisorNome||'')+'</strong></div>'+
+    '<div style="font-size:12px;color:var(--text3);">Início '+(v.inicioHora||'')+' · '+svData(v.data)+
+      (v.inicioGeo?' · 📍 localização registrada':' · ⏳ localização...')+'</div>'+
+    '</div>';
+
+  // tarefas dos últimos 7 dias
+  var tar = svTarefas7(v.local);
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">📋 Últimos 7 dias — o que a equipe registrou</div>';
+  if(!tar.length){
+    h += '<p style="font-size:13px;color:var(--text3);">Nenhuma tarefa registrada neste local nos últimos 7 dias. Use o bloco abaixo para apontar o que observou.</p>';
+  } else {
+    tar.forEach(function(t){
+      var refId = (t.itemId||t.refId||'')+'_'+(t.data||'');
+      var it = svItemEstado(refId) || {};
+      h += '<div style="padding:10px 0;border-bottom:1px solid #eef2f6;">'+
+        '<div style="font-weight:600;font-size:14px;">'+(t.tarefa||'(sem nome)')+'</div>'+
+        '<div style="font-size:11.5px;color:var(--text3);margin-bottom:6px;">'+svData(t.data)+' '+(t.hora||'')+
+          (t.area?(' · 📍 '+t.area):'')+(t.colaboradorNome?(' · '+t.colaboradorNome):'')+'</div>'+
+        (t.obs?('<div style="font-size:12px;background:#fff8e1;border:1px solid #f3e2b0;border-radius:6px;padding:6px 8px;margin-bottom:6px;">'+t.obs+'</div>'):'')+
+        '<div style="display:flex;gap:6px;">'+
+          _svBtn(it.aval==='ok','#1e7e4a','✓ Conferido', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','ok')")+
+          _svBtn(it.aval==='refazer','#e67e22','↻ Refazer', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','refazer')")+
+          _svBtn(it.aval==='naofeito','#c0392b','✗ Não feito', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','naofeito')")+
+        '</div>';
+      if(it.aval==='refazer'||it.aval==='naofeito'){
+        h += '<textarea placeholder="O que foi observado? (descreva o fato, não a pessoa)" oninput="svJust(\''+refId+'\',this.value)" style="width:100%;margin-top:8px;font-size:13px;min-height:52px;">'+(it.just||'')+'</textarea>'+
+          '<label style="display:block;margin-top:6px;cursor:pointer;">'+
+          '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoItem(event,\''+refId+'\')">'+
+          '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto do apontamento'+(it.fotos?(' ('+it.fotos+')'):' — obrigatória')+'</div></label>';
+      }
+      h += '</div>';
+    });
+  }
+  h += '</div>';
+
+  // apontamento livre
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">➕ Apontar algo a mais</div>'+
+    '<p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Para o que não está no registro da equipe: área suja, tarefa não lançada, algo fora do lugar.</p>'+
+    '<textarea id="sv-extra-txt" placeholder="Ex: hall social não varrido às 14h" style="width:100%;font-size:13px;min-height:48px;"></textarea>'+
+    '<button class="btn btn-ghost" style="margin-top:6px;font-size:13px;padding:9px;" onclick="svAddExtra()">+ Adicionar</button>';
+  (v.extras||[]).forEach(function(x){
+    h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="flex:1;font-size:13px;">'+x.texto+
+        '<label style="display:inline-block;margin-left:6px;cursor:pointer;">'+
+        '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoExtra(event,\''+x.id+'\')">'+
+        '<span style="font-size:12px;color:var(--brand,#1a4f7a);text-decoration:underline;">📸 foto'+(x.fotos?(' ('+x.fotos+')'):'')+'</span></label>'+
+      '</div>'+
+      '<button onclick="svRemExtra(\''+x.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button>'+
+      '</div>';
+  });
+  h += '</div>';
+
+  // checklist
+  var c = v.checklist||{};
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">✅ Checklist da visita</div>'+
+    '<div style="font-size:13px;font-weight:600;margin-top:4px;">Uniforme completo</div>'+
+      _svSel('uniforme', c.uniforme, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">EPI em uso</div>'+
+      _svSel('epi', c.epi, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">Falou com síndico ou zelador</div>'+
+      _svSel('cliente', c.cliente, [['ok','Sim','#1e7e4a'],['nao','Não','#7d8f9e'],['recl','Houve reclamação','#e67e22']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">Livro de ocorrências</div>'+
+      _svSel('livro', c.livro, [['ok','Conferido','#1e7e4a'],['nao','Não conferido','#7d8f9e'],['na','Não tem','#7d8f9e']])+
+    '</div>';
+
+  // material
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧴 Material no local</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    '<input id="sv-mat-nome" placeholder="Ex: Desinfetante" style="flex:1;font-size:13px;">'+
+    '<button class="btn btn-ghost" style="padding:9px 14px;font-size:13px;" onclick="svAddMaterial()">+</button></div>';
+  (v.material||[]).forEach(function(m){
+    h += '<div style="padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="display:flex;align-items:center;"><div style="flex:1;font-weight:600;font-size:13.5px;">'+m.nome+'</div>'+
+      '<button onclick="svRemMaterial(\''+m.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:5px;">'+
+        _svBtn(m.situacao==='tem','#1e7e4a','Tem',"svSetMaterial('"+m.id+"','tem')")+
+        _svBtn(m.situacao==='acabando','#e67e22','Acabando',"svSetMaterial('"+m.id+"','acabando')")+
+        _svBtn(m.situacao==='acabou','#c0392b','Acabou',"svSetMaterial('"+m.id+"','acabou')")+
+      '</div></div>';
+  });
+  h += '</div>';
+
+  // diluição
+  var d = v.diluicao||{};
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧪 Diluição preparada</div>'+
+    '<div style="display:flex;gap:6px;">'+
+      _svBtn(d.feita==='sim','#1e7e4a','Preparei',"svDilui('feita','sim')")+
+      _svBtn(d.feita==='nao','#7d8f9e','Não',"svDilui('feita','nao')")+
+      _svBtn(d.feita==='na','#7d8f9e','N/A',"svDilui('feita','na')")+
+    '</div>';
+  if(d.feita==='sim'){
+    h += '<div style="display:flex;gap:6px;margin-top:8px;">'+
+        _svBtn(d.periodo==='semana','#1a4f7a','Semana',"svDilui('periodo','semana')")+
+        _svBtn(d.periodo==='quinzena','#1a4f7a','Quinzena',"svDilui('periodo','quinzena')")+
+        _svBtn(d.periodo==='mes','#1a4f7a','Mês',"svDilui('periodo','mes')")+
+      '</div>'+
+      '<textarea placeholder="Quais materiais ficaram prontos" oninput="svDiluiTxt(this.value)" style="width:100%;margin-top:8px;font-size:13px;min-height:46px;">'+(d.materiais||'')+'</textarea>'+
+      '<label style="display:block;margin-top:6px;cursor:pointer;">'+
+      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoDilui(event)">'+
+      '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto dos frascos'+(d.fotos?(' ('+d.fotos+')'):'')+'</div></label>';
+  }
+  h += '</div>';
+
+  // equipamentos
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧹 Equipamentos</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    '<input id="sv-eq-nome" placeholder="Ex: Carrinho de limpeza" style="flex:1;font-size:13px;">'+
+    '<button class="btn btn-ghost" style="padding:9px 14px;font-size:13px;" onclick="svAddEquip()">+</button></div>';
+  (v.equipamentos||[]).forEach(function(q){
+    h += '<div style="padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="display:flex;align-items:center;"><div style="flex:1;font-weight:600;font-size:13.5px;">'+q.nome+'</div>'+
+      '<button onclick="svRemEquip(\''+q.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:5px;">'+
+        _svBtn(q.estado==='ok','#1e7e4a','OK',"svSetEquip('"+q.id+"','ok')")+
+        _svBtn(q.estado==='manut','#e67e22','Manutenção',"svSetEquip('"+q.id+"','manut')")+
+        _svBtn(q.estado==='quebrado','#c0392b','Quebrado',"svSetEquip('"+q.id+"','quebrado')")+
+        _svBtn(q.estado==='faltando','#c0392b','Faltando',"svSetEquip('"+q.id+"','faltando')")+
+      '</div>'+
+      (q.estado&&q.estado!=='ok' ? ('<label style="display:block;margin-top:6px;cursor:pointer;">'+
+        '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoEquip(event,\''+q.id+'\')">'+
+        '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto'+(q.fotos?(' ('+q.fotos+')'):' — obrigatória')+'</div></label>') : '')+
+      '</div>';
+  });
+  h += '</div>';
+
+  // relatório
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">📝 Relatório da visita</div>'+
+    '<textarea id="sv-relatorio" oninput="svRelatorio(this.value)" placeholder="Parecer geral da visita..." style="width:100%;font-size:13px;min-height:80px;">'+(v.relatorio||'')+'</textarea></div>';
+
+  // encerramento
+  var regra = v.regraAssinatura||'opcional';
+  h += '<div class="card" style="margin-bottom:12px;border-left:4px solid #1e7e4a;"><div class="card-title">🏁 Encerrar visita</div>';
+  h += '<label style="display:block;margin-bottom:10px;cursor:pointer;">'+
+    '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoFim(event)">'+
+    '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:10px;">📸 Foto de saída'+
+      (v.fotosFim?(' ('+v.fotosFim+')'):(regra==='naoaplica'?' — obrigatória':''))+'</div></label>';
+  if(regra !== 'naoaplica'){
+    h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">Assinatura de quem recebeu'+(regra==='obrigatoria'?' (obrigatória)':' (opcional)')+'</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:6px;">'+
+      '<input id="sv-ass-nome" placeholder="Nome" style="flex:1;font-size:13px;">'+
+      '<input id="sv-ass-func" placeholder="Função" style="flex:1;font-size:13px;"></div>'+
+      '<canvas id="sv-ass-canvas" style="width:100%;height:150px;border:1.5px dashed #c8d4e0;border-radius:8px;background:#fff;touch-action:none;"></canvas>'+
+      '<button class="btn btn-ghost" style="margin:6px 0 10px;font-size:13px;padding:8px;" onclick="svLimparAssinatura()">Limpar assinatura</button>';
+  } else {
+    h += '<p style="font-size:12.5px;color:var(--text3);margin-bottom:10px;">Neste local não há quem receba a visita, então a foto de saída substitui a assinatura.</p>';
+  }
+  h += '<button class="btn btn-primary" style="width:100%;padding:13px;" onclick="encerrarVisita()">✅ Encerrar visita</button></div>';
+
+  el.innerHTML = h;
+  if(regra !== 'naoaplica') setTimeout(svIniciarAssinatura, 30);
+}
+
+// ---------- HISTÓRICO NO APARELHO ----------
+function svHistorico(){
+  var el = document.getElementById('sv-hist');
+  if(!el) return;
+  var minhas = svVisitas().filter(function(v){
+    return v.status === 'encerrada' && (!colAtual || v.supervisorId === colAtual.id);
+  }).slice(-10).reverse();
+  if(!minhas.length){ el.innerHTML = '<span style="color:var(--text3);">Nenhuma visita encerrada neste aparelho.</span>'; return; }
+  el.innerHTML = minhas.map(function(v){
+    var ruins = (v.itens||[]).filter(function(i){ return i.aval==='refazer'||i.aval==='naofeito'; }).length;
+    return '<div style="padding:8px 0;border-bottom:1px solid #eef2f6;">'+
+      '<strong>'+v.local+'</strong> · '+svData(v.data)+
+      '<div style="font-size:12px;color:var(--text3);">'+(v.inicioHora||'')+' às '+(v.fimHora||'')+
+      (ruins?(' · '+ruins+' apontamento(s)'):' · sem apontamentos')+'</div></div>';
+  }).join('');
+}
+
 </script>
 </body>
 </html>
