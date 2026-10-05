@@ -299,6 +299,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <!-- HOME -->
   <div class="screen active" id="scr-home">
     <p style="font-size:13px;color:var(--text2);margin-bottom:14px;" id="home-data"></p>
+    <div id="home-pend-aviso"></div>
     <div class="menu-grid">
       <div class="menu-btn green" onclick="ir('scr-ponto')"><div class="mico">⏱️</div><div class="mlabel">Ponto</div><div class="msub" id="home-ponto-sub">Bater ponto</div></div>
       <div class="menu-btn teal" onclick="ir('scr-cronograma')"><div class="mico">📅</div><div class="mlabel">Cronograma</div><div class="msub" id="home-crono-sub">Tarefas do dia</div></div>
@@ -519,6 +520,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <div class="alert alert-info" style="margin-bottom:14px;">
       📅 Toque em cada tarefa para marcar como feita. Fica registrado com data e hora.
     </div>
+    <!-- v23: o que a MJL pediu para refazer vem ANTES das tarefas do dia -->
+    <div id="pend-bloco"></div>
     <!-- Mini calendário semanal -->
     <div class="card" style="margin-bottom:14px;">
       <div class="card-title">Semana atual</div>
@@ -906,7 +909,7 @@ function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); setTimeo
   if(scrId==='scr-registro'){mostrarEtapa(0);obterGeo();}
   if(scrId==='scr-ponto'){iniciarRelogioPonto();carregarPontoHoje();}
   if(scrId!=='scr-ponto-step' && psTimer){clearInterval(psTimer);psTimer=null;}
-  if(scrId==='scr-cronograma'){renderCronograma();}
+  if(scrId==='scr-cronograma'){renderCronograma();renderPendencias();}
   if(scrId==='scr-chamados'){renderChamados();}
   if(scrId==='scr-informativos'){renderInformativos();}
   if(scrId==='scr-superv'){abrirSupervisao();svHistorico();}
@@ -1305,6 +1308,117 @@ function renderCronograma(){
       <div class="crono-local-body" style="display:${aberto?'block':'none'}">${tarefasHTML}</div>
     </div>`;
   }).join('');
+}
+
+// ================================================================
+// v23 — PENDENCIAS (passo 4 da supervisao)
+// O encarregado apontava "Andar 5 — refazer" e aquilo morria dentro
+// da visita: a colaboradora nunca era avisada. Agora o apontamento
+// vira uma pendencia, chega aqui no topo do cronograma, e so fecha
+// com foto nova. Assim a MJL ve o antes e o depois.
+//
+// O que vem do CLIENTE nasce travado (liberada=false) e so aparece
+// aqui depois que a MJL libera. A ordem sai sempre da MJL.
+// ================================================================
+function pendTodas(){ return lerLocal('mjl_pendencias',[]); }
+
+function meusLocaisCampo(){
+  if(!colAtual) return [];
+  if(Array.isArray(colAtual.clientes)) return colAtual.clientes.filter(Boolean);
+  if(typeof colAtual.clientes==='string' && colAtual.clientes)
+    return colAtual.clientes.split('|').map(function(x){return x.trim();}).filter(Boolean);
+  return [colAtual.cliente||''].filter(Boolean);
+}
+
+// Minhas pendencias = de EQUIPE, abertas, ja liberadas, no meu local,
+// e ou sem dono ou com o meu nome.
+function minhasPendencias(){
+  if(!colAtual) return [];
+  var locais = meusLocaisCampo().map(function(l){ return String(l).toLowerCase(); });
+  return pendTodas().filter(function(p){
+    if(!p || p.tipo!=='equipe' || p.status!=='aberta') return false;
+    if(p.liberada===false) return false;
+    if(p.colaboradorId && p.colaboradorId!==colAtual.id) return false;
+    var lp = String(p.local||'').toLowerCase();
+    return !lp || locais.some(function(l){ return lp.indexOf(l)>=0 || l.indexOf(lp)>=0; });
+  }).sort(function(a,b){ return String(b.data||'').localeCompare(String(a.data||'')); });
+}
+
+function renderPendencias(){
+  var el = document.getElementById('pend-bloco');
+  var lista = minhasPendencias();
+  if(el){
+    if(!lista.length){ el.innerHTML=''; }
+    else {
+      el.innerHTML = '<div class="card" style="margin-bottom:14px;border:2px solid var(--red);background:#fff6f5;">'+
+        '<div class="card-title" style="color:var(--red);">🔁 PARA REFAZER \u2014 '+lista.length+' '+(lista.length>1?'itens':'item')+'</div>'+
+        lista.map(function(p){ return _pendCard(p); }).join('')+
+        '</div>';
+    }
+  }
+  var av = document.getElementById('home-pend-aviso');
+  if(av){
+    av.innerHTML = lista.length
+      ? '<div onclick="ir(\'scr-cronograma\')" style="cursor:pointer;background:var(--red);color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">'+
+        '<div style="font-size:30px;line-height:1;">\u26A0\uFE0F</div>'+
+        '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">'+lista.length+' '+(lista.length>1?'pendências':'pendência')+' para resolver</div>'+
+        '<div style="font-size:12px;opacity:.85;">Toque para ver o que a MJL pediu</div></div>'+
+        '<div style="font-size:22px;">\u203A</div></div>'
+      : '';
+  }
+}
+
+function _pendCard(p){
+  var quando = String(p.data||'').split('-').reverse().join('/');
+  var deOnde = p.origem==='cliente' ? 'Pedido do local' : (p.origem==='mjl' ? 'Pedido da MJL' : 'Supervisão');
+  return '<div style="border-top:1px solid #f3dedb;padding:12px 0;">'+
+    '<div style="font-weight:700;font-size:14.5px;">'+(p.tarefa||'Pendência')+(p.area?(' \u2014 📍 '+p.area):'')+'</div>'+
+    '<div style="font-size:11.5px;color:var(--text3);margin:2px 0 6px;">'+deOnde+' de '+quando+(p.hora?(' às '+p.hora):'')+'</div>'+
+    (p.texto?('<div style="font-size:13px;background:#fff;border:1px solid #f0d9d6;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">'+p.texto+'</div>'):'')+
+    '<label style="display:block;cursor:pointer;">'+
+      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="resolverPendencia(event,\''+p.id+'\')">'+
+      '<div class="btn btn-green" style="pointer-events:none;padding:12px;font-size:14px;">📸 Refiz \u2014 tirar foto</div>'+
+    '</label>'+
+  '</div>';
+}
+
+// Resolver exige foto. Sem foto nao fecha — e a foto que prova.
+function resolverPendencia(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var p = pendTodas().find(function(x){ return x.id===id; });
+  if(!p){ alert('Pendência não encontrada neste aparelho. Sincronize e tente de novo.'); return; }
+  var agora = new Date();
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Cronograma', etapa:'pendencia', refId:id,
+        colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
+        cliente:p.local||colAtual.cliente||'',
+        data:agora.toISOString().slice(0,10),
+        hora:agora.toTimeString().slice(0,5),
+        tarefa:p.tarefa||'', area:p.area||'',
+        img:comp, timestamp:Date.now()
+      }});
+      var resolvida = {
+        id:id, status:'resolvida',
+        resolvidoEm: agora.toISOString().slice(0,10),
+        resolvidoHora: agora.toTimeString().slice(0,5),
+        resolvidoPorId: colAtual.id, resolvidoPorNome: colAtual.nome,
+        fotosResolucao: 1
+      };
+      adicionarPendente({acao:'resolverPendencia', dados:resolvida});
+      // Some da tela na hora, sem esperar a planilha responder
+      var todas = pendTodas().map(function(x){
+        return x.id===id ? Object.assign({}, x, resolvida) : x;
+      });
+      salvarLocal('mjl_pendencias', todas);
+      renderPendencias(); atualizarBadges();
+      mostrarSucesso('\u2705','Pendência resolvida!','A MJL recebeu a foto do serviço refeito.');
+    }, p.local||colAtual.cliente||'');
+  };
+  reader.readAsDataURL(f);
+  ev.target.value='';
 }
 
 let _cronoPend=null,_fotoCrono=null;
@@ -1851,6 +1965,25 @@ function enviarPendentes(){
   fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
   fetch(url+'?acao=getChamados').then(r=>r.json()).then(d=>{if(d?.chamados){const meus=d.chamados.filter(c=>c.cliente===colAtual?.cliente);salvarLocal('mjl_chamados_recebidos',meus);renderChamados?.();}}).catch(()=>{});
   fetch(url+'?acao=getCronogramas').then(r=>r.json()).then(d=>{if(d?.cronogramas){salvarLocal('mjl_cronogramas',d.cronogramas);renderCronograma?.();}}).catch(()=>{});
+  // v23: pendencias. Pede so os ultimos 30 dias — as ABERTAS o
+  // servidor manda de qualquer data, mesmo as antigas.
+  (function(){
+    var _lim=new Date(); _lim.setDate(_lim.getDate()-30);
+    fetch(url+'?acao=getPendencias&desde='+_lim.toISOString().slice(0,10),{redirect:'follow',headers:{'Accept':'application/json'}})
+      .then(r=>r.json()).then(d=>{
+        if(!d||!d.pendencias) return;
+        // Nao atropela o que este aparelho acabou de resolver e ainda
+        // esta na fila de envio: resolvida local vence aberta do servidor.
+        var locais={}; pendTodas().forEach(function(p){ if(p&&p.id) locais[p.id]=p; });
+        var merged=d.pendencias.map(function(p){
+          var l=locais[p.id];
+          if(l && l.status==='resolvida' && p.status!=='resolvida') return l;
+          return p;
+        });
+        salvarLocal('mjl_pendencias',merged);
+        renderPendencias?.(); atualizarBadges?.();
+      }).catch(()=>{});
+  })();
   // v21: SÓ quem supervisiona baixa a lista de condomínios e o que a
   // equipe registrou. O celular do colaborador comum não carrega isso.
   if(typeof ehSupervisor==='function' && ehSupervisor()) buscarDadosSupervisao(url);
@@ -1881,9 +2014,16 @@ function atualizarBadges(){
     :[colAtual?.cliente||'']);
   const _minhas=_hoje.filter(c=>c.cobertura||(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual?.id))||_meusL.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual?.id||c.todos);
   const pendente=_minhas.filter(c=>!feitos.includes(c.id)).length;
+  // v23: pendencias para refazer entram na mesma bolinha e tem
+  // prioridade no texto — e o que precisa ser resolvido primeiro.
+  const _pend=(typeof minhasPendencias==='function')?minhasPendencias().length:0;
   const nbCrono=document.getElementById('nb-crono');
-  nbCrono.style.display=pendente>0?'flex':'none';nbCrono.textContent=pendente;
-  document.getElementById('home-crono-sub').textContent=pendente>0?pendente+' tarefas pendentes':'Tarefas do dia';
+  const _total=pendente+_pend;
+  nbCrono.style.display=_total>0?'flex':'none';nbCrono.textContent=_total;
+  document.getElementById('home-crono-sub').textContent=
+    _pend>0 ? (_pend+(_pend>1?' para refazer':' para refazer')) :
+    (pendente>0?pendente+' tarefas pendentes':'Tarefas do dia');
+  if(typeof renderPendencias==='function') renderPendencias();
 }
 
 // ===== SUCESSO =====
@@ -2291,7 +2431,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v22';
+const APP_VERSAO='v23';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -2834,10 +2974,70 @@ function encerrarVisita(){
       };
     }
     svEnviar();
+    var _geradas = svGerarPendencias(visitaAtual);
     var v = visitaAtual; visitaAtual = null;
     svAssImg = null; svCanvas = null; svCtx = null;
-    mostrarSucesso('✅','Visita encerrada!', navigator.onLine ? ('Enviada para a MJL — '+v.local) : 'Salva. Enviará quando tiver internet.');
+    mostrarSucesso('✅','Visita encerrada!',
+      (navigator.onLine ? ('Enviada para a MJL — '+v.local) : 'Salva. Enviará quando tiver internet.')+
+      (_geradas ? ('  ·  '+_geradas+' pendência(s) aberta(s).') : ''));
   });
+}
+
+// ---------- PENDENCIAS QUE NASCEM DA VISITA ----------
+// Cada apontamento vira uma pendencia com DESTINO:
+//   refazer / nao feito / uniforme / EPI -> EQUIPE (celular do colaborador)
+//   material acabando / equipamento ruim -> MJL (caixa da Marjorie)
+// A separacao importa: material em falta nao e culpa de quem limpa.
+function svGerarPendencias(v){
+  if(!v) return 0;
+  var n = 0;
+  function abrir(o){
+    o.id = gid();
+    o.origem = 'supervisao';
+    o.status = 'aberta';
+    o.liberada = true;
+    o.local = v.local;
+    o.visitaId = v.id;
+    o.criadoPorId = v.supervisorId;
+    o.criadoPorNome = v.supervisorNome;
+    o.data = v.data;
+    o.hora = v.fimHora || v.inicioHora || '';
+    o.timestamp = Date.now();
+    adicionarPendente({ acao:'abrirPendencia', dados:o });
+    n++;
+  }
+
+  (v.itens||[]).forEach(function(it){
+    if(it.aval!=='refazer' && it.aval!=='naofeito') return;
+    abrir({ tipo:'equipe', tarefa:it.tarefa||'', area:it.area||'',
+      itemId:it.refId||'', texto:it.just||'',
+      colaboradorNome:it.colaborador||'', fotos:it.fotos||0,
+      motivo:(it.aval==='refazer'?'refazer':'nao feito') });
+  });
+
+  (v.extras||[]).forEach(function(x){
+    abrir({ tipo:'equipe', tarefa:'Apontamento da supervisão', area:'',
+      texto:x.texto||'', fotos:x.fotos||0, motivo:'apontado na visita' });
+  });
+
+  var c = v.checklist||{};
+  if(c.uniforme==='nao') abrir({ tipo:'equipe', tarefa:'Uniforme completo', texto:'Uniforme incompleto na visita.', motivo:'uniforme' });
+  if(c.epi==='nao')      abrir({ tipo:'equipe', tarefa:'EPI em uso', texto:'EPI não estava em uso na visita.', motivo:'epi' });
+
+  (v.material||[]).forEach(function(m){
+    if(m.situacao!=='acabando' && m.situacao!=='acabou') return;
+    abrir({ tipo:'mjl', tarefa:'Repor material: '+m.nome,
+      texto:(m.situacao==='acabou'?'Acabou':'Está acabando')+' em '+v.local+'.', motivo:'material' });
+  });
+
+  (v.equipamentos||[]).forEach(function(q){
+    if(!q.estado || q.estado==='ok') return;
+    var txt = q.estado==='manut' ? 'Precisa de manutenção' : (q.estado==='quebrado' ? 'Quebrado' : 'Faltando no local');
+    abrir({ tipo:'mjl', tarefa:'Equipamento: '+q.nome,
+      texto:txt+' em '+v.local+'.', fotos:q.fotos||0, motivo:'equipamento' });
+  });
+
+  return n;
 }
 
 // ---------- RENDER ----------
