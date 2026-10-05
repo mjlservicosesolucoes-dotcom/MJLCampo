@@ -729,10 +729,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <label for="input-foto-crono" style="display:block;cursor:pointer;">
     <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Adicionar foto(s) do serviço</span></div>
   </label>
-  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-crono-ok','fotos-crono',_cronoPend&&_cronoPend.local)">
+  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotosCrono(event)">
+  <div id="crono-ok-contador"></div>
   <div class="photo-grid" id="grid-crono-ok" style="margin-bottom:12px;"></div>
   <div class="fg"><label>📝 Observação (opcional)</label>
-    <textarea id="crono-ok-obs" placeholder="Algo a relatar nesta tarefa? Ex: torneira do 3º andar vazando, faltou produto..." style="font-size:14px;"></textarea>
+    <textarea id="crono-ok-obs" oninput="cronoSalvarObs(this.value)" placeholder="Algo a relatar nesta tarefa? Ex: torneira do 3º andar vazando, faltou produto..." style="font-size:14px;"></textarea>
   </div>
   <button class="btn btn-green" style="width:100%;padding:13px;" onclick="confirmarCronoFeito()">✅ Confirmar conclusão</button>
 </div></div>
@@ -1147,6 +1148,36 @@ function descPeriodica(t){
   return n===7?'🔁 Semanal':n===15?'🔁 Quinzenal':n===30?'🔁 A cada 30 dias':'🔁 A cada '+n+' dias';
 }
 
+// ===== v22: AREAS DA TAREFA (Andar 1-9, Hall, Garagem...) =====
+// A MJL escreve as areas UMA vez no Gestao; aqui cada area vira uma
+// tarefa propria no celular, com foto e horario separados.
+// Aceita "Andar 1-9" (expande sozinho) e lista solta separada por
+// virgula ou ponto-e-virgula.
+function expandirAreas(t){
+  if(!t || typeof t !== 'object') return [];
+  var bruto = t.areas;
+  if(bruto instanceof Array) bruto = bruto.join(',');
+  bruto = String(bruto||'').trim();
+  if(!bruto) return [];
+  var out = [];
+  bruto.split(/[,;\n]+/).forEach(function(parte){
+    parte = parte.trim();
+    if(!parte) return;
+    // "Andar 1-9" / "Andar 1 a 9" -> Andar 1, Andar 2, ... Andar 9
+    var m = parte.match(/^(.*?)(\d+)\s*(?:-|a|at\u00e9|\u2013)\s*(\d+)\s*$/i);
+    if(m){
+      var prefixo = m[1].trim();
+      var de = parseInt(m[2],10), ate = parseInt(m[3],10);
+      if(de <= ate && (ate-de) <= 200){
+        for(var n=de;n<=ate;n++) out.push((prefixo?prefixo+' ':'')+n);
+        return;
+      }
+    }
+    out.push(parte);
+  });
+  return out;
+}
+
 function cronogramasDeHoje(){
   const brutos=lerLocal('mjl_cronogramas',[]);
   const diaHoje=new Date().getDay(); // 0=Dom ... 6=Sáb
@@ -1169,12 +1200,29 @@ function cronogramasDeHoje(){
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
         const _area=(t&&typeof t==='object'&&t.area)?t.area:'';
         if(!txt) return;
+        // v22: se a tarefa tem AREAS (ex: Andar 1-9), ela vira uma linha
+        // por area, cada uma com foto e horario proprios. Assim a MJL ve
+        // "Andar 5 nao foi feito" em vez de "os andares, pela metade".
+        const _areas=expandirAreas(t);
+        if(_areas.length){
+          _areas.forEach(function(nomeArea,k){
+            lista.push({id:cr.id+'_d'+diaHoje+'_'+ix+'_a'+k,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:nomeArea});
+          });
+          return;
+        }
         lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:_area});
       });
       // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
       (cr.periodicas||[]).forEach(function(t){
         if(!t||!t.texto) return;
         if(!periodicaCaiNoDia(t,hojeStr,cr.dias||[])) return;
+        var _ap=expandirAreas(t);
+        if(_ap.length){
+          _ap.forEach(function(nomeArea,k){
+            lista.push({id:cr.id+'_p'+t.id+'_a'+k,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,area:nomeArea,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
+          });
+          return;
+        }
         lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,area:t.area||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
       });
     } else if(cr.tarefa){
@@ -1243,6 +1291,7 @@ function renderCronograma(){
           <div class="ci-label">${item.tarefa}</div>
           <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}${item.area?' · 📍 '+item.area:''}</div>
           ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
+          ${!feito&&cronoRascunho(item.id).fotos?`<div style="font-size:11px;color:var(--orange);font-weight:700;margin-top:3px;">📸 ${cronoRascunho(item.id).fotos} foto(s) já enviada(s) — falta confirmar</div>`:''}
           ${feito&&lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),null)?`<div style="font-size:11px;color:var(--text2);background:#fff8e1;border-radius:6px;padding:4px 7px;margin-top:4px;">📝 ${lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),'')}</div>`:''}
         </div>
       </div>`;
@@ -1265,7 +1314,7 @@ function marcarCrono(itemId, local){
   const feitos=lerLocal(key,[]);
   const idx=feitos.indexOf(itemId);
   if(idx>=0){
-    // Desmarcar: instantâneo
+    // Desmarcar: instantaneo
     feitos.splice(idx,1);
     localStorage.removeItem('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''));
     salvarLocal(key,feitos);
@@ -1273,35 +1322,108 @@ function marcarCrono(itemId, local){
     atualizarBadges();
     return;
   }
-  // v18: foto OBRIGATÓRIA, várias por tarefa, + observação do colaborador
+  // v22: NAO zera mais as fotos. O que ja foi tirado volta na tela.
   _cronoPend={itemId:itemId,local:local};
-  fotosData['fotos-crono']=[];
-  document.getElementById('grid-crono-ok').innerHTML='';
-  document.getElementById('crono-ok-obs').value='';
+  const _ras=cronoRascunho(itemId);
+  document.getElementById('crono-ok-obs').value=_ras.obs||'';
   document.getElementById('crono-ok-desc').textContent='📍 '+(local||colAtual?.cliente||'');
-  const _t=(cronogramasDeHoje().find(x=>x.id===itemId)||{}).tarefa||'';
-  document.getElementById('crono-ok-tarefa').textContent=_t;
+  const _it=cronogramasDeHoje().find(x=>x.id===itemId)||{};
+  document.getElementById('crono-ok-tarefa').textContent=(_it.tarefa||'')+(_it.area?('  ·  📍 '+_it.area):'');
+  renderGridCrono();
   document.getElementById('modal-crono-ok').classList.remove('hidden');
 }
-function capturarFotoCrono(e){
-  const f=e.target.files[0]; if(!f) return;
-  const r=new FileReader();
-  r.onload=ev=>{
-    comprimirFoto(ev.target.result,function(comp){
-      _fotoCrono=comp;
-      document.getElementById('crono-ok-prev').innerHTML='<img src="'+comp+'" style="max-width:140px;border-radius:10px;border:2px solid var(--green);">';
-    });
+
+// ================================================================
+// v22 — RASCUNHO DA TAREFA DO CRONOGRAMA
+// Ate a v21 as fotos da tarefa viviam so na MEMORIA do navegador
+// (fotosData). No iPhone, abrir a camera descarrega o app da
+// memoria: ao voltar, a lista aparecia vazia e o colaborador achava
+// que a foto tinha se perdido. Em tarefa de 9 andares isso
+// inviabilizava o uso.
+//
+// Agora cada foto e ENVIADA na hora pela fila (mesma regra da
+// supervisao: foto nunca fica guardada esperando) e o aparelho
+// guarda so uma MINIATURA de ~1KB. Nove andares ocupam 10KB em vez
+// de 1,5MB, e fechar o app no meio nao perde nada.
+// ================================================================
+function _cronoKeyRasc(itemId){
+  return 'mjl_crono_rasc_'+new Date().toISOString().slice(0,10)+'_'+itemId+'_'+(colAtual?colAtual.id:'');
+}
+function cronoRascunho(itemId){ return lerLocal(_cronoKeyRasc(itemId),{fotos:0,minis:[],obs:''}); }
+function cronoSalvarRascunho(itemId,r){ try{ salvarLocal(_cronoKeyRasc(itemId),r); }catch(e){} }
+function cronoLimparRascunho(itemId){ try{ localStorage.removeItem(_cronoKeyRasc(itemId)); }catch(e){} }
+
+function _miniatura(dataUrl,cb){
+  var img=new Image();
+  img.onload=function(){
+    var c=document.createElement('canvas');
+    var w=img.width,h=img.height,max=110;
+    if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+    c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.5));
   };
-  r.readAsDataURL(f);
+  img.onerror=function(){ cb(''); };
+  img.src=dataUrl;
+}
+
+function addFotosCrono(e){
+  if(!_cronoPend){ e.target.value=''; return; }
+  var itemId=_cronoPend.itemId, local=_cronoPend.local;
+  var hoje=new Date().toISOString().slice(0,10);
+  var _it=cronogramasDeHoje().find(function(x){return x.id===itemId;})||{};
+  Array.from(e.target.files).forEach(function(f){
+    var r=new FileReader();
+    r.onload=function(ev){
+      comprimirFoto(ev.target.result,function(comp){
+        adicionarPendente({acao:'salvarFoto',dados:{
+          tipo:'Cronograma',etapa:'tarefa',refId:itemId,
+          colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+          cliente:local||colAtual.cliente||'',data:hoje,
+          hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+          tarefa:_it.tarefa||'',area:_it.area||'',
+          img:comp,timestamp:Date.now()
+        }});
+        _miniatura(comp,function(mini){
+          var ras=cronoRascunho(itemId);
+          ras.fotos=(ras.fotos||0)+1;
+          ras.minis=(ras.minis||[]).concat([mini]).slice(-15);
+          cronoSalvarRascunho(itemId,ras);
+          renderGridCrono();
+          renderCronograma();
+        });
+      },local);
+    };
+    r.readAsDataURL(f);
+  });
   e.target.value='';
 }
+
+function renderGridCrono(){
+  if(!_cronoPend) return;
+  var ras=cronoRascunho(_cronoPend.itemId);
+  var g=document.getElementById('grid-crono-ok');
+  if(g) g.innerHTML=(ras.minis||[]).map(function(m,i){
+    return '<div class="photo-thumb"><img src="'+m+'"><div style="position:absolute;bottom:2px;left:3px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:0 5px;border-radius:6px;">'+(i+1)+'</div></div>';
+  }).join('');
+  var c=document.getElementById('crono-ok-contador');
+  if(c) c.innerHTML=ras.fotos
+    ? '<div class="alert alert-ok" style="margin-bottom:10px;">✅ <strong>'+ras.fotos+' foto(s)</strong> já enviada(s) para a MJL. Pode fechar o app e voltar depois — não se perde.</div>'
+    : '';
+}
+function cronoSalvarObs(v){
+  if(!_cronoPend) return;
+  var ras=cronoRascunho(_cronoPend.itemId);
+  ras.obs=v; cronoSalvarRascunho(_cronoPend.itemId,ras);
+}
+
 function confirmarCronoFeito(){
   if(!_cronoPend) return;
   const itemId=_cronoPend.itemId, local=_cronoPend.local;
-  const fotos=fotosData['fotos-crono']||[];
-  if(!fotos.length){ alert('📷 Tire pelo menos uma foto do serviço para confirmar a tarefa.'); return; }
+  const ras=cronoRascunho(itemId);
+  const nFotos=ras.fotos||0;
+  if(!nFotos){ alert('📷 Tire pelo menos uma foto do serviço para confirmar a tarefa.'); return; }
   const obs=(document.getElementById('crono-ok-obs').value||'').trim();
-  const temFoto=fotos.length>0;
   const hoje=new Date().toISOString().slice(0,10);
   const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
   const feitos=lerLocal(key,[]);
@@ -1310,22 +1432,17 @@ function confirmarCronoFeito(){
   salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
   const _it=cronogramasDeHoje().find(x=>x.id===itemId)||{};
   const _tarefaNome=_it.tarefa||'', _area=_it.area||'';
-  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,area:_area,local,data:hoje,hora:agora,feito:true,obs:obs,foto:fotos.length+' foto(s)'}});
+  // v22: as fotos JA foram enviadas uma a uma. Aqui vai so o registro
+  // da tarefa, com a contagem. Nada de reenviar imagem.
+  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,area:_area,local,data:hoje,hora:agora,feito:true,obs:obs,foto:nFotos+' foto(s)'}});
   if(obs) salvarLocal('mjl_crono_obs_'+hoje+'_'+itemId+'_'+(colAtual?.id||''),obs);
-  fotos.forEach(function(img){
-    adicionarPendente({acao:'salvarFoto',dados:{
-      tipo:'Cronograma',etapa:'tarefa',refId:itemId,
-      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
-      cliente:local||colAtual.cliente||'',data:hoje,hora:agora,tarefa:_tarefaNome,area:_area,obs:obs,
-      img:img,timestamp:Date.now()
-    }});
-  });
   salvarLocal(key,feitos);
-  _cronoPend=null;fotosData['fotos-crono']=[];
+  cronoLimparRascunho(itemId);
+  _cronoPend=null;
   fecharModal('modal-crono-ok');
   renderCronograma();
   atualizarBadges();
-  mostrarSucesso('📋','Tarefa concluída!',fotos.length+' foto(s) enviada(s) para a MJL.'+(obs?' Observação registrada.':''));
+  mostrarSucesso('📋','Tarefa concluída!',nFotos+' foto(s) enviada(s) para a MJL.'+(obs?' Observação registrada.':''));
 }
 
 // ===== CHAMADOS =====
@@ -1753,10 +1870,17 @@ function atualizarBadges(){
   document.getElementById('home-ch-sub').textContent=chs?chs+' em aberto':'Manutenção';
 
   // Cronograma pendente hoje
-  const cronos=lerLocal('mjl_cronogramas',[]);
+  // v22: antes comparava o numero de CRONOGRAMAS cadastrados com o de
+  // TAREFAS feitas — coisas diferentes, entao o numero na tela inicial
+  // nao batia. Agora conta as tarefas de hoje que ainda nao foram feitas.
   const hoje=new Date().toISOString().slice(0,10);
   const feitos=lerLocal('mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||''),[]);
-  const pendente=cronos.length-feitos.length;
+  const _hoje=cronogramasDeHoje();
+  const _meusL=Array.isArray(colAtual?.clientes)?colAtual.clientes
+    :(typeof colAtual?.clientes==='string'&&colAtual.clientes?colAtual.clientes.split('|').map(x=>x.trim()).filter(Boolean)
+    :[colAtual?.cliente||'']);
+  const _minhas=_hoje.filter(c=>c.cobertura||(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual?.id))||_meusL.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual?.id||c.todos);
+  const pendente=_minhas.filter(c=>!feitos.includes(c.id)).length;
   const nbCrono=document.getElementById('nb-crono');
   nbCrono.style.display=pendente>0?'flex':'none';nbCrono.textContent=pendente;
   document.getElementById('home-crono-sub').textContent=pendente>0?pendente+' tarefas pendentes':'Tarefas do dia';
@@ -2167,7 +2291,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v21.1';
+const APP_VERSAO='v22';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
