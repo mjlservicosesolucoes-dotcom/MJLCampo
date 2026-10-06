@@ -300,18 +300,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
   <div class="screen active" id="scr-home">
     <p style="font-size:13px;color:var(--text2);margin-bottom:14px;" id="home-data"></p>
     <div id="home-pend-aviso"></div>
+    <div id="home-avulso-aviso"></div>
     <div class="menu-grid">
       <div class="menu-btn green" onclick="ir('scr-ponto')"><div class="mico">⏱️</div><div class="mlabel">Ponto</div><div class="msub" id="home-ponto-sub">Bater ponto</div></div>
       <div class="menu-btn teal" onclick="ir('scr-cronograma')"><div class="mico">📅</div><div class="mlabel">Cronograma</div><div class="msub" id="home-crono-sub">Tarefas do dia</div></div>
       <div class="menu-btn blue" onclick="ir('scr-chamados')"><div class="mico">🔧</div><div class="mlabel">Chamados</div><div class="msub" id="home-ch-sub">Manutenção</div></div>
       <div class="menu-btn orange" onclick="ir('scr-informativos')"><div class="mico">📢</div><div class="mlabel">Avisos</div><div class="msub" id="home-info-sub">Documentos</div></div>
       <div class="menu-btn" id="home-btn-superv" style="display:none;border-color:#7b2d8b;background:#f6eefa;" onclick="ir('scr-superv')"><div class="mico">🔎</div><div class="mlabel">Supervisão</div><div class="msub" id="home-superv-sub">Visita ao local</div></div>
+      <div class="menu-btn" id="home-btn-avulso" style="display:none;border-color:#7b2d8b;background:#f6eefa;" onclick="ir('scr-avulsos')"><div class="mico">⭐</div><div class="mlabel">Serviços Extras</div><div class="msub" id="home-avulso-sub">Avulsos do dia</div></div>
       <div class="menu-btn purple" onclick="ir('scr-ouvidoria')"><div class="mico">💬</div><div class="mlabel">Falar com MJL</div><div class="msub">Ouvidoria</div></div>
       <div class="menu-btn" style="border-color:#c8d8e8;background:#f0f4f8;" onclick="ir('scr-config')"><div class="mico">⚙️</div><div class="mlabel">Configurar</div><div class="msub">URL do sistema</div></div>
     </div>
     <button class="btn btn-ghost" style="margin-top:14px;font-size:14px;color:var(--text2);" onclick="logout()">🚪 Sair</button>
   </div>
 
+
+  <!-- SERVIÇOS AVULSOS — lista do colaborador -->
+  <div class="screen" id="scr-avulsos">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="av-lista"></div>
+  </div>
+
+  <!-- SERVIÇO AVULSO — execução -->
+  <div class="screen" id="scr-avulso">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-avulsos')">← Sair sem concluir (fica salvo)</button>
+    <div id="avx-body"></div>
+  </div>
 
   <!-- SUPERVISÃO — entrada da visita (só perfil encarregado/supervisor) -->
   <div class="screen" id="scr-superv">
@@ -898,6 +912,270 @@ window.addEventListener('load',()=>{
   document.getElementById('app-wrap').style.display='none';
 });
 
+
+// ================================================================
+// v24 — SERVICOS AVULSOS no celular (passo 6)
+//
+// O avulso nasce no App Gestao (cliente, servico vendido, escopo,
+// colaborador designado). Aqui o colaborador EXECUTA:
+//   1. foto ANTES   — obrigatoria, pelo menos uma
+//   2. marca os itens do escopo que fez (e justifica o que nao fez)
+//   3. foto DEPOIS  — obrigatoria, pelo menos uma
+//   4. conclui
+//
+// REGRAS DE OURO aplicadas aqui, todas aprendidas na marra:
+//  - foto nunca fica guardada esperando: vai para a fila de envio no
+//    instante em que e tirada, e o registro guarda so a CONTAGEM.
+//    (no iPhone, abrir a camera descarrega o app da memoria)
+//  - o rascunho fica no localStorage por avulso, entao sair da tela
+//    ou o app fechar nao perde nada
+//  - a conclusao vai por id (concluirAvulso), nunca a lista inteira
+// ================================================================
+var avAtual=null;
+// quais justificativas o colaborador abriu nesta sessao da tela
+var _avJustAberta={};
+
+function avTodosCampo(){ return lerLocal('mjl_avulsos',[]); }
+function meusAvulsos(){
+  if(!colAtual) return [];
+  return avTodosCampo().filter(function(a){
+    if(!a || !a.id) return false;
+    if(a.status==='concluido' || a.status==='cancelado') return false;
+    return a.colaboradorId===colAtual.id;
+  }).sort(function(x,y){ return String(x.data||'').localeCompare(String(y.data||'')); });
+}
+function _avDataBR(d){ return d?String(d).split('-').reverse().join('/'):''; }
+
+// rascunho por avulso: itens marcados, justificativas, relatorio e
+// quantas fotos ja foram enviadas de cada etapa
+// A chave NAO leva o id do colaborador de proposito. Cada avulso ja
+// pertence a uma pessoa so (colaboradorId), entao nao ha como um ver o
+// rascunho do outro. E se a chave dependesse de colAtual, bastava o app
+// voltar do segundo plano um instante antes do login terminar para o
+// rascunho ser gravado numa chave orfa — e o colaborador ver tudo zerado
+// depois de ja ter tirado as fotos. Foi o que o teste pegou.
+function _avKey(id){ return 'mjl_avulso_rasc_'+id; }
+function avRasc(id){
+  var r=lerLocal(_avKey(id),null);
+  if(r) return r;
+  // rascunho gravado por uma versao anterior, com o id do colaborador na chave
+  if(colAtual){ var v=lerLocal('mjl_avulso_rasc_'+id+'_'+colAtual.id,null); if(v) return v; }
+  return {itens:{},just:{},relatorio:'',antes:0,depois:0};
+}
+function avGravaRasc(id,r){ try{ salvarLocal(_avKey(id),r); }catch(e){} }
+
+function renderAvulsosCampo(){
+  var lista=meusAvulsos();
+  var el=document.getElementById('av-lista');
+  if(el){
+    if(!lista.length){
+      el.innerHTML='<div class="card"><div class="card-title">⭐ Serviços extras</div>'+
+        '<p style="font-size:13px;color:var(--text2);">Você não tem serviço avulso para fazer agora. Quando a MJL agendar um, ele aparece aqui.</p></div>';
+    } else {
+      el.innerHTML='<div class="card" style="margin-bottom:12px;"><div class="card-title">⭐ Serviços extras para você</div>'+
+        '<p style="font-size:12.5px;color:var(--text2);margin:0;">São serviços vendidos à parte. Cada um precisa de foto ANTES e foto DEPOIS — é o que a MJL manda para o cliente.</p></div>'+
+        lista.map(function(a){
+          var r=avRasc(a.id);
+          var total=(a.itens||[]).length;
+          var feitos=(a.itens||[]).filter(function(i){ return r.itens[i.id]; }).length;
+          var comecou = r.antes>0 || feitos>0;
+          return '<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
+            '<div style="font-size:15.5px;font-weight:800;">'+(a.servico||'')+'</div>'+
+            '<div style="font-size:12px;color:var(--text3);margin:3px 0 9px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div>'+
+            (total?('<div style="font-size:12.5px;color:var(--text2);margin-bottom:9px;">'+feitos+' de '+total+' item(ns) · 📸 '+r.antes+' antes · '+r.depois+' depois</div>'):'')+
+            '<button class="btn btn-primary" style="width:100%;padding:13px;" onclick="abrirAvulso(\''+a.id+'\')">'+
+            (comecou?'▶️ Continuar':'▶️ Começar este serviço')+'</button>'+
+          '</div>';
+        }).join('');
+    }
+  }
+  // botao e aviso na tela inicial
+  var btn=document.getElementById('home-btn-avulso');
+  if(btn){
+    btn.style.display=lista.length?'':'none';
+    var sub=document.getElementById('home-avulso-sub');
+    if(sub) sub.textContent=lista.length?(lista.length+(lista.length>1?' serviços':' serviço')):'Avulsos do dia';
+  }
+  var av=document.getElementById('home-avulso-aviso');
+  if(av){
+    av.innerHTML = lista.length
+      ? '<div onclick="ir(\'scr-avulsos\')" style="cursor:pointer;background:#7b2d8b;color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">'+
+        '<div style="font-size:30px;line-height:1;">⭐</div>'+
+        '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">'+lista.length+(lista.length>1?' serviços extras':' serviço extra')+' para hoje</div>'+
+        '<div style="font-size:12px;opacity:.85;">Precisa de foto antes e depois</div></div>'+
+        '<div style="font-size:22px;">›</div></div>'
+      : '';
+  }
+}
+
+function abrirAvulso(id){
+  var a=avTodosCampo().find(function(x){ return x.id===id; });
+  if(!a){ alert('Serviço não encontrado neste aparelho. Toque em Sincronizar e tente de novo.'); return; }
+  avAtual=a;
+  ir('scr-avulso');
+}
+
+function renderAvulsoExec(){
+  var el=document.getElementById('avx-body'); if(!el) return;
+  if(!avAtual){ el.innerHTML='<div class="card"><p>Nenhum serviço aberto.</p></div>'; return; }
+  var a=avAtual, r=avRasc(a.id);
+  var itens=a.itens||[];
+  var feitos=itens.filter(function(i){ return r.itens[i.id]; }).length;
+  var pode = r.antes>0 && r.depois>0;
+
+  var h='';
+  h+='<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
+     '<div style="font-size:16px;font-weight:800;">⭐ '+(a.servico||'')+'</div>'+
+     '<div style="font-size:12px;color:var(--text3);margin-top:3px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div></div>';
+
+  // 1 — ANTES
+  h+='<div class="card" style="margin-bottom:12px;'+(r.antes?'':'border:2px solid var(--red);')+'">'+
+     '<div class="card-title">1️⃣ Foto ANTES '+(r.antes?('✅ '+r.antes+' enviada(s)'):'— obrigatória')+'</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Tire antes de começar. Pode tirar várias, uma de cada ponto. Cada foto é enviada na hora, então pode fechar o app sem medo.</p>'+
+     '<label style="display:block;cursor:pointer;">'+
+       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\')">'+
+       '<div class="btn '+(r.antes?'btn-ghost':'btn-primary')+'" style="pointer-events:none;width:100%;padding:13px;">📸 '+(r.antes?'Tirar mais uma foto ANTES':'Tirar foto ANTES')+'</div>'+
+     '</label></div>';
+
+  // 2 — escopo
+  h+='<div class="card" style="margin-bottom:12px;">'+
+     '<div class="card-title">2️⃣ O que foi combinado ('+feitos+' de '+itens.length+')</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Marque o que você fez. O que não deu para fazer, explique — a MJL precisa saber antes do cliente perguntar.</p>';
+  itens.forEach(function(i){
+    var on=!!r.itens[i.id];
+    h+='<div style="border-top:1px solid var(--border);padding:11px 0;">'+
+       '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">'+
+       '<input type="checkbox" '+(on?'checked':'')+' onchange="avMarcar(\''+i.id+'\',this.checked)" style="width:22px;height:22px;margin-top:1px;flex-shrink:0;">'+
+       '<span style="font-size:14px;font-weight:600;'+(on?'color:var(--green);':'')+'">'+(i.texto||'')+'</span></label>';
+    // O campo de justificativa so aparece quando o colaborador pede.
+    // Antes nascia aberto embaixo de TODO item, dando a impressao de que
+    // o app ja esperava que ele nao fosse fazer o servico.
+    if(!on){
+      var temJust=!!(r.just[i.id]||'').trim();
+      if(temJust || _avJustAberta[i.id]){
+        h+='<input type="text" value="'+(r.just[i.id]||'').replace(/"/g,'&quot;')+'" oninput="avJust(\''+i.id+'\',this.value)" '+
+           'placeholder="Por que não deu para fazer?" style="width:100%;margin-top:7px;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;">';
+      } else {
+        h+='<div onclick="avAbrirJust(\''+i.id+'\')" style="margin-top:6px;margin-left:32px;font-size:12.5px;color:var(--text3);text-decoration:underline;cursor:pointer;">não deu para fazer este</div>';
+      }
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // 3 — DEPOIS
+  h+='<div class="card" style="margin-bottom:12px;'+(r.depois?'':'border:2px solid var(--red);')+'">'+
+     '<div class="card-title">3️⃣ Foto DEPOIS '+(r.depois?('✅ '+r.depois+' enviada(s)'):'— obrigatória')+'</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Tire do MESMO ponto da foto antes. É esse par que vai no relatório do cliente.</p>'+
+     '<label style="display:block;cursor:pointer;">'+
+       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'depois\')">'+
+       '<div class="btn '+(r.depois?'btn-ghost':'btn-green')+'" style="pointer-events:none;width:100%;padding:13px;">📸 '+(r.depois?'Tirar mais uma foto DEPOIS':'Tirar foto DEPOIS')+'</div>'+
+     '</label></div>';
+
+  // 4 — concluir
+  h+='<div class="card">'+
+     '<div class="card-title">4️⃣ Concluir</div>'+
+     '<label style="font-size:13px;font-weight:600;">Alguma observação? (opcional)</label>'+
+     '<textarea id="avx-rel" rows="3" oninput="avRel(this.value)" placeholder="Ex.: o piso ficou bom, mas o banheiro estava em uso pela obra" '+
+     'style="width:100%;margin:6px 0 12px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;">'+(r.relatorio||'')+'</textarea>';
+  if(!pode){
+    h+='<div style="background:#fff6f5;border:1.5px solid var(--red);border-radius:8px;padding:11px 13px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:10px;">'+
+       'Falta '+(!r.antes?'a foto ANTES':'')+((!r.antes&&!r.depois)?' e ':'')+(!r.depois?'a foto DEPOIS':'')+'. Sem as duas o serviço não fecha.</div>';
+  }
+  h+='<button class="btn btn-green" style="width:100%;padding:15px;font-size:15px;'+(pode?'':'opacity:.45;')+'" '+
+     (pode?'onclick="avConcluir()"':'disabled')+'>✅ Concluir serviço</button></div>';
+
+  el.innerHTML=h;
+}
+
+// campo de TEXTO nao redesenha a tela a cada letra digitada
+function avRel(v){ if(!avAtual) return; var r=avRasc(avAtual.id); r.relatorio=v; avGravaRasc(avAtual.id,r); }
+function avAbrirJust(itemId){ _avJustAberta[itemId]=true; renderAvulsoExec();
+  setTimeout(function(){ var c=document.querySelectorAll('#avx-body input[type=text]'); if(c.length) c[c.length-1].focus(); },30); }
+function avJust(itemId,v){ if(!avAtual) return; var r=avRasc(avAtual.id); r.just[itemId]=v; avGravaRasc(avAtual.id,r); }
+function avMarcar(itemId,on){
+  if(!avAtual) return;
+  var r=avRasc(avAtual.id);
+  if(on){ r.itens[itemId]=true; delete r.just[itemId]; delete _avJustAberta[itemId]; } else { delete r.itens[itemId]; }
+  avGravaRasc(avAtual.id,r);
+  renderAvulsoExec();
+}
+
+// A foto vai para a fila NA HORA. O rascunho guarda so a contagem —
+// imagem grande parada no localStorage e o que estourava o aparelho.
+function avFoto(ev,etapa){
+  var f=ev.target.files && ev.target.files[0];
+  ev.target.value='';
+  if(!f || !avAtual) return;
+  var a=avAtual, agora=new Date();
+  var reader=new FileReader();
+  reader.onload=function(e){
+    comprimirFoto(e.target.result,function(comp){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Avulso', etapa:etapa, refId:a.id,
+        colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
+        cliente:a.cliente||'', servico:a.servico||'',
+        data:agora.toISOString().slice(0,10),
+        hora:agora.toTimeString().slice(0,5),
+        img:comp, timestamp:Date.now()
+      }});
+      var r=avRasc(a.id);
+      r[etapa]=(r[etapa]||0)+1;
+      avGravaRasc(a.id,r);
+      // primeira foto marca o servico como em andamento no Gestao
+      if(etapa==='antes' && r.antes===1){
+        // iniciarAvulso, nao atualizarAvulso: o celular manda so um
+        // pedaco do registro e o servidor precisa MESCLAR. Com
+        // atualizarAvulso o escopo vendido era apagado.
+        adicionarPendente({acao:'iniciarAvulso',dados:{
+          id:a.id, status:'emandamento',
+          inicioHora:agora.toTimeString().slice(0,5),
+          executadoEm:agora.toISOString().slice(0,10)
+        }});
+        _avAtualizaLocal(a.id,{status:'emandamento'});
+      }
+      renderAvulsoExec();
+    }, a.cliente||colAtual.cliente||'');
+  };
+  reader.readAsDataURL(f);
+}
+
+function _avAtualizaLocal(id,campos){
+  var todas=avTodosCampo().map(function(x){ return x.id===id?Object.assign({},x,campos):x; });
+  salvarLocal('mjl_avulsos',todas);
+}
+
+function avConcluir(){
+  if(!avAtual) return;
+  var a=avAtual, r=avRasc(a.id);
+  if(!r.antes || !r.depois){ alert('Precisa de pelo menos uma foto ANTES e uma foto DEPOIS.'); return; }
+  var itens=(a.itens||[]).map(function(i){
+    var o={id:i.id,texto:i.texto};
+    if(r.itens[i.id]) o.feito=true;
+    else if((r.just[i.id]||'').trim()) o.just=r.just[i.id].trim();
+    return o;
+  });
+  var naoFeitosSemJust=itens.filter(function(i){ return !i.feito && !i.just; });
+  if(naoFeitosSemJust.length){
+    if(!confirm(naoFeitosSemJust.length+' item(ns) ficaram sem fazer e sem explicação. Concluir assim mesmo?')) return;
+  }
+  var agora=new Date();
+  var dados={
+    id:a.id, status:'concluido',
+    itens:itens,
+    relatorio:(r.relatorio||'').trim(),
+    fotosAntes:r.antes, fotosDepois:r.depois,
+    fimHora:agora.toTimeString().slice(0,5),
+    executadoEm:agora.toISOString().slice(0,10),
+    executadoPorId:colAtual.id, executadoPorNome:colAtual.nome
+  };
+  adicionarPendente({acao:'concluirAvulso',dados:dados});
+  _avAtualizaLocal(a.id,dados);
+  avAtual=null;
+  renderAvulsosCampo(); atualizarBadges();
+  mostrarSucesso('⭐','Serviço extra concluído!','A MJL recebeu as fotos antes e depois.');
+}
+
 // ===== NAV =====
 function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); setTimeout(renderPerfilCfg,0); }
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
@@ -912,6 +1190,8 @@ function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); setTimeo
   if(scrId==='scr-cronograma'){renderCronograma();renderPendencias();}
   if(scrId==='scr-chamados'){renderChamados();}
   if(scrId==='scr-informativos'){renderInformativos();}
+  if(scrId==='scr-avulsos'){renderAvulsosCampo();}
+  if(scrId==='scr-avulso'){renderAvulsoExec();}
   if(scrId==='scr-superv'){abrirSupervisao();svHistorico();}
   if(scrId==='scr-visita'){renderVisita();}
 }
@@ -1965,6 +2245,21 @@ function enviarPendentes(){
   fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
   fetch(url+'?acao=getChamados').then(r=>r.json()).then(d=>{if(d?.chamados){const meus=d.chamados.filter(c=>c.cliente===colAtual?.cliente);salvarLocal('mjl_chamados_recebidos',meus);renderChamados?.();}}).catch(()=>{});
   fetch(url+'?acao=getCronogramas').then(r=>r.json()).then(d=>{if(d?.cronogramas){salvarLocal('mjl_cronogramas',d.cronogramas);renderCronograma?.();}}).catch(()=>{});
+  // v24: servicos avulsos designados a este colaborador.
+  // Mescla por id: o que ESTE aparelho ja concluiu e ainda esta na fila
+  // de envio nunca volta a ficar "agendado" porque o servidor esta velho.
+  fetch(url+'?acao=getAvulsos',{redirect:'follow',headers:{'Accept':'application/json'}})
+    .then(r=>r.json()).then(d=>{
+      if(!d||!d.avulsos) return;
+      var locais={}; avTodosCampo().forEach(function(a){ if(a&&a.id) locais[a.id]=a; });
+      var merged=d.avulsos.map(function(a){
+        var l=locais[a.id];
+        if(l && l.status==='concluido' && a.status!=='concluido') return l;
+        return a;
+      });
+      salvarLocal('mjl_avulsos',merged);
+      renderAvulsosCampo?.(); atualizarBadges?.();
+    }).catch(()=>{});
   // v23: pendencias. Pede so os ultimos 30 dias — as ABERTAS o
   // servidor manda de qualquer data, mesmo as antigas.
   (function(){
@@ -1991,6 +2286,7 @@ function enviarPendentes(){
 
 // ===== BADGES =====
 function atualizarBadges(){
+  if(typeof renderAvulsosCampo==='function') renderAvulsosCampo();
   const infos=lerLocal('mjl_informativos',[]);
   const naoLidos=infos.filter(i=>i.exigeAssinatura&&!lerLocal('mjl_assinatura_'+i.id+'_'+(colAtual?.id||''),null)).length;
   const nbInfo=document.getElementById('nb-info');
@@ -2431,7 +2727,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v23';
+const APP_VERSAO='v24';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
