@@ -957,10 +957,13 @@ function _avDataBR(d){ return d?String(d).split('-').reverse().join('/'):''; }
 function _avKey(id){ return 'mjl_avulso_rasc_'+id; }
 function avRasc(id){
   var r=lerLocal(_avKey(id),null);
-  if(r) return r;
-  // rascunho gravado por uma versao anterior, com o id do colaborador na chave
-  if(colAtual){ var v=lerLocal('mjl_avulso_rasc_'+id+'_'+colAtual.id,null); if(v) return v; }
-  return {itens:{},just:{},relatorio:'',antes:0,depois:0};
+  if(!r && colAtual){ r=lerLocal('mjl_avulso_rasc_'+id+'_'+colAtual.id,null); }
+  if(!r) r={itens:{},just:{},relatorio:'',antes:0,depois:0};
+  // v25: os PONTOS. Cada ponto e um lugar do servico ("lavar vidros",
+  // "garagem") e guarda quantas fotos antes e depois ja foram enviadas
+  // dali. Rascunho de uma versao anterior nao tem a lista — nasce vazia.
+  if(!r.pontos) r.pontos=[];
+  return r;
 }
 function avGravaRasc(id,r){ try{ salvarLocal(_avKey(id),r); }catch(e){} }
 
@@ -978,11 +981,11 @@ function renderAvulsosCampo(){
           var r=avRasc(a.id);
           var total=(a.itens||[]).length;
           var feitos=(a.itens||[]).filter(function(i){ return r.itens[i.id]; }).length;
-          var comecou = r.antes>0 || feitos>0;
+          var comecou = r.antes>0 || feitos>0 || (r.pontos||[]).length>0;
           return '<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
             '<div style="font-size:15.5px;font-weight:800;">'+(a.servico||'')+'</div>'+
             '<div style="font-size:12px;color:var(--text3);margin:3px 0 9px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div>'+
-            (total?('<div style="font-size:12.5px;color:var(--text2);margin-bottom:9px;">'+feitos+' de '+total+' item(ns) · 📸 '+r.antes+' antes · '+r.depois+' depois</div>'):'')+
+            (total?('<div style="font-size:12.5px;color:var(--text2);margin-bottom:9px;">'+feitos+' de '+total+' item(ns) · 📍 '+((r.pontos||[]).length)+' ponto(s) · 📸 '+r.antes+' antes · '+r.depois+' depois</div>'):'')+
             '<button class="btn btn-primary" style="width:100%;padding:13px;" onclick="abrirAvulso(\''+a.id+'\')">'+
             (comecou?'▶️ Continuar':'▶️ Começar este serviço')+'</button>'+
           '</div>';
@@ -1021,21 +1024,57 @@ function renderAvulsoExec(){
   var a=avAtual, r=avRasc(a.id);
   var itens=a.itens||[];
   var feitos=itens.filter(function(i){ return r.itens[i.id]; }).length;
-  var pode = r.antes>0 && r.depois>0;
+  // v25: so conclui quando TODO ponto aberto tem antes E depois.
+  // Antes bastava uma foto de cada lado em qualquer lugar — o cliente
+  // podia receber um "antes e depois" de dois lugares diferentes.
+  var pontos=r.pontos||[];
+  var pendentes=pontos.filter(function(pt){ return !(pt.antes>0 && pt.depois>0); });
+  var pode = pontos.length>0 && pendentes.length===0;
 
   var h='';
   h+='<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
      '<div style="font-size:16px;font-weight:800;">⭐ '+(a.servico||'')+'</div>'+
      '<div style="font-size:12px;color:var(--text3);margin-top:3px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div></div>';
 
-  // 1 — ANTES
-  h+='<div class="card" style="margin-bottom:12px;'+(r.antes?'':'border:2px solid var(--red);')+'">'+
-     '<div class="card-title">1️⃣ Foto ANTES '+(r.antes?('✅ '+r.antes+' enviada(s)'):'— obrigatória')+'</div>'+
-     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Tire antes de começar. Pode tirar várias, uma de cada ponto. Cada foto é enviada na hora, então pode fechar o app sem medo.</p>'+
-     '<label style="display:block;cursor:pointer;">'+
-       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\')">'+
-       '<div class="btn '+(r.antes?'btn-ghost':'btn-primary')+'" style="pointer-events:none;width:100%;padding:13px;">📸 '+(r.antes?'Tirar mais uma foto ANTES':'Tirar foto ANTES')+'</div>'+
-     '</label></div>';
+  // 1 — PONTOS (antes e depois amarrados)
+  h+='<div class="card" style="margin-bottom:12px;'+(pode?'':'border:2px solid var(--red);')+'">'+
+     '<div class="card-title">1️⃣ Fotos antes e depois</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:12px;">Cada <strong>ponto</strong> é um lugar do serviço. Tire a foto ANTES do ponto, faça o serviço, e tire a foto DEPOIS <strong>dentro do mesmo bloco</strong> — assim o par nunca sai trocado no relatório do cliente.</p>';
+
+  pontos.forEach(function(pt){
+    var completo = pt.antes>0 && pt.depois>0;
+    h+='<div style="border:1.5px solid '+(completo?'var(--green)':'var(--red)')+';border-radius:10px;padding:11px 12px;margin-bottom:10px;background:'+(completo?'#f3faf6':'#fff6f5')+';">'+
+       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">'+
+       '<div style="flex:1;font-size:14.5px;font-weight:800;">📍 '+(pt.nome||'')+'</div>'+
+       '<div style="font-size:11.5px;color:var(--text3);">'+(completo?'✅ completo':'falta a foto depois')+'</div></div>'+
+       '<div style="font-size:12px;color:var(--text2);margin-bottom:9px;">📸 '+pt.antes+' antes · '+pt.depois+' depois</div>'+
+       '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+
+         '<label style="flex:1;min-width:130px;cursor:pointer;">'+
+           '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\',\''+pt.id+'\')">'+
+           '<div class="btn btn-ghost" style="pointer-events:none;width:100%;padding:11px;font-size:13px;">📸 Mais uma ANTES</div></label>'+
+         '<label style="flex:1;min-width:130px;cursor:pointer;">'+
+           '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'depois\',\''+pt.id+'\')">'+
+           '<div class="btn '+(pt.depois?'btn-ghost':'btn-green')+'" style="pointer-events:none;width:100%;padding:11px;font-size:13px;">📸 '+(pt.depois?'Mais uma DEPOIS':'Foto DEPOIS daqui')+'</div></label>'+
+       '</div>';
+    if(!pt.antes && !pt.depois){
+      h+='<div onclick="avRemoverPonto(\''+pt.id+'\')" style="margin-top:8px;font-size:12px;color:var(--text3);text-decoration:underline;cursor:pointer;">remover este ponto</div>';
+    }
+    h+='</div>';
+  });
+
+  // abrir um ponto novo: tocar na sugestao JA abre a camera (um toque so)
+  h+='<div style="border-top:1px solid var(--border);padding-top:11px;margin-top:4px;">'+
+     '<div style="font-size:13px;font-weight:700;margin-bottom:3px;">'+(pontos.length?'Abrir outro ponto':'Comece abrindo o primeiro ponto')+'</div>'+
+     '<p style="font-size:12px;color:var(--text3);margin-bottom:9px;">Toque no que você vai fotografar agora — a câmera abre direto, e a foto já entra como ANTES daquele ponto.</p>'+
+     '<div style="display:flex;gap:7px;flex-wrap:wrap;">';
+  (a.itens||[]).forEach(function(i){
+    h+='<label style="cursor:pointer;">'+
+       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\',null,'+JSON.stringify(i.texto||'').replace(/"/g,'&quot;')+')">'+
+       '<span style="display:inline-block;border:1.5px solid #7b2d8b;color:#7b2d8b;background:#f6eefa;border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;">📸 '+(i.texto||'')+'</span></label>';
+  });
+  h+='<span onclick="avPontoOutro()" style="display:inline-block;border:1.5px dashed var(--text3);color:var(--text2);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">✏️ Outro lugar</span>';
+  h+='</div></div>';
+  h+='</div>';
 
   // 2 — escopo
   h+='<div class="card" style="margin-bottom:12px;">'+
@@ -1063,24 +1102,18 @@ function renderAvulsoExec(){
   });
   h+='</div>';
 
-  // 3 — DEPOIS
-  h+='<div class="card" style="margin-bottom:12px;'+(r.depois?'':'border:2px solid var(--red);')+'">'+
-     '<div class="card-title">3️⃣ Foto DEPOIS '+(r.depois?('✅ '+r.depois+' enviada(s)'):'— obrigatória')+'</div>'+
-     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Tire do MESMO ponto da foto antes. É esse par que vai no relatório do cliente.</p>'+
-     '<label style="display:block;cursor:pointer;">'+
-       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'depois\')">'+
-       '<div class="btn '+(r.depois?'btn-ghost':'btn-green')+'" style="pointer-events:none;width:100%;padding:13px;">📸 '+(r.depois?'Tirar mais uma foto DEPOIS':'Tirar foto DEPOIS')+'</div>'+
-     '</label></div>';
-
-  // 4 — concluir
+  // 3 — concluir (a foto DEPOIS agora vive dentro do ponto, acima)
   h+='<div class="card">'+
-     '<div class="card-title">4️⃣ Concluir</div>'+
+     '<div class="card-title">3️⃣ Concluir</div>'+
      '<label style="font-size:13px;font-weight:600;">Alguma observação? (opcional)</label>'+
      '<textarea id="avx-rel" rows="3" oninput="avRel(this.value)" placeholder="Ex.: o piso ficou bom, mas o banheiro estava em uso pela obra" '+
      'style="width:100%;margin:6px 0 12px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;">'+(r.relatorio||'')+'</textarea>';
   if(!pode){
+    var txt = !pontos.length
+      ? 'Abra pelo menos um ponto e tire a foto ANTES e a foto DEPOIS dele.'
+      : 'Falta a foto DEPOIS de: '+pendentes.map(function(pt){ return pt.nome; }).join(', ')+'.';
     h+='<div style="background:#fff6f5;border:1.5px solid var(--red);border-radius:8px;padding:11px 13px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:10px;">'+
-       'Falta '+(!r.antes?'a foto ANTES':'')+((!r.antes&&!r.depois)?' e ':'')+(!r.depois?'a foto DEPOIS':'')+'. Sem as duas o serviço não fecha.</div>';
+       txt+' Sem o par o serviço não fecha.</div>';
   }
   h+='<button class="btn btn-green" style="width:100%;padding:15px;font-size:15px;'+(pode?'':'opacity:.45;')+'" '+
      (pode?'onclick="avConcluir()"':'disabled')+'>✅ Concluir serviço</button></div>';
@@ -1101,13 +1134,55 @@ function avMarcar(itemId,on){
   renderAvulsoExec();
 }
 
+// v25 — PONTOS
+// Abrir um ponto novo e tocar na sugestao: o <label> ja e o gesto que
+// abre a camera, entao nao ha uma pergunta antes e uma camera depois.
+function avPontoOutro(){
+  if(!avAtual) return;
+  var nome=prompt('Nome do ponto (ex.: Garagem, Hall, Banheiro do 2º andar):');
+  if(nome===null) return;
+  nome=(nome||'').trim();
+  if(!nome){ alert('Escreva um nome para o ponto.'); return; }
+  _avNovoPonto(nome);
+  renderAvulsoExec();
+}
+function _avNovoPonto(nome){
+  var r=avRasc(avAtual.id);
+  var pt={id:gidCampo(),nome:nome,antes:0,depois:0};
+  r.pontos.push(pt); avGravaRasc(avAtual.id,r);
+  return pt;
+}
+function avRemoverPonto(id){
+  if(!avAtual) return;
+  var r=avRasc(avAtual.id);
+  r.pontos=r.pontos.filter(function(pt){
+    // so sai ponto sem nenhuma foto — foto ja enviada nao se apaga daqui
+    if(pt.id!==id) return true;
+    return (pt.antes>0 || pt.depois>0);
+  });
+  avGravaRasc(avAtual.id,r);
+  renderAvulsoExec();
+}
+function gidCampo(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
 // A foto vai para a fila NA HORA. O rascunho guarda so a contagem —
 // imagem grande parada no localStorage e o que estourava o aparelho.
-function avFoto(ev,etapa){
+// pontoId  — ponto que ja existe (botoes de dentro do bloco)
+// nomeNovo — tocou numa sugestao: o ponto nasce junto com a foto
+function avFoto(ev,etapa,pontoId,nomeNovo){
   var f=ev.target.files && ev.target.files[0];
   ev.target.value='';
   if(!f || !avAtual) return;
   var a=avAtual, agora=new Date();
+  var ponto=null;
+  if(pontoId){
+    ponto=(avRasc(a.id).pontos||[]).find(function(pt){ return pt.id===pontoId; });
+  } else if(nomeNovo){
+    // mesmo nome tocado duas vezes continua sendo o mesmo ponto
+    ponto=(avRasc(a.id).pontos||[]).find(function(pt){ return pt.nome===nomeNovo; });
+    if(!ponto) ponto=_avNovoPonto(nomeNovo);
+  }
+  if(!ponto){ alert('Escolha primeiro o ponto que você vai fotografar.'); return; }
   var reader=new FileReader();
   reader.onload=function(e){
     comprimirFoto(e.target.result,function(comp){
@@ -1115,12 +1190,16 @@ function avFoto(ev,etapa){
         tipo:'Avulso', etapa:etapa, refId:a.id,
         colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
         cliente:a.cliente||'', servico:a.servico||'',
+        // v25: o ponto viaja JUNTO com a foto. E ele que casa o antes
+        // com o depois no relatorio — nao a ordem em que foram tiradas.
+        ponto:ponto.nome, pontoId:ponto.id,
         data:agora.toISOString().slice(0,10),
         hora:agora.toTimeString().slice(0,5),
         img:comp, timestamp:Date.now()
       }});
       var r=avRasc(a.id);
       r[etapa]=(r[etapa]||0)+1;
+      (r.pontos||[]).forEach(function(pt){ if(pt.id===ponto.id) pt[etapa]=(pt[etapa]||0)+1; });
       avGravaRasc(a.id,r);
       // primeira foto marca o servico como em andamento no Gestao
       if(etapa==='antes' && r.antes===1){
@@ -1148,7 +1227,10 @@ function _avAtualizaLocal(id,campos){
 function avConcluir(){
   if(!avAtual) return;
   var a=avAtual, r=avRasc(a.id);
-  if(!r.antes || !r.depois){ alert('Precisa de pelo menos uma foto ANTES e uma foto DEPOIS.'); return; }
+  var _pts=r.pontos||[];
+  var _falta=_pts.filter(function(pt){ return !(pt.antes>0 && pt.depois>0); });
+  if(!_pts.length){ alert('Abra pelo menos um ponto e tire a foto ANTES e a foto DEPOIS dele.'); return; }
+  if(_falta.length){ alert('Falta a foto DEPOIS de: '+_falta.map(function(pt){ return pt.nome; }).join(', ')); return; }
   var itens=(a.itens||[]).map(function(i){
     var o={id:i.id,texto:i.texto};
     if(r.itens[i.id]) o.feito=true;
@@ -1165,6 +1247,8 @@ function avConcluir(){
     itens:itens,
     relatorio:(r.relatorio||'').trim(),
     fotosAntes:r.antes, fotosDepois:r.depois,
+    // a lista de pontos vai junto para o relatorio saber a ordem e os nomes
+    pontos:_pts.map(function(pt){ return {id:pt.id,nome:pt.nome,antes:pt.antes,depois:pt.depois}; }),
     fimHora:agora.toTimeString().slice(0,5),
     executadoEm:agora.toISOString().slice(0,10),
     executadoPorId:colAtual.id, executadoPorNome:colAtual.nome
@@ -2727,7 +2811,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v24';
+const APP_VERSAO='v25';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
