@@ -1,48 +1,3621 @@
-// MJL — Service Worker (offline)
-// Guarda o app no aparelho: abre mesmo SEM internet.
-// Quando há internet, baixa a versão nova em segundo plano —
-// na próxima abertura, o app já vem atualizado.
-const CACHE = 'mjl-app-v3';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="MJL">
+<meta name="theme-color" content="#1a4f7a">
+<title>MJL — Meu App</title>
+<style>
+:root{
+  --brand:#1a4f7a;--brand2:#2d6da8;--brand-light:#e8f0f8;
+  --green:#1e7e4a;--green-light:#eaf5ee;
+  --red:#c0392b;--red-light:#fdecea;
+  --yellow:#d68910;--yellow-light:#fef9e7;
+  --orange:#e67e22;--orange-light:#fef0e6;
+  --purple:#6c3483;--purple-light:#f5eef8;
+  --bg:#f0f4f8;--surface:#fff;--border:#dde2ea;
+  --text:#1c2b3a;--text2:#5a6a7a;--text3:#9aacba;
+  --r:18px;--r-sm:12px;--shadow:0 4px 16px rgba(26,79,122,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;max-width:480px;margin:0 auto;}
+.hdr{background:var(--brand);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.hdr-title{font-size:17px;font-weight:700;}
+.hdr-sub{font-size:11px;opacity:.65;margin-top:1px;}
+.sync-pill{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:700;}
+.sync-pill .dot{width:7px;height:7px;border-radius:50%;background:#2ecc71;}
+.sync-pill .dot.off{background:#e74c3c;}
+#screens{flex:1;overflow-y:auto;overflow-x:hidden;}
+.screen{display:none;padding:20px 16px 30px;min-height:100%;}
+.screen.active{display:block;}
+#bnav{background:var(--brand);display:flex;justify-content:space-around;padding:8px 0 16px;flex-shrink:0;}
+#bnav a{display:flex;flex-direction:column;align-items:center;gap:3px;color:rgba(255,255,255,.55);font-size:9px;font-weight:600;cursor:pointer;padding:4px 8px;border-radius:10px;transition:all .15s;text-decoration:none;}
+#bnav a.active{color:#fff;background:rgba(255,255,255,.15);}
+#bnav a .ico{font-size:22px;line-height:1;}
+.nav-ico-wrap{position:relative;display:inline-block;}
+.nb{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+.menu-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;}
+.menu-btn{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:20px 14px;text-align:center;cursor:pointer;transition:all .15s;box-shadow:var(--shadow);display:flex;flex-direction:column;align-items:center;gap:8px;}
+.menu-btn:active{transform:scale(.96);}
+.menu-btn .mico{font-size:44px;line-height:1;}
+.menu-btn .mlabel{font-size:14px;font-weight:700;color:var(--text);line-height:1.2;}
+.menu-btn .msub{font-size:11px;color:var(--text3);}
+.menu-btn.green{border-color:#9ad1b0;background:var(--green-light);}
+.menu-btn.blue{border-color:#90bfdf;background:var(--brand-light);}
+.menu-btn.orange{border-color:#f5c97a;background:var(--orange-light);}
+.menu-btn.purple{border-color:#d7b8eb;background:var(--purple-light);}
+.menu-btn.teal{border-color:#76cec4;background:#e0f5f3;}
+.card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);padding:18px;margin-bottom:14px;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;gap:8px;}
+.fg{margin-bottom:16px;}
+.fg label{display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:7px;}
+.fg input,.fg select,.fg textarea{width:100%;padding:13px 15px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:15px;color:var(--text);background:var(--surface);outline:none;font-family:inherit;transition:border-color .15s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--brand);}
+.fg textarea{resize:none;min-height:100px;line-height:1.5;}
+.btn{display:flex;align-items:center;justify-content:center;gap:10px;padding:15px;border-radius:var(--r);font-size:15px;font-weight:700;border:none;cursor:pointer;width:100%;transition:all .15s;}
+.btn:active{transform:scale(.97);}
+.btn+.btn{margin-top:10px;}
+.btn-primary{background:var(--brand);color:#fff;}
+.btn-green{background:var(--green);color:#fff;}
+.btn-ghost{background:var(--surface);color:var(--brand);border:2px solid var(--border);}
+.btn-orange{background:var(--orange);color:#fff;}
+.btn:disabled{opacity:.4;pointer-events:none;}
+.ck-item{display:flex;align-items:flex-start;gap:14px;padding:14px;border:2px solid var(--border);border-radius:var(--r-sm);margin-bottom:10px;cursor:pointer;background:var(--surface);transition:all .15s;}
+.ck-item.done{background:var(--green-light);border-color:#9ad1b0;}
+.ck-box{width:28px;height:28px;border-radius:8px;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:16px;transition:all .15s;margin-top:1px;}
+.ck-item.done .ck-box{background:var(--green);border-color:var(--green);color:#fff;}
+.ck-label{font-size:14px;font-weight:600;flex:1;line-height:1.4;}
+.ck-item.done .ck-label{text-decoration:line-through;color:var(--text3);}
+.ck-meta{font-size:11px;color:var(--text3);margin-top:3px;}
+.photo-add-btn{background:var(--brand-light);border:2px dashed var(--brand);border-radius:var(--r-sm);padding:18px;text-align:center;cursor:pointer;color:var(--brand);font-size:14px;font-weight:700;display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:10px;}
+.photo-add-btn .ico{font-size:34px;}
+.photo-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.photo-thumb{aspect-ratio:1;border-radius:var(--r-sm);background:var(--bg);overflow:hidden;position:relative;}
+.photo-thumb img{width:100%;height:100%;object-fit:cover;}
+.photo-del{position:absolute;top:4px;right:4px;background:rgba(192,57,43,.85);color:#fff;border-radius:50%;width:24px;height:24px;font-size:14px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;}
+.geo-bar{display:flex;align-items:center;gap:10px;padding:12px 15px;border-radius:var(--r-sm);font-size:13px;font-weight:700;margin-bottom:14px;}
+.geo-ok{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;}
+.geo-wait{background:var(--yellow-light);color:var(--yellow);border:1.5px solid #f5d88e;}
+.geo-err{background:var(--red-light);color:var(--red);border:1.5px solid #f5c6c2;}
+.badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+.b-aberto{background:var(--red-light);color:var(--red);}
+.b-andamento{background:var(--yellow-light);color:var(--yellow);}
+.b-fechado{background:var(--green-light);color:var(--green);}
+.item-card{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:15px;margin-bottom:12px;cursor:pointer;transition:all .15s;}
+.item-card:active{border-color:var(--brand);}
+.item-card .it-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;}
+.item-card .it-title{font-weight:700;font-size:14px;flex:1;margin-right:8px;line-height:1.3;}
+.item-card .it-sub{font-size:12px;color:var(--text2);line-height:1.4;margin-bottom:6px;}
+.item-card .it-meta{font-size:11px;color:var(--text3);}
+.urgente-strip{background:var(--red);color:#fff;border-radius:var(--r) var(--r) 0 0;padding:5px 14px;font-size:11px;font-weight:700;margin:-15px -15px 12px;display:flex;align-items:center;gap:5px;}
+.anon-toggle{display:flex;align-items:center;gap:12px;padding:13px 15px;background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);margin-bottom:14px;cursor:pointer;}
+.toggle-box{width:50px;height:28px;border-radius:14px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0;}
+.toggle-box.on{background:var(--green);}
+.toggle-knob{width:22px;height:22px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.toggle-box.on .toggle-knob{left:25px;}
+.ouv-tipo-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.ouv-tipo{border:2px solid var(--border);border-radius:var(--r-sm);padding:14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--surface);}
+.ouv-tipo.sel{border-color:var(--brand);background:var(--brand-light);}
+.ouv-tipo .ot-ico{font-size:30px;margin-bottom:5px;}
+.ouv-tipo .ot-lbl{font-size:13px;font-weight:700;}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:flex-end;}
+.modal{background:var(--surface);border-radius:var(--r) var(--r) 0 0;width:100%;max-height:92vh;overflow-y:auto;padding:20px 18px 36px;}
+.modal-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.modal-hdr h3{font-size:17px;font-weight:700;color:var(--brand);}
+.modal-cls{background:none;border:none;font-size:28px;color:var(--text3);cursor:pointer;line-height:1;}
+.hidden{display:none!important;}
+#canvas-sign{width:100%;height:180px;border:2.5px solid var(--border);border-radius:var(--r-sm);background:#fafafa;touch-action:none;display:block;}
+.sign-hint{text-align:center;font-size:12px;color:var(--text3);margin-top:5px;}
+.step-progress{display:flex;gap:6px;margin-bottom:20px;}
+.step-dot{flex:1;height:5px;border-radius:5px;background:var(--border);}
+.step-dot.done{background:var(--green);}
+.step-dot.current{background:var(--brand);}
+.success-screen{text-align:center;padding:50px 20px;}
+.success-ico{font-size:80px;margin-bottom:16px;}
+.success-title{font-size:22px;font-weight:700;margin-bottom:8px;}
+.success-sub{font-size:14px;color:var(--text2);line-height:1.5;margin-bottom:28px;}
+#offline-bar{background:var(--red);color:#fff;text-align:center;padding:8px;font-size:12px;font-weight:700;display:none;flex-shrink:0;}
+.alert{padding:13px 16px;border-radius:var(--r-sm);font-size:13px;margin-bottom:14px;line-height:1.5;}
+.alert-info{background:var(--brand-light);color:var(--brand);border:1.5px solid #b0cde6;}
+.alert-warn{background:var(--yellow-light);color:var(--yellow);border:1.5px solid #f5d88e;}
+.alert-ok{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;}
+.time-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 
-self.addEventListener('install', function(e){
-  self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(function(c){ return c.addAll(['./', './index.html']); }));
+/* CRONOGRAMA */
+.crono-local{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);margin-bottom:14px;overflow:hidden;}
+.crono-local-hdr{background:var(--brand);color:#fff;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.crono-local-hdr h3{font-size:15px;font-weight:700;}
+.crono-local-hdr .prog{font-size:12px;opacity:.8;}
+.crono-local-body{padding:14px;}
+.crono-item{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:2px solid var(--border);border-radius:var(--r-sm);margin-bottom:8px;cursor:pointer;background:var(--surface);transition:all .15s;}
+.crono-item.feito{background:var(--green-light);border-color:#9ad1b0;}
+.crono-item .ci-box{width:30px;height:30px;border-radius:8px;border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;transition:all .15s;margin-top:1px;}
+.crono-item.feito .ci-box{background:var(--green);border-color:var(--green);color:#fff;}
+.crono-item .ci-info{flex:1;}
+.crono-item .ci-label{font-size:14px;font-weight:700;line-height:1.3;}
+.crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
+.crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
+.crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
+.crono-semana{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:12px;}
+.dia-semana{text-align:center;padding:6px 2px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;}
+.dia-semana.hoje{background:var(--brand);border-color:var(--brand);}
+.dia-semana.hoje .ds-num{color:#fff;}
+.dia-semana.hoje .ds-dia{color:rgba(255,255,255,.7);}
+.dia-semana.tem-feito{background:var(--green-light);border-color:#9ad1b0;}
+.ds-num{font-size:15px;font-weight:700;color:var(--text);}
+.ds-dia{font-size:9px;color:var(--text3);margin-top:1px;}
+
+/* PDF VIEWER */
+.pdf-item{background:var(--surface);border-radius:var(--r);border:2px solid var(--border);padding:16px;margin-bottom:12px;cursor:pointer;transition:all .15s;}
+.pdf-item.nao-lido{border-color:var(--brand);background:var(--brand-light);}
+.pdf-item .pdf-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.pdf-item .pdf-title{font-size:15px;font-weight:700;}
+.pdf-item .pdf-sub{font-size:13px;color:var(--text2);}
+.pdf-item .pdf-meta{font-size:11px;color:var(--text3);margin-top:5px;}
+.pdf-frame{width:100%;height:400px;border:none;border-radius:var(--r-sm);background:var(--bg);}
+
+/* LOGIN */
+.login-wrap{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:var(--brand);}
+.login-logo{font-size:60px;margin-bottom:10px;}
+.login-title{font-size:26px;font-weight:700;color:#fff;margin-bottom:4px;}
+.login-sub{font-size:13px;color:rgba(255,255,255,.65);margin-bottom:28px;}
+.login-card{background:#fff;border-radius:var(--r);padding:22px;width:100%;max-width:360px;box-shadow:var(--shadow);}
+
+/* ===== PONTO ELETRÔNICO ===== */
+.relogio-ponto{text-align:center;padding:14px 0 8px;}
+.relogio-ponto .rp-hora{font-size:52px;font-weight:700;color:var(--brand);letter-spacing:-2px;line-height:1;}
+.relogio-ponto .rp-data{font-size:13px;color:var(--text2);margin-top:4px;}
+.relogio-ponto .rp-dia{font-size:11px;color:var(--text3);}
+.ponto-step{background:var(--surface);border-radius:var(--r-sm);border:2px solid var(--border);padding:14px;margin-bottom:10px;transition:all .2s;}
+.ponto-step.ps-feito{background:var(--green-light);border-color:#9ad1b0;}
+.ponto-step.ps-ativo{border-color:var(--brand);background:var(--brand-light);}
+.ponto-step.ps-bloq{opacity:.4;pointer-events:none;}
+.ps-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.ps-ico{font-size:28px;flex-shrink:0;}
+.ps-info{flex:1;}
+.ps-label{font-size:15px;font-weight:700;}
+.ps-hora{font-size:13px;color:var(--text2);margin-top:2px;}
+.btn-ps{padding:10px 16px;border-radius:var(--r-sm);font-size:13px;font-weight:700;border:none;cursor:pointer;flex-shrink:0;display:flex;align-items:center;gap:5px;}
+.btn-ps-entrada{background:var(--green);color:#fff;}
+.btn-ps-almoco{background:var(--orange);color:#fff;}
+.btn-ps-volta{background:var(--brand);color:#fff;}
+.btn-ps-saida{background:var(--red);color:#fff;}
+.btn-ps-feito{background:var(--green-light);color:var(--green);border:1.5px solid #9ad1b0;cursor:default;}
+.btn-ps:disabled{opacity:.35;pointer-events:none;}
+.banco-pill{border-radius:var(--r-sm);padding:12px 14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;}
+.banco-pos{background:var(--green-light);border:1.5px solid #9ad1b0;}
+.banco-neg{background:var(--red-light);border:1.5px solid #f5c6c2;}
+.banco-zer{background:var(--bg);border:1.5px solid var(--border);}
+.banco-lbl{font-size:11px;font-weight:700;color:var(--text2);}
+.banco-val{font-size:22px;font-weight:700;letter-spacing:-1px;}
+.hist-ponto{padding:8px 0;border-bottom:1px solid var(--border);}
+.hist-ponto:last-child{border-bottom:none;}
+.hp-top{display:flex;justify-content:space-between;align-items:center;}
+.hp-data{font-size:12px;font-weight:700;color:var(--brand);}
+.hp-saldo{font-size:12px;font-weight:700;}
+.hp-horas{font-size:12px;color:var(--text2);margin-top:2px;}
+.hp-obs{font-size:11px;color:var(--text3);margin-top:2px;}
+.hp-ajuste{font-size:10px;color:var(--orange);margin-top:1px;}
+.saldo-pos{color:var(--green);}
+.saldo-neg{color:var(--red);}
+.badge-fer{display:inline-block;background:var(--red-light);color:var(--red);border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;}
+.badge-not{display:inline-block;background:#e8eaf8;color:#2c3e7a;border-radius:8px;padding:1px 6px;font-size:9px;font-weight:700;margin-left:4px;}
+.badge-deb{display:inline-block;background:var(--red-light);color:var(--red);border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;}
+.badge-cre{display:inline-block;background:var(--green-light);color:var(--green);border-radius:8px;padding:2px 8px;font-size:11px;font-weight:700;}
+.just-area{background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);padding:12px;margin-bottom:12px;}
+.just-title{font-size:13px;font-weight:700;color:var(--yellow);margin-bottom:8px;}
+
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen" class="login-wrap">
+  <img src="data:image/png;base64,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" alt="MJL" style="height:80px;object-fit:contain;filter:brightness(0) invert(1);margin-bottom:10px;">
+  <div class="login-title">MJL Serviços e Soluções</div>
+  <div class="login-sub">Acesso do Colaborador</div>
+
+  <div class="login-card" id="login-form-card">
+    <div class="fg">
+      <label>📋 CPF (só números)</label>
+      <input type="tel" id="login-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric" style="font-size:18px;font-weight:700;letter-spacing:2px;">
+    </div>
+    <div class="fg">
+      <label>🔒 Senha (4 números)</label>
+      <input type="password" id="login-senha" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:24px;text-align:center;letter-spacing:8px;">
+    </div>
+    <button class="btn btn-primary" onclick="fazerLogin()">▶ Entrar</button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:16px 0;">
+    <button class="btn btn-ghost" style="font-size:14px;" onclick="mostrarPrimeiroAcesso()">🔑 Primeiro Acesso</button>
+    <button class="btn btn-ghost" style="font-size:13px;color:var(--text2);margin-top:8px;" onclick="mostrarConfigURL()">⚙️ Configurar URL do sistema</button>
+  </div>
+
+  <div class="login-card hidden" id="primeiro-acesso-card">
+    <h3 style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:14px;">Criar minha senha</h3>
+    <div class="fg"><label>📋 CPF</label><input type="tel" id="pa-cpf" placeholder="00000000000" maxlength="11" inputmode="numeric"></div>
+    <div class="fg"><label>🔒 Criar senha (4 números)</label><input type="password" id="pa-s1" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:20px;text-align:center;letter-spacing:6px;"></div>
+    <div class="fg"><label>🔒 Repetir senha</label><input type="password" id="pa-s2" placeholder="••••" maxlength="4" inputmode="numeric" style="font-size:20px;text-align:center;letter-spacing:6px;"></div>
+    <button class="btn btn-green" onclick="criarSenha()">✅ Criar Minha Senha</button>
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:13px;" onclick="voltarLogin()">← Voltar</button>
+  </div>
+
+  <div class="login-card hidden" id="config-url-card">
+    <h3 style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:6px;">⚙️ Configurar sistema</h3>
+    <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5;">Cole aqui a URL que a MJL enviou. Faça isso uma vez só.</p>
+    <div class="fg"><label>URL do sistema</label><input type="url" id="cfg-url-login" placeholder="https://script.google.com/macros/s/..." style="font-size:12px;"></div>
+    <button class="btn btn-primary" onclick="salvarURLLogin()">✅ Salvar e conectar</button>
+    <div id="cfg-url-status" style="margin-top:10px;font-size:13px;text-align:center;min-height:20px;"></div>
+    <button class="btn btn-ghost" style="margin-top:10px;font-size:13px;" onclick="voltarLogin()">← Voltar</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app-wrap" class="hidden" style="display:flex;flex-direction:column;height:100vh;">
+<div id="offline-bar">📵 Sem internet — dados salvos no celular</div>
+<div class="hdr" style="padding:10px 16px;gap:10px;">
+  <img src="data:image/png;base64,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" alt="MJL" style="height:36px;object-fit:contain;filter:brightness(0) invert(1);flex-shrink:0;">
+  <div style="flex:1;min-width:0;"><div class="hdr-title" id="hdr-nome" style="font-size:14px;">Olá! 👋</div><div class="hdr-sub" id="hdr-cargo"></div></div>
+  <div class="sync-pill"><div class="dot" id="sync-dot"></div><span id="sync-txt">Online</span></div>
+</div>
+
+<div id="screens">
+
+
+  <!-- ACEITE LGPD -->
+  <div class="screen" id="scr-aceite">
+    <div style="text-align:center;padding:10px 0 20px;">
+      <div style="font-size:56px;margin-bottom:10px;">📋</div>
+      <h2 style="font-size:20px;font-weight:700;color:var(--brand);margin-bottom:8px;">Termo de Ciência</h2>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;">Leia com atenção antes de continuar.</p>
+    </div>
+    <div class="card" style="margin-bottom:14px;border:2px solid var(--brand-light);">
+      <div style="font-size:13px;color:var(--text);line-height:1.8;">
+        <p style="margin-bottom:10px;font-weight:700;color:var(--brand);">Coleta de imagem para registro de ponto eletrônico</p>
+        <p style="margin-bottom:10px;">Ao utilizar este aplicativo, declaro estar ciente de que:</p>
+        <p style="margin-bottom:8px;">📸 <strong>Minha foto</strong> será capturada nos momentos de entrada e saída, exclusivamente para fins de <strong>registro e controle de jornada de trabalho</strong>, conforme Art. 74 da CLT.</p>
+        <p style="margin-bottom:8px;">📍 <strong>Minha localização (GPS)</strong> será registrada junto ao ponto para confirmar o local de trabalho.</p>
+        <p style="margin-bottom:8px;">🔒 As imagens e dados serão armazenados com segurança pela <strong>MJL Serviços e Soluções</strong> pelo prazo mínimo de <strong>5 anos</strong>, conforme exigência legal.</p>
+        <p style="margin-bottom:8px;">🚫 As fotos do ponto <strong>não serão usadas para divulgação</strong> pública ou qualquer finalidade além do controle de jornada.</p>
+        <p style="margin-bottom:8px;">📄 Este aceite complementa o <strong>Documento de Uso de Imagem</strong> assinado com a empresa, em conformidade com a <strong>Lei 13.709/2018 (LGPD)</strong>.</p>
+        <p style="margin-bottom:0;color:var(--text3);font-size:11px;">Em caso de dúvidas, entre em contato com a MJL Serviços e Soluções.</p>
+      </div>
+    </div>
+    <div id="aceite-geo-status" class="geo-bar geo-wait">📍 Capturando localização para registrar seu aceite...</div>
+    <div style="background:var(--yellow-light);border:1.5px solid #f5d88e;border-radius:var(--r-sm);padding:12px;margin-bottom:14px;font-size:13px;color:var(--yellow);font-weight:700;">
+      ⚠️ Ao tocar em "Li e concordo", seu aceite será registrado com data, hora e localização.
+    </div>
+    <button class="btn btn-green" id="btn-aceite-ok" onclick="confirmarAceite()" disabled>
+      ✅ Li, entendi e concordo
+    </button>
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;line-height:1.5;">
+      Se não concordar, entre em contato com a MJL para esclarecimentos antes de prosseguir.
+    </p>
+  </div>
+
+  <!-- HOME -->
+  <div class="screen active" id="scr-home">
+    <p style="font-size:13px;color:var(--text2);margin-bottom:14px;" id="home-data"></p>
+    <div id="home-pend-aviso"></div>
+    <div id="home-avulso-aviso"></div>
+    <div class="menu-grid">
+      <div class="menu-btn green" onclick="ir('scr-ponto')"><div class="mico">⏱️</div><div class="mlabel">Ponto</div><div class="msub" id="home-ponto-sub">Bater ponto</div></div>
+      <div class="menu-btn teal" onclick="ir('scr-cronograma')"><div class="mico">📅</div><div class="mlabel">Cronograma</div><div class="msub" id="home-crono-sub">Tarefas do dia</div></div>
+      <div class="menu-btn blue" onclick="ir('scr-chamados')"><div class="mico">🔧</div><div class="mlabel">Chamados</div><div class="msub" id="home-ch-sub">Manutenção</div></div>
+      <div class="menu-btn orange" onclick="ir('scr-informativos')"><div class="mico">📢</div><div class="mlabel">Avisos</div><div class="msub" id="home-info-sub">Documentos</div></div>
+      <div class="menu-btn" id="home-btn-superv" style="display:none;border-color:#7b2d8b;background:#f6eefa;" onclick="ir('scr-superv')"><div class="mico">🔎</div><div class="mlabel">Supervisão</div><div class="msub" id="home-superv-sub">Visita ao local</div></div>
+      <div class="menu-btn" id="home-btn-avulso" style="display:none;border-color:#7b2d8b;background:#f6eefa;" onclick="ir('scr-avulsos')"><div class="mico">⭐</div><div class="mlabel">Serviços Extras</div><div class="msub" id="home-avulso-sub">Avulsos do dia</div></div>
+      <div class="menu-btn purple" onclick="ir('scr-ouvidoria')"><div class="mico">💬</div><div class="mlabel">Falar com MJL</div><div class="msub">Ouvidoria</div></div>
+      <div class="menu-btn" style="border-color:#c8d8e8;background:#f0f4f8;" onclick="ir('scr-config')"><div class="mico">⚙️</div><div class="mlabel">Configurar</div><div class="msub">URL do sistema</div></div>
+    </div>
+    <button class="btn btn-ghost" style="margin-top:14px;font-size:14px;color:var(--text2);" onclick="logout()">🚪 Sair</button>
+  </div>
+
+
+  <!-- SERVIÇOS AVULSOS — lista do colaborador -->
+  <div class="screen" id="scr-avulsos">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="av-lista"></div>
+  </div>
+
+  <!-- SERVIÇO AVULSO — execução -->
+  <div class="screen" id="scr-avulso">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-avulsos')">← Sair sem concluir (fica salvo)</button>
+    <div id="avx-body"></div>
+  </div>
+
+  <!-- SUPERVISÃO — entrada da visita (só perfil encarregado/supervisor) -->
+  <div class="screen" id="scr-superv">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="sv-abertas"></div>
+    <div class="card">
+      <div class="card-title">🔎 Nova visita de supervisão</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">
+        Escolha o local, tire a foto de chegada e o app registra hora e localização.
+      </p>
+      <label style="font-size:13px;font-weight:600;">Condomínio / local</label>
+      <select id="sv-local" onchange="svMostrarRegra()" style="width:100%;margin:5px 0 6px;font-size:14px;"></select>
+      <div id="sv-regra" style="font-size:12px;color:var(--text3);margin-bottom:12px;"></div>
+      <label style="display:block;cursor:pointer;">
+        <input type="file" accept="image/*" capture="environment" style="display:none;" onchange="iniciarVisita(event)">
+        <div class="btn btn-primary" style="pointer-events:none;width:100%;padding:13px;">📸 Foto de chegada e iniciar</div>
+      </label>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="card-title">🗂️ Minhas últimas visitas</div>
+      <div id="sv-hist" style="font-size:13px;"></div>
+    </div>
+  </div>
+
+  <!-- SUPERVISÃO — visita em andamento -->
+  <div class="screen" id="scr-visita">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-superv')">← Sair sem encerrar (fica salva)</button>
+    <div id="vs-body"></div>
+  </div>
+
+  <!-- REGISTRO -->
+  <div class="screen" id="scr-registro">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="step-progress">
+      <div class="step-dot current" id="sp0"></div>
+      <div class="step-dot" id="sp1"></div>
+      <div class="step-dot" id="sp2"></div>
+      <div class="step-dot" id="sp3"></div>
+    </div>
+    <div id="reg-step-0">
+      <div class="card" style="text-align:center;padding:28px 20px;">
+        <div style="font-size:56px;margin-bottom:10px;">📍</div>
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Confirmar localização</h2>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:18px;line-height:1.5;">Precisamos saber onde você está para registrar sua presença.</p>
+        <div class="geo-bar geo-wait" id="geo-status-reg" style="justify-content:center;">⏳ Buscando localização...</div>
+        <button class="btn btn-primary" id="btn-geo-ok" onclick="proximaEtapa(1)" disabled>✅ Confirmar e Continuar</button>
+      </div>
+    </div>
+    <div id="reg-step-1" class="hidden">
+      <div class="card" style="text-align:center;padding:24px 18px;">
+        <div style="font-size:56px;margin-bottom:10px;">📸</div>
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:8px;">Foto de entrada</h2>
+        <p style="font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.5;">Tire uma foto para registrar sua chegada. Horário é capturado automaticamente.</p>
+        <div style="background:var(--green-light);border:1.5px solid #9ad1b0;border-radius:var(--r-sm);padding:12px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--green);">⏰ Entrada: <span id="reg-hora-entrada" style="font-size:18px;"></span></div>
+          <div id="reg-geo-entrada" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
+        </div>
+        <label style="display:block;cursor:pointer;">
+        <input type="file" id="foto-entrada" accept="image/*" capture="environment" style="display:none" onchange="fotoEntrada(event)">
+        <div class="photo-add-btn"><div class="ico">📷</div><span>Tirar foto de entrada</span></div>
+      </label>
+        <div id="preview-entrada" style="margin-bottom:12px;"></div>
+        <button class="btn btn-primary" id="btn-entrada-ok" onclick="proximaEtapa(2)" disabled>Continuar →</button>
+      </div>
+    </div>
+    <div id="reg-step-2" class="hidden">
+      <div class="card">
+        <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">✅</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">O que fiz hoje</h2></div>
+        <p style="font-size:13px;color:var(--text2);text-align:center;margin-bottom:12px;">Toque nas tarefas que você fez</p>
+        <div id="ck-lista">
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Limpeza do local</span></div>
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Organização das áreas</span></div>
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Uso dos equipamentos de proteção</span></div>
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Atendimento ao responsável</span></div>
+          <div class="ck-item" onclick="toggleCk(this)"><div class="ck-box">✓</div><span class="ck-label">Sem ocorrências no dia</span></div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:10px;">
+          <input type="text" id="nova-ck" placeholder="Outra tarefa..." style="flex:1;padding:11px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:14px;">
+          <button onclick="addCk()" style="padding:11px 16px;background:var(--brand);color:#fff;border:none;border-radius:var(--r-sm);font-size:20px;cursor:pointer;">+</button>
+        </div>
+        <button class="btn btn-primary" style="margin-top:14px;" onclick="proximaEtapa(3)">Continuar →</button>
+      </div>
+    </div>
+    <div id="reg-step-3" class="hidden">
+      <div class="card" style="margin-bottom:14px;">
+        <div style="text-align:center;margin-bottom:12px;"><div style="font-size:44px;">📷</div><h2 style="font-size:17px;font-weight:700;margin-top:6px;">Foto do dia</h2></div>
+        <label style="display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+          <input type="file" id="foto-reg" accept="image/*" capture="environment" multiple style="display:none;" onchange="addFotos(event,'grid-reg','fotos-reg')">
+          <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto ou escolher da galeria</span></div>
+        </label>
+        <div class="photo-grid" id="grid-reg" style="margin-bottom:12px;"></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div class="card-title">💬 Observações</div>
+        <textarea id="reg-obs" placeholder="Se aconteceu algo importante, escreva aqui... (não é obrigatório)" style="font-size:14px;"></textarea>
+      </div>
+      <div style="background:var(--green-light);border:1.5px solid #9ad1b0;border-radius:var(--r-sm);padding:12px;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--green);">⏰ Saída: <span id="reg-hora-saida" style="font-size:18px;"></span></div>
+        <div id="reg-geo-saida" style="font-size:11px;color:var(--green);margin-top:3px;"></div>
+      </div>
+      <label style="display:block;cursor:pointer;">
+        <input type="file" id="foto-saida" accept="image/*" capture="environment" style="display:none" onchange="fotoSaida(event)">
+        <div class="photo-add-btn"><div class="ico">📷</div><span>Foto de saída (obrigatório)</span></div>
+      </label>
+      <div id="preview-saida" style="margin-bottom:14px;"></div>
+      <button class="btn btn-green" id="btn-salvar-reg" onclick="salvarRegistro()" disabled>💾 Salvar ponto do dia</button>
+      <button class="btn btn-ghost" style="margin-top:10px;" onclick="proximaEtapa(2)">← Voltar</button>
+    </div>
+  </div>
+
+
+  <!-- PONTO ELETRÔNICO -->
+  <div class="screen" id="scr-ponto">
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+
+    <!-- Relógio -->
+    <div class="relogio-ponto">
+      <div class="rp-hora" id="rp-hora">--:--:--</div>
+      <div class="rp-data" id="rp-data"></div>
+      <div class="rp-dia" id="rp-dia"></div>
+    </div>
+
+    <!-- Banco de horas -->
+    <div id="banco-pill-el" class="banco-pill banco-zer hidden">
+      <div><div class="banco-lbl">Banco de horas — mês atual</div><div class="banco-val" id="banco-val-el">00:00</div></div>
+      <div id="banco-badge-el"></div>
+    </div>
+
+    <!-- Alertas -->
+    <div id="ponto-alertas"></div>
+
+    <!-- Steps -->
+    <div class="card" style="padding:12px;">
+      <div class="card-title" style="margin-bottom:10px;">Ponto de hoje</div>
+
+      <!-- ENTRADA -->
+      <div class="ponto-step ps-ativo" id="pstep-entrada">
+        <div class="ps-top">
+          <div class="ps-ico">🟢</div>
+          <div class="ps-info">
+            <div class="ps-label">Entrada</div>
+            <div class="ps-hora" id="phora-entrada">Aguardando...</div>
+          </div>
+          <button class="btn-ps btn-ps-entrada" id="pbtn-entrada" onclick="irParaPontoStep('entrada')">✅ Bater</button>
+        </div>
+        <div id="pfoto-entrada-area" style="display:none;margin-top:8px;">
+          <span style="font-size:12px;color:var(--green);font-weight:700;">📍 GPS registrado</span>
+        </div>
+      </div>
+
+      <!-- SAÍDA ALMOÇO -->
+      <div class="ponto-step ps-bloq" id="pstep-saida-alm">
+        <div class="ps-top">
+          <div class="ps-ico">🍽️</div>
+          <div class="ps-info"><div class="ps-label">Saída Almoço</div><div class="ps-hora" id="phora-saida-alm">—</div></div>
+          <button class="btn-ps btn-ps-almoco" id="pbtn-saida-alm" onclick="baterPontoSimples('saida_alm')" disabled>Bater</button>
+        </div>
+      </div>
+
+      <!-- VOLTA ALMOÇO -->
+      <div class="ponto-step ps-bloq" id="pstep-volta-alm">
+        <div class="ps-top">
+          <div class="ps-ico">↩️</div>
+          <div class="ps-info"><div class="ps-label">Volta Almoço</div><div class="ps-hora" id="phora-volta-alm">—</div></div>
+          <button class="btn-ps btn-ps-volta" id="pbtn-volta-alm" onclick="baterPontoSimples('volta_alm')" disabled>Bater</button>
+        </div>
+      </div>
+
+      <!-- SAÍDA -->
+      <div class="ponto-step ps-bloq" id="pstep-saida">
+        <div class="ps-top">
+          <div class="ps-ico">🔴</div>
+          <div class="ps-info"><div class="ps-label">Saída</div><div class="ps-hora" id="phora-saida">—</div></div>
+          <button class="btn-ps btn-ps-saida" id="pbtn-saida" onclick="irParaPontoStep('saida')" disabled>✅ Bater</button>
+        </div>
+        <div id="pfoto-saida-area" style="display:none;margin-top:8px;">
+          <span style="font-size:12px;color:var(--red);font-weight:700;">📍 GPS registrado</span>
+        </div>
+      </div>
+
+      <!-- OBSERVAÇÃO -->
+      <div style="margin-top:12px;">
+        <label style="display:block;font-size:12px;font-weight:700;color:var(--text2);margin-bottom:6px;">Observação do dia</label>
+        <select id="ponto-obs" style="width:100%;padding:11px 13px;border-radius:var(--r-sm);border:2px solid var(--border);font-size:14px;" onchange="salvarObsDia()">
+          <option value="">— Dia normal —</option>
+          <option value="Folga">Folga</option>
+          <option value="Falta">Falta</option>
+          <option value="Falta Justificada">Falta Justificada / Atestado</option>
+          <option value="Férias">Férias</option>
+          <option value="Feriado">🔴 Feriado (horas = 100% extra)</option>
+          <option value="Domingo">Domingo (não remunerado)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Histórico -->
+    <div class="card">
+      <div class="card-title">Histórico do mês</div>
+      <div id="ponto-historico"></div>
+    </div>
+  </div>
+
+  <!-- CRONOGRAMA -->
+  <div class="screen" id="scr-cronograma">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="alert alert-info" style="margin-bottom:14px;">
+      📅 Toque em cada tarefa para marcar como feita. Fica registrado com data e hora.
+    </div>
+    <!-- v23: o que a MJL pediu para refazer vem ANTES das tarefas do dia -->
+    <div id="pend-bloco"></div>
+    <!-- Mini calendário semanal -->
+    <div class="card" style="margin-bottom:14px;">
+      <div class="card-title">Semana atual</div>
+      <div class="crono-semana" id="crono-semana"></div>
+    </div>
+    <div id="crono-locais"></div>
+  </div>
+
+  <!-- CHAMADOS -->
+  <div class="screen" id="scr-chamados">
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <button class="btn btn-orange" style="margin-bottom:14px;" onclick="abrirModalChamado()">➕ Abrir novo chamado</button>
+    <div id="lista-chamados"></div>
+  </div>
+
+  <!-- INFORMATIVOS -->
+  <div class="screen" id="scr-informativos">
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div id="lista-informativos"></div>
+  </div>
+
+  <!-- OUVIDORIA -->
+  <div class="screen" id="scr-ouvidoria">
+    <button class="btn btn-ghost" style="margin-bottom:12px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="alert alert-info">💬 Denúncias, pedidos, sugestões ou elogios. Pode ser anônimo.</div>
+    <div style="margin-top:14px;">
+      <div class="ouv-tipo-grid">
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'denuncia')"><div class="ot-ico">🚨</div><div class="ot-lbl">Denúncia</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'pedido')"><div class="ot-ico">📋</div><div class="ot-lbl">Pedido</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'sugestao')"><div class="ot-ico">💡</div><div class="ot-lbl">Sugestão</div></div>
+        <div class="ouv-tipo" onclick="selOuvTipo(this,'elogio')"><div class="ot-ico">⭐</div><div class="ot-lbl">Elogio</div></div>
+      </div>
+      <div class="anon-toggle" onclick="toggleAnon()">
+        <div class="toggle-box" id="anon-box"><div class="toggle-knob"></div></div>
+        <span id="anon-label" style="font-size:13px;font-weight:700;color:var(--yellow);flex:1;">Enviar como anônimo</span>
+      </div>
+      <div class="card">
+        <div class="fg"><label>📝 Sua mensagem</label><textarea id="ouv-msg" placeholder="Escreva aqui..." style="font-size:15px;min-height:120px;"></textarea></div>
+        <button class="btn" style="background:var(--purple);color:#fff;" onclick="enviarOuvidoria()">📤 Enviar mensagem</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONFIG -->
+  <div class="screen" id="scr-config">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-home')">← Voltar</button>
+    <div class="card">
+      <div class="card-title">⚙️ URL do sistema</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:12px;line-height:1.5;">Cole a URL que a MJL enviou para você. Faça isso uma vez só.</p>
+      <div class="fg"><label>URL</label><input type="url" id="cfg-url-app" placeholder="https://script.google.com/macros/s/..." style="font-size:12px;"></div>
+      <button class="btn btn-green" onclick="salvarURLApp()">✅ Salvar</button>
+      <div id="cfg-app-status" style="margin-top:10px;font-size:13px;text-align:center;"></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">📤 Fila de envio</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.5;">Registros guardados neste aparelho que ainda não chegaram na MJL.</p>
+      <div id="fila-lista" style="font-size:12px;line-height:1.6;"></div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+        <button class="btn btn-primary" style="flex:1;" onclick="reenviarFila()">🔄 Reenviar agora</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="enviarFilaWhats()">💬 Enviar p/ MJL</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="copiarFila()">📋 Copiar</button>
+      </div>
+      <div id="fila-status" style="margin-top:8px;font-size:12px;text-align:center;min-height:16px;"></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">🪪 Quem está usando este aparelho</div>
+      <div id="cfg-perfil" style="font-size:13px;line-height:1.7;"></div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <div class="card-title">📱 Salvar na tela inicial</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:6px;line-height:1.6;"><strong>Android:</strong> 3 pontinhos ⋮ → Adicionar à tela inicial</p>
+      <p style="font-size:13px;color:var(--text2);line-height:1.6;"><strong>iPhone:</strong> Compartilhar □↑ → Adicionar à Tela de Início</p>
+    </div>
+  </div>
+
+  <!-- SUCESSO -->
+  <div class="screen" id="scr-sucesso">
+    <div class="success-screen">
+      <div class="success-ico" id="suc-ico">✅</div>
+      <div class="success-title" id="suc-title">Salvo!</div>
+      <div class="success-sub" id="suc-sub"></div>
+      <button class="btn btn-primary" onclick="ir('scr-home')">← Voltar ao início</button>
+    </div>
+  </div>
+
+
+  <!-- SCREEN BATER PONTO (entrada/saída) — SEM FOTO, SÓ GPS -->
+  <div class="screen" id="scr-ponto-step">
+    <button class="btn btn-ghost" style="margin-bottom:14px;padding:10px;" onclick="ir('scr-ponto')">← Voltar</button>
+
+    <div class="card" style="text-align:center;padding:28px 20px;">
+      <div style="font-size:56px;margin-bottom:10px;" id="ps-ico-tipo">🟢</div>
+      <h2 style="font-size:22px;font-weight:700;color:var(--brand);margin-bottom:8px;" id="ps-titulo">Bater Entrada</h2>
+      <div style="font-size:52px;font-weight:700;color:var(--brand);letter-spacing:-2px;line-height:1;margin:12px 0;" id="ps-hora-display">--:--</div>
+      <div id="ps-geo-status" class="geo-bar geo-wait" style="justify-content:center;margin:14px 0 0;">
+        ⏳ Buscando localização...
+      </div>
+    </div>
+
+    <!-- Alerta horário -->
+    <div id="ps-alerta" class="hidden alert alert-warn" style="margin-top:12px;">
+      <div style="font-size:13px;font-weight:700;margin-bottom:6px;" id="ps-alerta-titulo">⚠️ Atenção</div>
+      <div style="font-size:12px;" id="ps-alerta-msg"></div>
+    </div>
+
+    <!-- Justificativa (só aparece se fora do horário) -->
+    <div id="ps-just-area" class="hidden" style="margin-top:12px;">
+      <div class="fg">
+        <label>Justificativa obrigatória *</label>
+        <textarea id="ps-just-txt" placeholder="Explique o motivo de estar batendo fora do horário..." style="width:100%;padding:12px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:15px;resize:none;min-height:90px;font-family:inherit;" oninput="verificarBtnPS()"></textarea>
+      </div>
+    </div>
+
+    <!-- FOTO — Método 1 testado e aprovado no iPhone -->
+    <div style="margin-bottom:14px;">
+      <p style="font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;" id="ps-foto-label">📷 Foto obrigatória</p>
+      <label style="display:block;cursor:pointer;">
+        <input type="file"
+               id="input-ps-foto"
+               accept="image/*"
+               capture="environment"
+               style="display:none;"
+               onchange="capturarFotoPS(event)">
+        <div class="photo-add-btn" id="ps-foto-btn">
+          <div class="ico">📸</div>
+          <span>Toque aqui para tirar a foto</span>
+        </div>
+      </label>
+      <img id="ps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:220px;object-fit:cover;display:none;margin-top:8px;">
+    </div>
+
+    <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled style="margin-top:4px;">
+      ✅ Confirmar ponto
+    </button>
+    <p style="font-size:11px;color:var(--text3);text-align:center;margin-top:10px;">
+      📷 Foto + 📍 GPS registrados para segurança
+    </p>
+  </div>
+
+</div><!-- end screens -->
+
+<div id="bnav" style="display:none;">
+  <a class="bnav-link active" data-scr="scr-home"><div class="nav-ico-wrap"><span class="ico">🏠</span></div><span>Início</span></a>
+  <a class="bnav-link" data-scr="scr-ponto"><div class="nav-ico-wrap"><span class="ico">⏱️</span><span class="nb hidden" id="nb-ponto">!</span></div><span>Ponto</span></a>
+  <a class="bnav-link" data-scr="scr-cronograma"><div class="nav-ico-wrap"><span class="ico">📅</span><span class="nb hidden" id="nb-crono">0</span></div><span>Cronograma</span></a>
+  <a class="bnav-link" data-scr="scr-chamados"><div class="nav-ico-wrap"><span class="ico">🔧</span><span class="nb hidden" id="nb-ch">0</span></div><span>Chamados</span></a>
+  <a class="bnav-link" data-scr="scr-informativos"><div class="nav-ico-wrap"><span class="ico">📢</span><span class="nb hidden" id="nb-info">0</span></div><span>Avisos</span></a>
+  <a class="bnav-link" data-scr="scr-ouvidoria"><div class="nav-ico-wrap"><span class="ico">💬</span></div><span>Ouvidoria</span></a>
+</div>
+</div><!-- end app-wrap -->
+
+
+<!-- MODAL PONTO (entrada/saída com foto) -->
+<div id="modal-ponto-step" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3 id="mps-titulo">Bater Ponto</h3><button class="modal-cls" onclick="fecharModal('modal-ponto-step')">×</button></div>
+  <div id="mps-alerta-hor" class="hidden" style="margin-bottom:12px;"></div>
+  <div style="text-align:center;background:var(--bg);border-radius:var(--r-sm);padding:14px;margin-bottom:14px;">
+    <div style="font-size:40px;font-weight:700;color:var(--brand);" id="mps-hora">--:--</div>
+    <div style="font-size:12px;color:var(--text3);">Hora capturada automaticamente</div>
+    <div id="mps-geo" style="font-size:12px;color:var(--text3);margin-top:4px;">📍 Buscando localização...</div>
+  </div>
+  <div id="mps-just-area" class="hidden just-area">
+    <div class="just-title" id="mps-just-titulo">⚠️ Fora do horário previsto</div>
+    <textarea id="mps-just-txt" placeholder="Informe o motivo obrigatoriamente..." style="width:100%;padding:10px;border-radius:var(--r-sm);border:2px solid #f5d88e;font-size:14px;resize:none;min-height:80px;font-family:inherit;" oninput="verificarBtnPonto()"></textarea>
+  </div>
+  <label style="display:block;cursor:pointer;">
+    <input type="file" id="input-foto-ps" accept="image/*" capture="environment" style="display:none" onchange="capturarFotoPonto(event)">
+    <div class="photo-add-btn">
+      <div class="ico">📷</div><span id="mps-foto-label">Tirar foto</span>
+      <span style="font-size:11px;opacity:.7;">Obrigatório</span>
+    </div>
+  </label>
+  <img id="mps-foto-prev" src="" style="width:100%;border-radius:var(--r-sm);max-height:200px;object-fit:cover;display:none;margin-bottom:12px;">
+  <button class="btn btn-green" id="btn-confirmar-ps" onclick="confirmarPontoStep()" disabled>✅ Confirmar ponto</button>
+</div></div>
+
+<!-- MODAL CHAMADO -->
+<div id="modal-chamado" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>🔧 Novo Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-chamado')">×</button></div>
+  <div class="fg"><label>O que precisa resolver?</label>
+    <select id="ch-tipo" style="font-size:15px;padding:13px;"><option value="">-- Escolha --</option><option>Vazamento</option><option>Elétrica</option><option>Limpeza urgente</option><option>Equipamento quebrado</option><option>Segurança</option><option>Outro</option></select>
+  </div>
+  <div class="fg"><label>Descreva o problema</label><textarea id="ch-desc" placeholder="O que está acontecendo?" style="font-size:14px;"></textarea></div>
+  <div style="margin-bottom:14px;">
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">📷 Foto do problema (obrigatório)</label>
+    <label style="display:block;cursor:pointer;-webkit-tap-highlight-color:transparent;">
+      <input type="file" id="foto-ch" accept="image/*" capture="environment" multiple style="display:none;" onchange="addFotos(event,'grid-ch','fotos-ch')">
+      <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Tirar foto do problema</span></div>
+    </label>
+    <div class="photo-grid" id="grid-ch"></div>
+  </div>
+  <div class="fg"><label>Urgência</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+      <div class="ouv-tipo sel" onclick="selUrg(this,'normal')" id="urg-normal"><div class="ot-ico">🟢</div><div class="ot-lbl">Normal</div></div>
+      <div class="ouv-tipo" onclick="selUrg(this,'media')" id="urg-media"><div class="ot-ico">🟡</div><div class="ot-lbl">Média</div></div>
+      <div class="ouv-tipo" onclick="selUrg(this,'urgente')" id="urg-urgente"><div class="ot-ico">🔴</div><div class="ot-lbl">Urgente</div></div>
+    </div>
+  </div>
+  <button class="btn btn-orange" onclick="salvarChamado()">📤 Enviar chamado</button>
+</div></div>
+
+<!-- MODAL FECHAR CHAMADO -->
+<div id="modal-crono-ok" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>✅ Concluir Tarefa</h3><button class="modal-cls" onclick="fecharModal('modal-crono-ok')">×</button></div>
+  <p id="crono-ok-desc" style="font-size:13px;color:var(--text2);margin-bottom:4px;"></p>
+  <p id="crono-ok-tarefa" style="font-size:15px;font-weight:700;color:var(--brand);margin-bottom:12px;"></p>
+  <div class="alert alert-warn">📷 A foto do serviço é <strong>obrigatória</strong>. Você pode enviar mais de uma (antes/depois, cada andar...).</div>
+  <label for="input-foto-crono" style="display:block;cursor:pointer;">
+    <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Adicionar foto(s) do serviço</span></div>
+  </label>
+  <input type="file" id="input-foto-crono" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotosCrono(event)">
+  <div id="crono-ok-contador"></div>
+  <div class="photo-grid" id="grid-crono-ok" style="margin-bottom:12px;"></div>
+  <div class="fg"><label>📝 Observação (opcional)</label>
+    <textarea id="crono-ok-obs" oninput="cronoSalvarObs(this.value)" placeholder="Algo a relatar nesta tarefa? Ex: torneira do 3º andar vazando, faltou produto..." style="font-size:14px;"></textarea>
+  </div>
+  <button class="btn btn-green" style="width:100%;padding:13px;" onclick="confirmarCronoFeito()">✅ Confirmar conclusão</button>
+</div></div>
+<div id="modal-fechar-ch" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3>✅ Resolver Chamado</h3><button class="modal-cls" onclick="fecharModal('modal-fechar-ch')">×</button></div>
+  <input type="hidden" id="fechar-ch-id">
+  <div class="alert alert-warn">📷 Foto do serviço concluído é <strong>obrigatória</strong>.</div>
+  <label for="foto-depois" style="display:block;cursor:pointer;">
+    <div class="photo-add-btn" style="pointer-events:none;"><div class="ico">📸</div><span>Foto do serviço concluído</span></div>
+  </label>
+  <input type="file" id="foto-depois" accept="image/*" capture="environment" multiple style="display:none" onchange="addFotos(event,'grid-depois','fotos-depois')">
+  <div class="photo-grid" id="grid-depois" style="margin-bottom:14px;"></div>
+  <div class="fg"><label>Como foi resolvido?</label><textarea id="fechar-ch-obs" placeholder="Descreva o que foi feito..." style="font-size:14px;"></textarea></div>
+  <button class="btn btn-green" onclick="fecharChamado()">✅ Confirmar conclusão</button>
+</div></div>
+
+<!-- MODAL INFORMATIVO -->
+<div id="modal-info" class="modal-overlay hidden"><div class="modal">
+  <div class="modal-hdr"><h3 id="mi-title">Aviso</h3><button class="modal-cls" onclick="fecharModal('modal-info')">×</button></div>
+  <div id="mi-body" style="margin-bottom:14px;"></div>
+  <!-- PDF link -->
+  <div id="mi-pdf-area" class="hidden" style="margin-bottom:14px;">
+    <a id="mi-pdf-link" href="#" target="_blank" class="btn btn-primary" style="text-decoration:none;">📄 Abrir / Baixar documento</a>
+  </div>
+  <!-- Assinatura -->
+  <div id="mi-assinar" class="hidden">
+    <div class="alert alert-warn">✍️ Assine para confirmar que leu este documento.</div>
+    <label style="display:block;font-size:13px;font-weight:700;color:var(--text2);margin-bottom:8px;">Assine com o dedo:</label>
+    <canvas id="canvas-sign" width="400" height="180"></canvas>
+    <p class="sign-hint">Desenhe sua assinatura acima</p>
+    <button class="btn btn-ghost" style="margin-top:8px;padding:10px;font-size:13px;" onclick="limparSign()">🗑️ Limpar</button>
+    <div id="mi-geo-ass" class="geo-bar geo-wait" style="margin-top:12px;">📍 Capturando localização...</div>
+    <button class="btn btn-green" style="margin-top:12px;" onclick="confirmarLeitura()">✅ Confirmar que li e concordo</button>
+  </div>
+  <div id="mi-assinado" class="hidden">
+    <div class="alert alert-ok">✅ Você já assinou em <span id="mi-data-ass"></span></div>
+  </div>
+</div></div>
+
+<script>
+// ===== STATE =====
+let colAtual=null, geoAtual=null, ouvTipo='', anonimo=false, urgSel='normal';
+let infoId=null, signCanvas=null, signCtx=null, signing=false;
+let fotosData={};
+let cronoFeitosLocal={};
+
+
+function triggerFoto(inputId){
+  var el = document.getElementById(inputId);
+  if(el){ el.value=''; el.click(); }
+}
+
+function gid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+function salvarLocal(k,v){localStorage.setItem(k,JSON.stringify(v));}
+function lerLocal(k,d){try{return JSON.parse(localStorage.getItem(k))||d;}catch{return d;}}
+
+// ===== ONLINE =====
+function checkOnline(){
+  const on=navigator.onLine;
+  document.getElementById('offline-bar').style.display=on?'none':'block';
+  document.getElementById('sync-dot').classList.toggle('off',!on);
+  document.getElementById('sync-txt').textContent=on?'Online':'Offline';
+  if(on) enviarPendentes();
+}
+window.addEventListener('online',checkOnline);
+window.addEventListener('offline',checkOnline);
+
+// ===== LOGIN =====
+function mostrarPrimeiroAcesso(){document.getElementById('login-form-card').classList.add('hidden');document.getElementById('primeiro-acesso-card').classList.remove('hidden');document.getElementById('config-url-card').classList.add('hidden');}
+function mostrarConfigURL(){
+  const url=localStorage.getItem('mjl_script_url')||'';
+  document.getElementById('cfg-url-login').value=url;
+  document.getElementById('login-form-card').classList.add('hidden');
+  document.getElementById('primeiro-acesso-card').classList.add('hidden');
+  document.getElementById('config-url-card').classList.remove('hidden');
+  document.getElementById('cfg-url-status').innerHTML=url?'<span style="color:var(--green);font-weight:700">✅ URL já configurada</span>':'';
+}
+function voltarLogin(){document.getElementById('login-form-card').classList.remove('hidden');document.getElementById('primeiro-acesso-card').classList.add('hidden');document.getElementById('config-url-card').classList.add('hidden');}
+
+function salvarURLLogin(){
+  const url=document.getElementById('cfg-url-login').value.trim();
+  if(!url||!url.startsWith('https://')){alert('URL inválida.');return;}
+  localStorage.setItem('mjl_script_url',url);
+  document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ Salvando... buscando colaboradores</span>';
+  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(data=>{
+    if(data?.colaboradores?.length){
+      salvarLocal('mjl_colaboradores',data.colaboradores);
+      document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ '+data.colaboradores.length+' colaborador(es) carregado(s)! Faça o login.</span>';
+      setTimeout(voltarLogin,2000);
+    } else {
+      document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ URL salva. Sincronize no App Gestão primeiro.</span>';
+    }
+  }).catch(()=>{document.getElementById('cfg-url-status').innerHTML='<span style="color:var(--yellow);font-weight:700">⚠️ URL salva. Sem internet no momento.</span>';});
+}
+
+function fazerLogin(){
+  const cpf=document.getElementById('login-cpf').value.trim();
+  const senha=document.getElementById('login-senha').value.trim();
+  if(!cpf||!senha){alert('Preencha CPF e senha.');return;}
+  const col=buscarCol(cpf);
+  if(!col){alert('CPF não encontrado. Verifique com a MJL.');return;}
+  const s=localStorage.getItem('mjl_senha_'+cpf);
+  if(!s){alert('Crie sua senha primeiro — toque em Primeiro Acesso.');return;}
+  if(s!==senha){alert('Senha incorreta.');return;}
+  entrar(col);
+}
+
+function criarSenha(){
+  const cpf=document.getElementById('pa-cpf').value.trim();
+  const s1=document.getElementById('pa-s1').value.trim();
+  const s2=document.getElementById('pa-s2').value.trim();
+  if(!cpf){alert('Informe o CPF.');return;}
+  if(!/^\d{4}$/.test(s1)){alert('A senha deve ter 4 números.');return;}
+  if(s1!==s2){alert('As senhas não são iguais.');return;}
+  const col=buscarCol(cpf);
+  if(!col){alert('CPF não cadastrado. Entre em contato com a MJL.');return;}
+  localStorage.setItem('mjl_senha_'+cpf,s1);
+  alert('✅ Senha criada! Agora faça o login.');
+  voltarLogin();
+  document.getElementById('login-cpf').value=cpf;
+}
+
+function buscarCol(cpf){
+  const lista=lerLocal('mjl_colaboradores',[]);
+  return lista.find(c=>String(c.cpf||'').replace(/\D/g,'')===(cpf||'').replace(/\D/g,''));
+}
+
+function entrar(col){
+  colAtual=col;
+  localStorage.setItem('mjl_cpf_logado',col.cpf);
+  document.getElementById('login-screen').style.display='none';
+  const app=document.getElementById('app-wrap');
+  app.classList.remove('hidden'); app.style.display='flex';
+  document.getElementById('hdr-nome').textContent='Olá, '+col.nome.split(' ')[0]+'! 👋';
+  // Pode ter múltiplos locais
+  const locais=Array.isArray(col.clientes)?col.clientes.join(', '):(col.cliente||'');
+  document.getElementById('hdr-cargo').textContent=col.funcao+(locais?' — '+locais:'');
+  const hoje=new Date();
+  document.getElementById('home-data').textContent=hoje.toLocaleDateString('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+  const elRegEntrada=document.getElementById('reg-entrada'); if(elRegEntrada) elRegEntrada.value=hoje.toTimeString().slice(0,5);
+  checkOnline(); obterGeo();
+  initPonto();
+  renderCronograma(); renderChamados(); renderInformativos(); atualizarBadges();
+  // Config URL app
+  const url=localStorage.getItem('mjl_script_url')||'';
+  const elCfgUrl=document.getElementById('cfg-url-app'); if(elCfgUrl) elCfgUrl.value=url;
+  // v21: o botão de supervisão só existe para encarregado/supervisor
+  atualizarBotaoSuperv();
+  // Verificar aceite LGPD
+  verificarAceite();
+}
+
+function logout(){if(!confirm('Sair?'))return;colAtual=null;document.getElementById('login-screen').style.display='flex';document.getElementById('app-wrap').style.display='none';document.getElementById('login-cpf').value='';document.getElementById('login-senha').value='';}
+
+window.addEventListener('load',()=>{
+  const cpf=localStorage.getItem('mjl_cpf_logado');
+  if(cpf){const col=buscarCol(cpf);if(col){entrar(col);return;}}
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app-wrap').style.display='none';
 });
 
-self.addEventListener('activate', function(e){
-  // v2: remove caches de versões antigas (ex: mjl-app-v1) pra não
-  // ficar lixo acumulado e garantir que a versão nova seja usada
-  e.waitUntil(
-    caches.keys().then(function(nomes){
-      return Promise.all(nomes.filter(function(n){ return n!==CACHE; }).map(function(n){ return caches.delete(n); }));
-    }).then(function(){ return self.clients.claim(); })
-  );
-});
 
-self.addEventListener('fetch', function(e){
-  if (e.request.method !== 'GET') return;
-  var u = new URL(e.request.url);
-  // Não intercepta chamadas ao Google (Apps Script / Sheets) — só o app em si
-  if (u.origin !== self.location.origin) return;
-  // v3: o HTML do app vai SEMPRE na rede primeiro (cache só se estiver offline).
-  // Antes ele vinha do cache e a versão nova só aparecia na 2ª abertura.
-  var ehHTML = e.request.mode === 'navigate' || /\/$|\.html$/.test(u.pathname);
-  if (ehHTML) {
-    e.respondWith(
-      fetch(e.request).then(function(r){
-        if (r && r.ok) { var cp = r.clone(); caches.open(CACHE).then(function(c){ c.put(e.request, cp); }); }
-        return r;
-      }).catch(function(){ return caches.match(e.request).then(function(c){ return c || caches.match('./index.html'); }); })
-    );
+// ================================================================
+// v24 — SERVICOS AVULSOS no celular (passo 6)
+//
+// O avulso nasce no App Gestao (cliente, servico vendido, escopo,
+// colaborador designado). Aqui o colaborador EXECUTA:
+//   1. foto ANTES   — obrigatoria, pelo menos uma
+//   2. marca os itens do escopo que fez (e justifica o que nao fez)
+//   3. foto DEPOIS  — obrigatoria, pelo menos uma
+//   4. conclui
+//
+// REGRAS DE OURO aplicadas aqui, todas aprendidas na marra:
+//  - foto nunca fica guardada esperando: vai para a fila de envio no
+//    instante em que e tirada, e o registro guarda so a CONTAGEM.
+//    (no iPhone, abrir a camera descarrega o app da memoria)
+//  - o rascunho fica no localStorage por avulso, entao sair da tela
+//    ou o app fechar nao perde nada
+//  - a conclusao vai por id (concluirAvulso), nunca a lista inteira
+// ================================================================
+var avAtual=null;
+// quais justificativas o colaborador abriu nesta sessao da tela
+var _avJustAberta={};
+
+function avTodosCampo(){ return lerLocal('mjl_avulsos',[]); }
+function meusAvulsos(){
+  if(!colAtual) return [];
+  return avTodosCampo().filter(function(a){
+    if(!a || !a.id) return false;
+    if(a.status==='concluido' || a.status==='cancelado') return false;
+    return a.colaboradorId===colAtual.id;
+  }).sort(function(x,y){ return String(x.data||'').localeCompare(String(y.data||'')); });
+}
+function _avDataBR(d){ return d?String(d).split('-').reverse().join('/'):''; }
+
+// rascunho por avulso: itens marcados, justificativas, relatorio e
+// quantas fotos ja foram enviadas de cada etapa
+// A chave NAO leva o id do colaborador de proposito. Cada avulso ja
+// pertence a uma pessoa so (colaboradorId), entao nao ha como um ver o
+// rascunho do outro. E se a chave dependesse de colAtual, bastava o app
+// voltar do segundo plano um instante antes do login terminar para o
+// rascunho ser gravado numa chave orfa — e o colaborador ver tudo zerado
+// depois de ja ter tirado as fotos. Foi o que o teste pegou.
+function _avKey(id){ return 'mjl_avulso_rasc_'+id; }
+function avRasc(id){
+  var r=lerLocal(_avKey(id),null);
+  if(!r && colAtual){ r=lerLocal('mjl_avulso_rasc_'+id+'_'+colAtual.id,null); }
+  if(!r) r={itens:{},just:{},relatorio:'',antes:0,depois:0};
+  // v25: os PONTOS. Cada ponto e um lugar do servico ("lavar vidros",
+  // "garagem") e guarda quantas fotos antes e depois ja foram enviadas
+  // dali. Rascunho de uma versao anterior nao tem a lista — nasce vazia.
+  if(!r.pontos) r.pontos=[];
+  return r;
+}
+function avGravaRasc(id,r){ try{ salvarLocal(_avKey(id),r); }catch(e){} }
+
+function renderAvulsosCampo(){
+  var lista=meusAvulsos();
+  var el=document.getElementById('av-lista');
+  if(el){
+    if(!lista.length){
+      el.innerHTML='<div class="card"><div class="card-title">⭐ Serviços extras</div>'+
+        '<p style="font-size:13px;color:var(--text2);">Você não tem serviço avulso para fazer agora. Quando a MJL agendar um, ele aparece aqui.</p></div>';
+    } else {
+      el.innerHTML='<div class="card" style="margin-bottom:12px;"><div class="card-title">⭐ Serviços extras para você</div>'+
+        '<p style="font-size:12.5px;color:var(--text2);margin:0;">São serviços vendidos à parte. Cada um precisa de foto ANTES e foto DEPOIS — é o que a MJL manda para o cliente.</p></div>'+
+        lista.map(function(a){
+          var r=avRasc(a.id);
+          var total=(a.itens||[]).length;
+          var feitos=(a.itens||[]).filter(function(i){ return r.itens[i.id]; }).length;
+          var comecou = r.antes>0 || feitos>0 || (r.pontos||[]).length>0;
+          return '<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
+            '<div style="font-size:15.5px;font-weight:800;">'+(a.servico||'')+'</div>'+
+            '<div style="font-size:12px;color:var(--text3);margin:3px 0 9px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div>'+
+            (total?('<div style="font-size:12.5px;color:var(--text2);margin-bottom:9px;">'+feitos+' de '+total+' item(ns) · 📍 '+((r.pontos||[]).length)+' ponto(s) · 📸 '+r.antes+' antes · '+r.depois+' depois</div>'):'')+
+            '<button class="btn btn-primary" style="width:100%;padding:13px;" onclick="abrirAvulso(\''+a.id+'\')">'+
+            (comecou?'▶️ Continuar':'▶️ Começar este serviço')+'</button>'+
+          '</div>';
+        }).join('');
+    }
+  }
+  // botao e aviso na tela inicial
+  var btn=document.getElementById('home-btn-avulso');
+  if(btn){
+    btn.style.display=lista.length?'':'none';
+    var sub=document.getElementById('home-avulso-sub');
+    if(sub) sub.textContent=lista.length?(lista.length+(lista.length>1?' serviços':' serviço')):'Avulsos do dia';
+  }
+  var av=document.getElementById('home-avulso-aviso');
+  if(av){
+    av.innerHTML = lista.length
+      ? '<div onclick="ir(\'scr-avulsos\')" style="cursor:pointer;background:#7b2d8b;color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">'+
+        '<div style="font-size:30px;line-height:1;">⭐</div>'+
+        '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">'+lista.length+(lista.length>1?' serviços extras':' serviço extra')+' para hoje</div>'+
+        '<div style="font-size:12px;opacity:.85;">Precisa de foto antes e depois</div></div>'+
+        '<div style="font-size:22px;">›</div></div>'
+      : '';
+  }
+}
+
+function abrirAvulso(id){
+  var a=avTodosCampo().find(function(x){ return x.id===id; });
+  if(!a){ alert('Serviço não encontrado neste aparelho. Toque em Sincronizar e tente de novo.'); return; }
+  avAtual=a;
+  ir('scr-avulso');
+}
+
+function renderAvulsoExec(){
+  var el=document.getElementById('avx-body'); if(!el) return;
+  if(!avAtual){ el.innerHTML='<div class="card"><p>Nenhum serviço aberto.</p></div>'; return; }
+  var a=avAtual, r=avRasc(a.id);
+  var itens=a.itens||[];
+  var feitos=itens.filter(function(i){ return r.itens[i.id]; }).length;
+  // v25: so conclui quando TODO ponto aberto tem antes E depois.
+  // Antes bastava uma foto de cada lado em qualquer lugar — o cliente
+  // podia receber um "antes e depois" de dois lugares diferentes.
+  var pontos=r.pontos||[];
+  var pendentes=pontos.filter(function(pt){ return !(pt.antes>0 && pt.depois>0); });
+  var pode = pontos.length>0 && pendentes.length===0;
+
+  var h='';
+  h+='<div class="card" style="margin-bottom:12px;border:2px solid #7b2d8b;">'+
+     '<div style="font-size:16px;font-weight:800;">⭐ '+(a.servico||'')+'</div>'+
+     '<div style="font-size:12px;color:var(--text3);margin-top:3px;">📍 '+(a.cliente||'')+' · '+_avDataBR(a.data)+'</div></div>';
+
+  // 1 — PONTOS (antes e depois amarrados)
+  h+='<div class="card" style="margin-bottom:12px;'+(pode?'':'border:2px solid var(--red);')+'">'+
+     '<div class="card-title">1️⃣ Fotos antes e depois</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:12px;">Cada <strong>ponto</strong> é um lugar do serviço. Tire a foto ANTES do ponto, faça o serviço, e tire a foto DEPOIS <strong>dentro do mesmo bloco</strong> — assim o par nunca sai trocado no relatório do cliente.</p>';
+
+  pontos.forEach(function(pt){
+    var completo = pt.antes>0 && pt.depois>0;
+    h+='<div style="border:1.5px solid '+(completo?'var(--green)':'var(--red)')+';border-radius:10px;padding:11px 12px;margin-bottom:10px;background:'+(completo?'#f3faf6':'#fff6f5')+';">'+
+       '<div style="display:flex;align-items:center;gap:8px;margin-bottom:9px;">'+
+       '<div style="flex:1;font-size:14.5px;font-weight:800;">📍 '+(pt.nome||'')+'</div>'+
+       '<div style="font-size:11.5px;color:var(--text3);">'+(completo?'✅ completo':'falta a foto depois')+'</div></div>'+
+       '<div style="font-size:12px;color:var(--text2);margin-bottom:9px;">📸 '+pt.antes+' antes · '+pt.depois+' depois</div>'+
+       '<div style="display:flex;gap:7px;flex-wrap:wrap;">'+
+         '<label style="flex:1;min-width:130px;cursor:pointer;">'+
+           '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\',\''+pt.id+'\')">'+
+           '<div class="btn btn-ghost" style="pointer-events:none;width:100%;padding:11px;font-size:13px;">📸 Mais uma ANTES</div></label>'+
+         '<label style="flex:1;min-width:130px;cursor:pointer;">'+
+           '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'depois\',\''+pt.id+'\')">'+
+           '<div class="btn '+(pt.depois?'btn-ghost':'btn-green')+'" style="pointer-events:none;width:100%;padding:11px;font-size:13px;">📸 '+(pt.depois?'Mais uma DEPOIS':'Foto DEPOIS daqui')+'</div></label>'+
+       '</div>';
+    if(!pt.antes && !pt.depois){
+      h+='<div onclick="avRemoverPonto(\''+pt.id+'\')" style="margin-top:8px;font-size:12px;color:var(--text3);text-decoration:underline;cursor:pointer;">remover este ponto</div>';
+    }
+    h+='</div>';
+  });
+
+  // abrir um ponto novo: tocar na sugestao JA abre a camera (um toque so)
+  h+='<div style="border-top:1px solid var(--border);padding-top:11px;margin-top:4px;">'+
+     '<div style="font-size:13px;font-weight:700;margin-bottom:3px;">'+(pontos.length?'Abrir outro ponto':'Comece abrindo o primeiro ponto')+'</div>'+
+     '<p style="font-size:12px;color:var(--text3);margin-bottom:9px;">Toque no que você vai fotografar agora — a câmera abre direto, e a foto já entra como ANTES daquele ponto.</p>'+
+     '<div style="display:flex;gap:7px;flex-wrap:wrap;">';
+  (a.itens||[]).forEach(function(i){
+    h+='<label style="cursor:pointer;">'+
+       '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="avFoto(event,\'antes\',null,'+JSON.stringify(i.texto||'').replace(/"/g,'&quot;')+')">'+
+       '<span style="display:inline-block;border:1.5px solid #7b2d8b;color:#7b2d8b;background:#f6eefa;border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;">📸 '+(i.texto||'')+'</span></label>';
+  });
+  h+='<span onclick="avPontoOutro()" style="display:inline-block;border:1.5px dashed var(--text3);color:var(--text2);border-radius:20px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;">✏️ Outro lugar</span>';
+  h+='</div></div>';
+  h+='</div>';
+
+  // 2 — escopo
+  h+='<div class="card" style="margin-bottom:12px;">'+
+     '<div class="card-title">2️⃣ O que foi combinado ('+feitos+' de '+itens.length+')</div>'+
+     '<p style="font-size:12.5px;color:var(--text2);margin-bottom:10px;">Marque o que você fez. O que não deu para fazer, explique — a MJL precisa saber antes do cliente perguntar.</p>';
+  itens.forEach(function(i){
+    var on=!!r.itens[i.id];
+    h+='<div style="border-top:1px solid var(--border);padding:11px 0;">'+
+       '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;">'+
+       '<input type="checkbox" '+(on?'checked':'')+' onchange="avMarcar(\''+i.id+'\',this.checked)" style="width:22px;height:22px;margin-top:1px;flex-shrink:0;">'+
+       '<span style="font-size:14px;font-weight:600;'+(on?'color:var(--green);':'')+'">'+(i.texto||'')+'</span></label>';
+    // O campo de justificativa so aparece quando o colaborador pede.
+    // Antes nascia aberto embaixo de TODO item, dando a impressao de que
+    // o app ja esperava que ele nao fosse fazer o servico.
+    if(!on){
+      var temJust=!!(r.just[i.id]||'').trim();
+      if(temJust || _avJustAberta[i.id]){
+        h+='<input type="text" value="'+(r.just[i.id]||'').replace(/"/g,'&quot;')+'" oninput="avJust(\''+i.id+'\',this.value)" '+
+           'placeholder="Por que não deu para fazer?" style="width:100%;margin-top:7px;padding:9px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;">';
+      } else {
+        h+='<div onclick="avAbrirJust(\''+i.id+'\')" style="margin-top:6px;margin-left:32px;font-size:12.5px;color:var(--text3);text-decoration:underline;cursor:pointer;">não deu para fazer este</div>';
+      }
+    }
+    h+='</div>';
+  });
+  h+='</div>';
+
+  // 3 — concluir (a foto DEPOIS agora vive dentro do ponto, acima)
+  h+='<div class="card">'+
+     '<div class="card-title">3️⃣ Concluir</div>'+
+     '<label style="font-size:13px;font-weight:600;">Alguma observação? (opcional)</label>'+
+     '<textarea id="avx-rel" rows="3" oninput="avRel(this.value)" placeholder="Ex.: o piso ficou bom, mas o banheiro estava em uso pela obra" '+
+     'style="width:100%;margin:6px 0 12px;padding:10px;border:1.5px solid var(--border);border-radius:8px;font-size:13.5px;">'+(r.relatorio||'')+'</textarea>';
+  if(!pode){
+    var txt = !pontos.length
+      ? 'Abra pelo menos um ponto e tire a foto ANTES e a foto DEPOIS dele.'
+      : 'Falta a foto DEPOIS de: '+pendentes.map(function(pt){ return pt.nome; }).join(', ')+'.';
+    h+='<div style="background:#fff6f5;border:1.5px solid var(--red);border-radius:8px;padding:11px 13px;font-size:13px;color:var(--red);font-weight:600;margin-bottom:10px;">'+
+       txt+' Sem o par o serviço não fecha.</div>';
+  }
+  h+='<button class="btn btn-green" style="width:100%;padding:15px;font-size:15px;'+(pode?'':'opacity:.45;')+'" '+
+     (pode?'onclick="avConcluir()"':'disabled')+'>✅ Concluir serviço</button></div>';
+
+  el.innerHTML=h;
+}
+
+// campo de TEXTO nao redesenha a tela a cada letra digitada
+function avRel(v){ if(!avAtual) return; var r=avRasc(avAtual.id); r.relatorio=v; avGravaRasc(avAtual.id,r); }
+function avAbrirJust(itemId){ _avJustAberta[itemId]=true; renderAvulsoExec();
+  setTimeout(function(){ var c=document.querySelectorAll('#avx-body input[type=text]'); if(c.length) c[c.length-1].focus(); },30); }
+function avJust(itemId,v){ if(!avAtual) return; var r=avRasc(avAtual.id); r.just[itemId]=v; avGravaRasc(avAtual.id,r); }
+function avMarcar(itemId,on){
+  if(!avAtual) return;
+  var r=avRasc(avAtual.id);
+  if(on){ r.itens[itemId]=true; delete r.just[itemId]; delete _avJustAberta[itemId]; } else { delete r.itens[itemId]; }
+  avGravaRasc(avAtual.id,r);
+  renderAvulsoExec();
+}
+
+// v25 — PONTOS
+// Abrir um ponto novo e tocar na sugestao: o <label> ja e o gesto que
+// abre a camera, entao nao ha uma pergunta antes e uma camera depois.
+function avPontoOutro(){
+  if(!avAtual) return;
+  var nome=prompt('Nome do ponto (ex.: Garagem, Hall, Banheiro do 2º andar):');
+  if(nome===null) return;
+  nome=(nome||'').trim();
+  if(!nome){ alert('Escreva um nome para o ponto.'); return; }
+  _avNovoPonto(nome);
+  renderAvulsoExec();
+}
+function _avNovoPonto(nome){
+  var r=avRasc(avAtual.id);
+  var pt={id:gidCampo(),nome:nome,antes:0,depois:0};
+  r.pontos.push(pt); avGravaRasc(avAtual.id,r);
+  return pt;
+}
+function avRemoverPonto(id){
+  if(!avAtual) return;
+  var r=avRasc(avAtual.id);
+  r.pontos=r.pontos.filter(function(pt){
+    // so sai ponto sem nenhuma foto — foto ja enviada nao se apaga daqui
+    if(pt.id!==id) return true;
+    return (pt.antes>0 || pt.depois>0);
+  });
+  avGravaRasc(avAtual.id,r);
+  renderAvulsoExec();
+}
+function gidCampo(){ return 'p'+Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// A foto vai para a fila NA HORA. O rascunho guarda so a contagem —
+// imagem grande parada no localStorage e o que estourava o aparelho.
+// pontoId  — ponto que ja existe (botoes de dentro do bloco)
+// nomeNovo — tocou numa sugestao: o ponto nasce junto com a foto
+function avFoto(ev,etapa,pontoId,nomeNovo){
+  var f=ev.target.files && ev.target.files[0];
+  ev.target.value='';
+  if(!f || !avAtual) return;
+  var a=avAtual, agora=new Date();
+  var ponto=null;
+  if(pontoId){
+    ponto=(avRasc(a.id).pontos||[]).find(function(pt){ return pt.id===pontoId; });
+  } else if(nomeNovo){
+    // mesmo nome tocado duas vezes continua sendo o mesmo ponto
+    ponto=(avRasc(a.id).pontos||[]).find(function(pt){ return pt.nome===nomeNovo; });
+    if(!ponto) ponto=_avNovoPonto(nomeNovo);
+  }
+  if(!ponto){ alert('Escolha primeiro o ponto que você vai fotografar.'); return; }
+  var reader=new FileReader();
+  reader.onload=function(e){
+    comprimirFoto(e.target.result,function(comp){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Avulso', etapa:etapa, refId:a.id,
+        colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
+        cliente:a.cliente||'', servico:a.servico||'',
+        // v25: o ponto viaja JUNTO com a foto. E ele que casa o antes
+        // com o depois no relatorio — nao a ordem em que foram tiradas.
+        ponto:ponto.nome, pontoId:ponto.id,
+        data:agora.toISOString().slice(0,10),
+        hora:agora.toTimeString().slice(0,5),
+        img:comp, timestamp:Date.now()
+      }});
+      var r=avRasc(a.id);
+      r[etapa]=(r[etapa]||0)+1;
+      (r.pontos||[]).forEach(function(pt){ if(pt.id===ponto.id) pt[etapa]=(pt[etapa]||0)+1; });
+      avGravaRasc(a.id,r);
+      // primeira foto marca o servico como em andamento no Gestao
+      if(etapa==='antes' && r.antes===1){
+        // iniciarAvulso, nao atualizarAvulso: o celular manda so um
+        // pedaco do registro e o servidor precisa MESCLAR. Com
+        // atualizarAvulso o escopo vendido era apagado.
+        adicionarPendente({acao:'iniciarAvulso',dados:{
+          id:a.id, status:'emandamento',
+          inicioHora:agora.toTimeString().slice(0,5),
+          executadoEm:agora.toISOString().slice(0,10)
+        }});
+        _avAtualizaLocal(a.id,{status:'emandamento'});
+      }
+      renderAvulsoExec();
+    }, a.cliente||colAtual.cliente||'');
+  };
+  reader.readAsDataURL(f);
+}
+
+function _avAtualizaLocal(id,campos){
+  var todas=avTodosCampo().map(function(x){ return x.id===id?Object.assign({},x,campos):x; });
+  salvarLocal('mjl_avulsos',todas);
+}
+
+function avConcluir(){
+  if(!avAtual) return;
+  var a=avAtual, r=avRasc(a.id);
+  var _pts=r.pontos||[];
+  var _falta=_pts.filter(function(pt){ return !(pt.antes>0 && pt.depois>0); });
+  if(!_pts.length){ alert('Abra pelo menos um ponto e tire a foto ANTES e a foto DEPOIS dele.'); return; }
+  if(_falta.length){ alert('Falta a foto DEPOIS de: '+_falta.map(function(pt){ return pt.nome; }).join(', ')); return; }
+  var itens=(a.itens||[]).map(function(i){
+    var o={id:i.id,texto:i.texto};
+    if(r.itens[i.id]) o.feito=true;
+    else if((r.just[i.id]||'').trim()) o.just=r.just[i.id].trim();
+    return o;
+  });
+  var naoFeitosSemJust=itens.filter(function(i){ return !i.feito && !i.just; });
+  if(naoFeitosSemJust.length){
+    if(!confirm(naoFeitosSemJust.length+' item(ns) ficaram sem fazer e sem explicação. Concluir assim mesmo?')) return;
+  }
+  var agora=new Date();
+  var dados={
+    id:a.id, status:'concluido',
+    itens:itens,
+    relatorio:(r.relatorio||'').trim(),
+    fotosAntes:r.antes, fotosDepois:r.depois,
+    // a lista de pontos vai junto para o relatorio saber a ordem e os nomes
+    pontos:_pts.map(function(pt){ return {id:pt.id,nome:pt.nome,antes:pt.antes,depois:pt.depois}; }),
+    fimHora:agora.toTimeString().slice(0,5),
+    executadoEm:agora.toISOString().slice(0,10),
+    executadoPorId:colAtual.id, executadoPorNome:colAtual.nome
+  };
+  adicionarPendente({acao:'concluirAvulso',dados:dados});
+  _avAtualizaLocal(a.id,dados);
+  avAtual=null;
+  renderAvulsosCampo(); atualizarBadges();
+  mostrarSucesso('⭐','Serviço extra concluído!','A MJL recebeu as fotos antes e depois.');
+}
+
+// ===== NAV =====
+function ir(scrId){ if(scrId==='scr-config'){ setTimeout(renderFila,0); setTimeout(renderPerfilCfg,0); }
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(scrId).classList.add('active');
+  document.querySelectorAll('.bnav-link').forEach(a=>a.classList.remove('active'));
+  const l=document.querySelector('.bnav-link[data-scr="'+scrId+'"]');
+  if(l) l.classList.add('active');
+  document.getElementById('screens').scrollTop=0;
+  if(scrId==='scr-registro'){mostrarEtapa(0);obterGeo();}
+  if(scrId==='scr-ponto'){iniciarRelogioPonto();carregarPontoHoje();}
+  if(scrId!=='scr-ponto-step' && psTimer){clearInterval(psTimer);psTimer=null;}
+  if(scrId==='scr-cronograma'){renderCronograma();renderPendencias();}
+  if(scrId==='scr-chamados'){renderChamados();}
+  if(scrId==='scr-informativos'){renderInformativos();}
+  if(scrId==='scr-avulsos'){renderAvulsosCampo();}
+  if(scrId==='scr-avulso'){renderAvulsoExec();}
+  if(scrId==='scr-superv'){abrirSupervisao();svHistorico();}
+  if(scrId==='scr-visita'){renderVisita();}
+}
+document.querySelectorAll('.bnav-link').forEach(a=>a.addEventListener('click',()=>ir(a.dataset.scr)));
+
+// ===== GEO =====
+function obterGeo(){
+  if(!navigator.geolocation)return;
+  navigator.geolocation.getCurrentPosition(pos=>{
+    geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+    const el=document.getElementById('geo-status-reg');
+    if(el){el.className='geo-bar geo-ok';el.textContent='📍 Localização encontrada! (±'+geoAtual.acc+'m)';}
+    const btn=document.getElementById('btn-geo-ok');
+    if(btn) btn.disabled=false;
+  },()=>{
+    const el=document.getElementById('geo-status-reg');
+    if(el){el.className='geo-bar geo-err';el.textContent='❌ Permita o acesso à localização';}
+  },{enableHighAccuracy:true,timeout:15000});
+}
+
+
+
+// ===== ACEITE LGPD =====
+function verificarAceite() {
+  const aceite = localStorage.getItem('mjl_aceite_lgpd_' + (colAtual?.id || ''));
+  if (!aceite) {
+    // Mostrar tela de aceite
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById('scr-aceite').classList.add('active');
+    document.getElementById('bnav').style.display = 'none';
+    obterGeoAceite();
+  } else {
+    // Já aceitou, mostrar home normal
+    document.getElementById('bnav').style.display = 'flex';
+    ir('scr-home');
+  }
+}
+
+function obterGeoAceite() {
+  if (!navigator.geolocation) {
+    document.getElementById('btn-aceite-ok').disabled = false;
     return;
   }
-  e.respondWith(
-    caches.match(e.request).then(function(cached){
-      var rede = fetch(e.request).then(function(r){
-        if (r && r.ok) { var cp = r.clone(); caches.open(CACHE).then(function(c){ c.put(e.request, cp); }); }
-        return r;
-      }).catch(function(){ return cached; });
-      return cached || rede;
+  navigator.geolocation.getCurrentPosition(pos => {
+    geoAtual = { lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.round(pos.coords.accuracy) };
+    const el = document.getElementById('aceite-geo-status');
+    el.className = 'geo-bar geo-ok';
+    el.textContent = '📍 Localização capturada (±' + geoAtual.acc + 'm)';
+    document.getElementById('btn-aceite-ok').disabled = false;
+  }, () => {
+    document.getElementById('aceite-geo-status').className = 'geo-bar geo-err';
+    document.getElementById('aceite-geo-status').textContent = '⚠️ Localização não disponível — aceite será registrado sem GPS';
+    document.getElementById('btn-aceite-ok').disabled = false;
+  }, { enableHighAccuracy: true, timeout: 15000 });
+}
+
+function confirmarAceite() {
+  const registro = {
+    colaboradorId: colAtual.id,
+    colaboradorNome: colAtual.nome,
+    colaboradorCPF: colAtual.cpf || '',
+    tipo: 'aceite_lgpd_foto_ponto',
+    texto: 'Colaborador declarou ciência sobre coleta de imagem para registro de ponto eletrônico, armazenamento por 5 anos e conformidade com LGPD (Lei 13.709/2018) e Art. 74 CLT.',
+    dataHora: new Date().toLocaleString('pt-BR'),
+    timestamp: Date.now(),
+    geo: geoAtual,
+    geoLink: geoAtual ? 'https://maps.google.com/?q=' + geoAtual.lat + ',' + geoAtual.lng : '',
+    dispositivo: navigator.userAgent,
+    validade: 'Aceite eletrônico com validade jurídica conforme Art. 10 MP 2200-2/2001 e LGPD'
+  };
+  localStorage.setItem('mjl_aceite_lgpd_' + colAtual.id, JSON.stringify(registro));
+  adicionarPendente({ acao: 'registrarAceiteLGPD', dados: registro });
+  document.getElementById('bnav').style.display = 'flex';
+  ir('scr-home');
+}
+
+// ===== PONTO AUTOMÁTICO =====
+let fotoEntradaData = null;
+let fotoSaidaData = null;
+let horaEntrada = '';
+let horaSaida = '';
+
+function comprimirFoto(file, maxKb, callback) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      const canvas = document.createElement('canvas');
+      let w = img.width, h = img.height;
+      const maxSize = 800;
+      if (w > maxSize || h > maxSize) {
+        if (w > h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      let quality = 0.7;
+      let result = canvas.toDataURL('image/jpeg', quality);
+      // Reduzir qualidade até ficar abaixo do limite
+      while (result.length > maxKb * 1024 * 1.37 && quality > 0.1) {
+        quality -= 0.1;
+        result = canvas.toDataURL('image/jpeg', quality);
+      }
+      callback(result);
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function fotoEntrada(e) {
+  const file = e.target.files[0]; if (!file) return;
+  comprimirFoto(file, 80, function(data) {
+    fotoEntradaData = data;
+    document.getElementById('preview-entrada').innerHTML = '<img src="'+data+'" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;">';
+    document.getElementById('btn-entrada-ok').disabled = false;
+  });
+}
+
+function fotoSaida(e) {
+  const file = e.target.files[0]; if (!file) return;
+  comprimirFoto(file, 80, function(data) {
+    fotoSaidaData = data;
+    document.getElementById('preview-saida').innerHTML = '<img src="'+data+'" style="width:100%;border-radius:12px;max-height:200px;object-fit:cover;margin-bottom:8px;">';
+    document.getElementById('btn-salvar-reg').disabled = false;
+  });
+}
+
+// ===== REGISTRO =====
+let etapa=0;
+function mostrarEtapa(n){
+  for(let i=0;i<4;i++){
+    document.getElementById('reg-step-'+i).classList.toggle('hidden',i!==n);
+    const d=document.getElementById('sp'+i);
+    d.classList.remove('done','current');
+    if(i<n)d.classList.add('done'); else if(i===n)d.classList.add('current');
+  }
+  etapa=n;
+}
+function proximaEtapa(n){
+  mostrarEtapa(n);
+  if(n===1){
+    // Captura hora de entrada automaticamente
+    const agora = new Date();
+    horaEntrada = agora.toTimeString().slice(0,5);
+    document.getElementById('reg-hora-entrada').textContent = horaEntrada;
+    document.getElementById('reg-geo-entrada').textContent = geoAtual ? '📍 '+geoAtual.lat.toFixed(4)+', '+geoAtual.lng.toFixed(4)+' (±'+geoAtual.acc+'m)' : '';
+  }
+  if(n===3){
+    // Captura hora de saída automaticamente
+    const agora = new Date();
+    horaSaida = agora.toTimeString().slice(0,5);
+    document.getElementById('reg-hora-saida').textContent = horaSaida;
+    document.getElementById('reg-geo-saida').textContent = geoAtual ? '📍 '+geoAtual.lat.toFixed(4)+', '+geoAtual.lng.toFixed(4)+' (±'+geoAtual.acc+'m)' : '';
+    fotoSaidaData = null;
+    document.getElementById('preview-saida').innerHTML = '';
+    document.getElementById('btn-salvar-reg').disabled = true;
+  }
+}
+function toggleCk(el){el.classList.toggle('done');}
+function addCk(){const i=document.getElementById('nova-ck');const t=i.value.trim();if(!t)return;const d=document.createElement('div');d.className='ck-item';d.setAttribute('onclick','toggleCk(this)');d.innerHTML='<div class="ck-box">✓</div><span class="ck-label">'+t+'</span>';document.getElementById('ck-lista').appendChild(d);i.value='';}
+
+function salvarRegistro(){
+  const tarefas=Array.from(document.querySelectorAll('#ck-lista .ck-item')).map(el=>({texto:el.querySelector('.ck-label').textContent,feita:el.classList.contains('done')}));
+  const reg={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,colaboradorFuncao:colAtual.funcao,
+    cliente:colAtual.cliente||'',data:new Date().toISOString().slice(0,10),timestamp:Date.now(),
+    entrada:(document.getElementById('reg-entrada')||{value:''}).value,saida:(document.getElementById('reg-saida')||{value:''}).value,
+    obs:(document.getElementById('reg-obs')||{}).value?.trim()||'',tarefas,fotos:fotosData['fotos-reg']||[],
+    geo:geoAtual,geoMapsLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',enviado:false};
+  adicionarPendente({acao:'salvarRegistro',dados:{...reg,fotos:reg.fotos.length+' foto(s)'}});
+  // v7: cada foto do registro do dia vai para o Drive (MJL Fotos/Cronograma/AAAA-MM)
+  (reg.fotos||[]).forEach(function(img){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Cronograma',etapa:'registro',refId:reg.id,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:reg.data,img:img,timestamp:Date.now()
+    }});
+  });
+  fotosData['fotos-reg']=[]; document.getElementById('grid-reg').innerHTML='';
+  mostrarSucesso('✅','Dia registrado!',navigator.onLine?'Enviado para a MJL.':'Salvo. Enviará quando tiver Wi-Fi.');
+}
+
+// ===== CRONOGRAMA =====
+// ===== TAREFAS PERIÓDICAS (a cada N dias / mensal) — código compartilhado Campo+Gestão =====
+// Regra: a data "nominal" é calculada (início + N dias, ou dia X do mês). Se cair
+// num dia em que o cronograma não tem tarefas (ex.: domingo), a tarefa é ADIADA
+// para o próximo dia com cronograma. O ciclo seguinte continua contando da data nominal.
+function _pIso(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _pParse(s){ var p=String(s).split('-'); return new Date(+p[0],+p[1]-1,+p[2]); }
+function _pAjusta(d,dias){
+  if(!dias||!dias.length) return new Date(d);
+  var x=new Date(d);
+  for(var i=0;i<7;i++){ if(dias.indexOf(x.getDay())>=0) return x; x.setDate(x.getDate()+1); }
+  return new Date(d);
+}
+function _pNominais(t,de,ate){
+  var out=[];
+  if(t.tipo==='mensal'){
+    var dia=parseInt(t.diaMes)||1;
+    var m=new Date(de.getFullYear(),de.getMonth()-1,1);
+    while(m<=ate){
+      var ult=new Date(m.getFullYear(),m.getMonth()+1,0).getDate();
+      var d=new Date(m.getFullYear(),m.getMonth(),Math.min(dia,ult));
+      if(d>=de&&d<=ate) out.push(d);
+      m=new Date(m.getFullYear(),m.getMonth()+1,1);
+    }
+  } else {
+    var n=parseInt(t.intervalo)||15; if(n<1) n=1;
+    if(!t.inicio) return out;
+    var d2=_pParse(t.inicio);
+    if(d2<de){ var pulos=Math.floor((de-d2)/(864e5*n)); d2.setDate(d2.getDate()+pulos*n); while(d2<de) d2.setDate(d2.getDate()+n); }
+    var guard=0;
+    while(d2<=ate&&guard++<400){ out.push(new Date(d2)); d2.setDate(d2.getDate()+n); }
+  }
+  return out;
+}
+function periodicaCaiNoDia(t,dataStr,dias){
+  var alvo=_pParse(dataStr);
+  var de=new Date(alvo); de.setDate(de.getDate()-8);
+  var noms=_pNominais(t,de,alvo);
+  for(var i=0;i<noms.length;i++){ if(_pIso(_pAjusta(noms[i],dias))===dataStr) return true; }
+  return false;
+}
+function proximasPeriodica(t,dias,qtd){
+  qtd=qtd||3;
+  var hoje=new Date(); hoje.setHours(0,0,0,0);
+  var de=new Date(hoje); de.setDate(de.getDate()-8);
+  var ate=new Date(hoje); ate.setDate(ate.getDate()+(t.tipo==='mensal'?32*qtd:(parseInt(t.intervalo)||15)*qtd)+8);
+  var noms=_pNominais(t,de,ate), out=[];
+  noms.forEach(function(n){ var e=_pAjusta(n,dias); if(e>=hoje&&out.length<qtd) out.push(e); });
+  return out;
+}
+function descPeriodica(t){
+  if(t.tipo==='mensal') return '📅 Mensal · dia '+(parseInt(t.diaMes)||1);
+  var n=parseInt(t.intervalo)||15;
+  return n===7?'🔁 Semanal':n===15?'🔁 Quinzenal':n===30?'🔁 A cada 30 dias':'🔁 A cada '+n+' dias';
+}
+
+// ===== v22: AREAS DA TAREFA (Andar 1-9, Hall, Garagem...) =====
+// A MJL escreve as areas UMA vez no Gestao; aqui cada area vira uma
+// tarefa propria no celular, com foto e horario separados.
+// Aceita "Andar 1-9" (expande sozinho) e lista solta separada por
+// virgula ou ponto-e-virgula.
+function expandirAreas(t){
+  if(!t || typeof t !== 'object') return [];
+  var bruto = t.areas;
+  if(bruto instanceof Array) bruto = bruto.join(',');
+  bruto = String(bruto||'').trim();
+  if(!bruto) return [];
+  var out = [];
+  bruto.split(/[,;\n]+/).forEach(function(parte){
+    parte = parte.trim();
+    if(!parte) return;
+    // "Andar 1-9" / "Andar 1 a 9" -> Andar 1, Andar 2, ... Andar 9
+    var m = parte.match(/^(.*?)(\d+)\s*(?:-|a|at\u00e9|\u2013)\s*(\d+)\s*$/i);
+    if(m){
+      var prefixo = m[1].trim();
+      var de = parseInt(m[2],10), ate = parseInt(m[3],10);
+      if(de <= ate && (ate-de) <= 200){
+        for(var n=de;n<=ate;n++) out.push((prefixo?prefixo+' ':'')+n);
+        return;
+      }
+    }
+    out.push(parte);
+  });
+  return out;
+}
+
+function cronogramasDeHoje(){
+  const brutos=lerLocal('mjl_cronogramas',[]);
+  const diaHoje=new Date().getDay(); // 0=Dom ... 6=Sáb
+  const hojeStr=new Date().toISOString().slice(0,10);
+  const lista=[];
+  brutos.forEach(cr=>{
+    if(!cr) return;
+    if(cr.tarefasPorDia){
+      // Formato novo (Gestão): {cliente, dias:[1,5], tarefasPorDia:{1:[...],5:[...]}}
+      if(cr.ativo===false) return;
+      // v15: cronograma restrito a colaboradores específicos só aparece pra eles
+      const _cobPre=(cr.coberturas||[]).some(function(cb){ return cb&&cb.colabId===(colAtual&&colAtual.id)&&cb.de&&cb.ate&&hojeStr>=cb.de&&hojeStr<=cb.ate; });
+      if(!_cobPre&&cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
+      // se for por função, respeita a função do colaborador (quando definida)
+      if(!_cobPre&&(!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
+      // v17: cobertura (falta/atestado/férias) — local aparece pra quem está cobrindo
+      const _cob=_cobPre;
+      const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
+      doDia.forEach((t,ix)=>{
+        const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
+        const _area=(t&&typeof t==='object'&&t.area)?t.area:'';
+        if(!txt) return;
+        // v22: se a tarefa tem AREAS (ex: Andar 1-9), ela vira uma linha
+        // por area, cada uma com foto e horario proprios. Assim a MJL ve
+        // "Andar 5 nao foi feito" em vez de "os andares, pela metade".
+        const _areas=expandirAreas(t);
+        if(_areas.length){
+          _areas.forEach(function(nomeArea,k){
+            lista.push({id:cr.id+'_d'+diaHoje+'_'+ix+'_a'+k,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:nomeArea});
+          });
+          return;
+        }
+        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:_area});
+      });
+      // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
+      (cr.periodicas||[]).forEach(function(t){
+        if(!t||!t.texto) return;
+        if(!periodicaCaiNoDia(t,hojeStr,cr.dias||[])) return;
+        var _ap=expandirAreas(t);
+        if(_ap.length){
+          _ap.forEach(function(nomeArea,k){
+            lista.push({id:cr.id+'_p'+t.id+'_a'+k,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,area:nomeArea,funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
+          });
+          return;
+        }
+        lista.push({id:cr.id+'_p'+t.id,cliente:cr.cliente||'',tarefa:t.texto,frequencia:descPeriodica(t),periodica:true,area:t.area||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob});
+      });
+    } else if(cr.tarefa){
+      lista.push(cr); // formato antigo, já é a tarefa direta
+    }
+  });
+  return lista;
+}
+function renderCronograma(){
+  if(!colAtual) return;
+  const cronos=cronogramasDeHoje();
+  // Filtrar cronogramas do colaborador (por cliente/local)
+  // v17: colaborador em mais de um condomínio — o Gestão envia "Local A | Local B"
+  const meusLocais=Array.isArray(colAtual.clientes)?colAtual.clientes
+    :(typeof colAtual.clientes==='string'&&colAtual.clientes?colAtual.clientes.split('|').map(x=>x.trim()).filter(Boolean)
+    :[colAtual.cliente||'']);
+  const meus=cronos.filter(c=>c.cobertura||(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual.id))||meusLocais.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual.id||c.todos);
+  // v9: volante/cobertura vê TODOS os locais — o posto fixo aparece aberto
+  // no topo e os demais condomínios ficam logo abaixo, fechados (toque para abrir)
+  const idsMeus=new Set(meus.map(c=>c.id));
+  const outros=cronos.filter(c=>c.cliente&&!idsMeus.has(c.id));
+
+  // Mini calendário semanal
+  const semana=document.getElementById('crono-semana');
+  const hoje=new Date();
+  const diasNomes=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  let semanaHTML='';
+  // v17: semana começa na SEGUNDA e termina no domingo (locais que trabalham fim de semana)
+  const offSeg=(hoje.getDay()+6)%7;
+  for(let i=0;i<7;i++){
+    const d=new Date(hoje);
+    d.setDate(hoje.getDate()-offSeg+i);
+    const ds=d.toISOString().slice(0,10);
+    const isHoje=ds===hoje.toISOString().slice(0,10);
+    const temFeito=lerLocal('mjl_crono_feitos_'+ds+'_'+(colAtual?.id||''),[]).length>0;
+    semanaHTML+=`<div class="dia-semana${isHoje?' hoje':''}${temFeito&&!isHoje?' tem-feito':''}"><div class="ds-num">${d.getDate()}</div><div class="ds-dia">${diasNomes[d.getDay()]}</div></div>`;
+  }
+  semana.innerHTML=semanaHTML;
+
+  const el=document.getElementById('crono-locais');
+  if(!meus.length&&!outros.length){
+    el.innerHTML='<div class="card" style="text-align:center;padding:28px"><div style="font-size:48px;margin-bottom:10px">📅</div><p style="color:var(--text3);font-size:14px">Nenhum cronograma definido ainda.<br>A MJL irá criar o seu em breve.</p></div>';
+    return;
+  }
+
+  // Agrupar por local: meu posto primeiro (aberto); demais locais fechados
+  const porLocal={},porLocalOutros={};
+  meus.forEach(c=>{if(!porLocal[c.cliente])porLocal[c.cliente]=[];porLocal[c.cliente].push(c);});
+  outros.forEach(c=>{if(!porLocalOutros[c.cliente])porLocalOutros[c.cliente]=[];porLocalOutros[c.cliente].push(c);});
+  const nMeus=Object.keys(porLocal).length;
+  const blocos=[
+    ...Object.entries(porLocal).map(([l,i])=>[l,i,true]),
+    ...Object.entries(porLocalOutros).sort((a,b)=>a[0].localeCompare(b[0])).map(([l,i])=>[l,i,false])
+  ];
+  el.innerHTML=blocos.map(([local,items,aberto],bi)=>{
+    const hoje2=new Date().toISOString().slice(0,10);
+    const feitosHoje=lerLocal('mjl_crono_feitos_'+hoje2+'_'+(colAtual?.id||''),[]);
+    const totalHoje=items.length;
+    const feitosCount=items.filter(i=>feitosHoje.includes(i.id)).length;
+    const tarefasHTML=items.map(item=>{
+      const feito=feitosHoje.includes(item.id);
+      const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
+      return `<div class="crono-item${feito?' feito':''}" onclick="marcarCrono('${item.id}','${local}')">
+        <div class="ci-box">✓</div>
+        <div class="ci-info">
+          <div class="ci-label">${item.tarefa}</div>
+          <div class="ci-freq"${item.periodica?' style="color:#7b2d8b;font-weight:700;"':''}>${item.periodica?'🔁 ':''}${item.frequencia||'Diário'}${item.area?' · 📍 '+item.area:''}</div>
+          ${quando?`<div class="ci-quando">✅ Feito às ${quando}</div>`:''}
+          ${!feito&&cronoRascunho(item.id).fotos?`<div style="font-size:11px;color:var(--orange);font-weight:700;margin-top:3px;">📸 ${cronoRascunho(item.id).fotos} foto(s) já enviada(s) — falta confirmar</div>`:''}
+          ${feito&&lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),null)?`<div style="font-size:11px;color:var(--text2);background:#fff8e1;border-radius:6px;padding:4px 7px;margin-top:4px;">📝 ${lerLocal('mjl_crono_obs_'+hoje2+'_'+item.id+'_'+(colAtual?.id||''),'')}</div>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    const divisorHTML=(nMeus>0&&bi===nMeus)?'<div style="font-size:12px;font-weight:800;letter-spacing:.5px;color:var(--text3);margin:16px 2px 8px;">🔁 OUTROS LOCAIS — COBERTURA / VOLANTE</div>':'';
+    return `${divisorHTML}<div class="crono-local">
+      <div class="crono-local-hdr" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        <h3>📍 ${local}${items.some(i=>i.cobertura)?' <span style="font-size:10px;background:#1e7e4a;color:#fff;padding:2px 7px;border-radius:10px;vertical-align:middle;">🔄 COBERTURA</span>':''}</h3>
+        <span class="prog">${aberto?'':'▸ '}${feitosCount}/${totalHoje} hoje</span>
+      </div>
+      <div class="crono-local-body" style="display:${aberto?'block':'none'}">${tarefasHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+// ================================================================
+// v23 — PENDENCIAS (passo 4 da supervisao)
+// O encarregado apontava "Andar 5 — refazer" e aquilo morria dentro
+// da visita: a colaboradora nunca era avisada. Agora o apontamento
+// vira uma pendencia, chega aqui no topo do cronograma, e so fecha
+// com foto nova. Assim a MJL ve o antes e o depois.
+//
+// O que vem do CLIENTE nasce travado (liberada=false) e so aparece
+// aqui depois que a MJL libera. A ordem sai sempre da MJL.
+// ================================================================
+function pendTodas(){ return lerLocal('mjl_pendencias',[]); }
+
+function meusLocaisCampo(){
+  if(!colAtual) return [];
+  if(Array.isArray(colAtual.clientes)) return colAtual.clientes.filter(Boolean);
+  if(typeof colAtual.clientes==='string' && colAtual.clientes)
+    return colAtual.clientes.split('|').map(function(x){return x.trim();}).filter(Boolean);
+  return [colAtual.cliente||''].filter(Boolean);
+}
+
+// Minhas pendencias = de EQUIPE, abertas, ja liberadas, no meu local,
+// e ou sem dono ou com o meu nome.
+function minhasPendencias(){
+  if(!colAtual) return [];
+  var locais = meusLocaisCampo().map(function(l){ return String(l).toLowerCase(); });
+  return pendTodas().filter(function(p){
+    if(!p || p.tipo!=='equipe' || p.status!=='aberta') return false;
+    if(p.liberada===false) return false;
+    if(p.colaboradorId && p.colaboradorId!==colAtual.id) return false;
+    // v26: ESCOLHA EXPLICITA VALE MAIS QUE O FILTRO AUTOMATICO.
+    // Quando a MJL libera a pendencia NOMINALMENTE para alguem, ela tem
+    // que chegar nessa pessoa mesmo que o cadastro dela ainda nao tenha
+    // aquele condominio — cobertura, posto novo, alocacao desatualizada.
+    // Antes o pedido sumia em silencio e ninguem ficava sabendo.
+    if(p.colaboradorId === colAtual.id) return true;
+    var lp = String(p.local||'').toLowerCase();
+    return !lp || locais.some(function(l){ return lp.indexOf(l)>=0 || l.indexOf(lp)>=0; });
+  }).sort(function(a,b){ return String(b.data||'').localeCompare(String(a.data||'')); });
+}
+
+function renderPendencias(){
+  var el = document.getElementById('pend-bloco');
+  var lista = minhasPendencias();
+  if(el){
+    if(!lista.length){ el.innerHTML=''; }
+    else {
+      el.innerHTML = '<div class="card" style="margin-bottom:14px;border:2px solid var(--red);background:#fff6f5;">'+
+        '<div class="card-title" style="color:var(--red);">🔁 PARA REFAZER \u2014 '+lista.length+' '+(lista.length>1?'itens':'item')+'</div>'+
+        lista.map(function(p){ return _pendCard(p); }).join('')+
+        '</div>';
+    }
+  }
+  var av = document.getElementById('home-pend-aviso');
+  if(av){
+    av.innerHTML = lista.length
+      ? '<div onclick="ir(\'scr-cronograma\')" style="cursor:pointer;background:var(--red);color:#fff;border-radius:var(--r);padding:14px 16px;margin-bottom:14px;display:flex;align-items:center;gap:12px;box-shadow:var(--shadow);">'+
+        '<div style="font-size:30px;line-height:1;">\u26A0\uFE0F</div>'+
+        '<div style="flex:1;"><div style="font-size:15px;font-weight:800;">'+lista.length+' '+(lista.length>1?'pendências':'pendência')+' para resolver</div>'+
+        '<div style="font-size:12px;opacity:.85;">Toque para ver o que a MJL pediu</div></div>'+
+        '<div style="font-size:22px;">\u203A</div></div>'
+      : '';
+  }
+}
+
+function _pendCard(p){
+  var quando = String(p.data||'').split('-').reverse().join('/');
+  var deOnde = p.origem==='cliente' ? 'Pedido do local' : (p.origem==='mjl' ? 'Pedido da MJL' : 'Supervisão');
+  return '<div style="border-top:1px solid #f3dedb;padding:12px 0;">'+
+    '<div style="font-weight:700;font-size:14.5px;">'+(p.tarefa||'Pendência')+(p.area?(' \u2014 📍 '+p.area):'')+'</div>'+
+    '<div style="font-size:11.5px;color:var(--text3);margin:2px 0 6px;">'+deOnde+' de '+quando+(p.hora?(' às '+p.hora):'')+'</div>'+
+    (p.texto?('<div style="font-size:13px;background:#fff;border:1px solid #f0d9d6;border-radius:8px;padding:8px 10px;margin-bottom:8px;line-height:1.5;">'+p.texto+'</div>'):'')+
+    '<label style="display:block;cursor:pointer;">'+
+      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="resolverPendencia(event,\''+p.id+'\')">'+
+      '<div class="btn btn-green" style="pointer-events:none;padding:12px;font-size:14px;">📸 Refiz \u2014 tirar foto</div>'+
+    '</label>'+
+  '</div>';
+}
+
+// Resolver exige foto. Sem foto nao fecha — e a foto que prova.
+function resolverPendencia(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var p = pendTodas().find(function(x){ return x.id===id; });
+  if(!p){ alert('Pendência não encontrada neste aparelho. Sincronize e tente de novo.'); return; }
+  var agora = new Date();
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Cronograma', etapa:'pendencia', refId:id,
+        colaboradorId:colAtual.id, colaboradorNome:colAtual.nome,
+        cliente:p.local||colAtual.cliente||'',
+        data:agora.toISOString().slice(0,10),
+        hora:agora.toTimeString().slice(0,5),
+        tarefa:p.tarefa||'', area:p.area||'',
+        img:comp, timestamp:Date.now()
+      }});
+      var resolvida = {
+        id:id, status:'resolvida',
+        resolvidoEm: agora.toISOString().slice(0,10),
+        resolvidoHora: agora.toTimeString().slice(0,5),
+        resolvidoPorId: colAtual.id, resolvidoPorNome: colAtual.nome,
+        fotosResolucao: 1
+      };
+      adicionarPendente({acao:'resolverPendencia', dados:resolvida});
+      // Some da tela na hora, sem esperar a planilha responder
+      var todas = pendTodas().map(function(x){
+        return x.id===id ? Object.assign({}, x, resolvida) : x;
+      });
+      salvarLocal('mjl_pendencias', todas);
+      renderPendencias(); atualizarBadges();
+      mostrarSucesso('\u2705','Pendência resolvida!','A MJL recebeu a foto do serviço refeito.');
+    }, p.local||colAtual.cliente||'');
+  };
+  reader.readAsDataURL(f);
+  ev.target.value='';
+}
+
+let _cronoPend=null,_fotoCrono=null;
+function marcarCrono(itemId, local){
+  const hoje=new Date().toISOString().slice(0,10);
+  const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
+  const feitos=lerLocal(key,[]);
+  const idx=feitos.indexOf(itemId);
+  if(idx>=0){
+    // Desmarcar: instantaneo
+    feitos.splice(idx,1);
+    localStorage.removeItem('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''));
+    salvarLocal(key,feitos);
+    renderCronograma();
+    atualizarBadges();
+    return;
+  }
+  // v22: NAO zera mais as fotos. O que ja foi tirado volta na tela.
+  _cronoPend={itemId:itemId,local:local};
+  const _ras=cronoRascunho(itemId);
+  document.getElementById('crono-ok-obs').value=_ras.obs||'';
+  document.getElementById('crono-ok-desc').textContent='📍 '+(local||colAtual?.cliente||'');
+  const _it=cronogramasDeHoje().find(x=>x.id===itemId)||{};
+  document.getElementById('crono-ok-tarefa').textContent=(_it.tarefa||'')+(_it.area?('  ·  📍 '+_it.area):'');
+  renderGridCrono();
+  document.getElementById('modal-crono-ok').classList.remove('hidden');
+}
+
+// ================================================================
+// v22 — RASCUNHO DA TAREFA DO CRONOGRAMA
+// Ate a v21 as fotos da tarefa viviam so na MEMORIA do navegador
+// (fotosData). No iPhone, abrir a camera descarrega o app da
+// memoria: ao voltar, a lista aparecia vazia e o colaborador achava
+// que a foto tinha se perdido. Em tarefa de 9 andares isso
+// inviabilizava o uso.
+//
+// Agora cada foto e ENVIADA na hora pela fila (mesma regra da
+// supervisao: foto nunca fica guardada esperando) e o aparelho
+// guarda so uma MINIATURA de ~1KB. Nove andares ocupam 10KB em vez
+// de 1,5MB, e fechar o app no meio nao perde nada.
+// ================================================================
+function _cronoKeyRasc(itemId){
+  return 'mjl_crono_rasc_'+new Date().toISOString().slice(0,10)+'_'+itemId+'_'+(colAtual?colAtual.id:'');
+}
+function cronoRascunho(itemId){ return lerLocal(_cronoKeyRasc(itemId),{fotos:0,minis:[],obs:''}); }
+function cronoSalvarRascunho(itemId,r){ try{ salvarLocal(_cronoKeyRasc(itemId),r); }catch(e){} }
+function cronoLimparRascunho(itemId){ try{ localStorage.removeItem(_cronoKeyRasc(itemId)); }catch(e){} }
+
+function _miniatura(dataUrl,cb){
+  var img=new Image();
+  img.onload=function(){
+    var c=document.createElement('canvas');
+    var w=img.width,h=img.height,max=110;
+    if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+    c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h);
+    cb(c.toDataURL('image/jpeg',0.5));
+  };
+  img.onerror=function(){ cb(''); };
+  img.src=dataUrl;
+}
+
+function addFotosCrono(e){
+  if(!_cronoPend){ e.target.value=''; return; }
+  var itemId=_cronoPend.itemId, local=_cronoPend.local;
+  var hoje=new Date().toISOString().slice(0,10);
+  var _it=cronogramasDeHoje().find(function(x){return x.id===itemId;})||{};
+  Array.from(e.target.files).forEach(function(f){
+    var r=new FileReader();
+    r.onload=function(ev){
+      comprimirFoto(ev.target.result,function(comp){
+        adicionarPendente({acao:'salvarFoto',dados:{
+          tipo:'Cronograma',etapa:'tarefa',refId:itemId,
+          colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+          cliente:local||colAtual.cliente||'',data:hoje,
+          hora:new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+          tarefa:_it.tarefa||'',area:_it.area||'',
+          img:comp,timestamp:Date.now()
+        }});
+        _miniatura(comp,function(mini){
+          var ras=cronoRascunho(itemId);
+          ras.fotos=(ras.fotos||0)+1;
+          ras.minis=(ras.minis||[]).concat([mini]).slice(-15);
+          cronoSalvarRascunho(itemId,ras);
+          renderGridCrono();
+          renderCronograma();
+        });
+      },local);
+    };
+    r.readAsDataURL(f);
+  });
+  e.target.value='';
+}
+
+function renderGridCrono(){
+  if(!_cronoPend) return;
+  var ras=cronoRascunho(_cronoPend.itemId);
+  var g=document.getElementById('grid-crono-ok');
+  if(g) g.innerHTML=(ras.minis||[]).map(function(m,i){
+    return '<div class="photo-thumb"><img src="'+m+'"><div style="position:absolute;bottom:2px;left:3px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;padding:0 5px;border-radius:6px;">'+(i+1)+'</div></div>';
+  }).join('');
+  var c=document.getElementById('crono-ok-contador');
+  if(c) c.innerHTML=ras.fotos
+    ? '<div class="alert alert-ok" style="margin-bottom:10px;">✅ <strong>'+ras.fotos+' foto(s)</strong> já enviada(s) para a MJL. Pode fechar o app e voltar depois — não se perde.</div>'
+    : '';
+}
+function cronoSalvarObs(v){
+  if(!_cronoPend) return;
+  var ras=cronoRascunho(_cronoPend.itemId);
+  ras.obs=v; cronoSalvarRascunho(_cronoPend.itemId,ras);
+}
+
+function confirmarCronoFeito(){
+  if(!_cronoPend) return;
+  const itemId=_cronoPend.itemId, local=_cronoPend.local;
+  const ras=cronoRascunho(itemId);
+  const nFotos=ras.fotos||0;
+  if(!nFotos){ alert('📷 Tire pelo menos uma foto do serviço para confirmar a tarefa.'); return; }
+  const obs=(document.getElementById('crono-ok-obs').value||'').trim();
+  const hoje=new Date().toISOString().slice(0,10);
+  const key='mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||'');
+  const feitos=lerLocal(key,[]);
+  const agora=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+  if(!feitos.includes(itemId)) feitos.push(itemId);
+  salvarLocal('mjl_crono_quando_'+itemId+'_'+(colAtual?.id||''),agora);
+  const _it=cronogramasDeHoje().find(x=>x.id===itemId)||{};
+  const _tarefaNome=_it.tarefa||'', _area=_it.area||'';
+  // v22: as fotos JA foram enviadas uma a uma. Aqui vai so o registro
+  // da tarefa, com a contagem. Nada de reenviar imagem.
+  adicionarPendente({acao:'registrarCrono',dados:{colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,itemId,tarefa:_tarefaNome,area:_area,local,data:hoje,hora:agora,feito:true,obs:obs,foto:nFotos+' foto(s)'}});
+  if(obs) salvarLocal('mjl_crono_obs_'+hoje+'_'+itemId+'_'+(colAtual?.id||''),obs);
+  salvarLocal(key,feitos);
+  cronoLimparRascunho(itemId);
+  _cronoPend=null;
+  fecharModal('modal-crono-ok');
+  renderCronograma();
+  atualizarBadges();
+  mostrarSucesso('📋','Tarefa concluída!',nFotos+' foto(s) enviada(s) para a MJL.'+(obs?' Observação registrada.':''));
+}
+
+// ===== CHAMADOS =====
+let urgSel2='normal';
+function selUrg(el,v){document.querySelectorAll('#modal-chamado .ouv-tipo').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');urgSel2=v;}
+
+function abrirModalChamado(){
+  fotosData['fotos-ch']=[];document.getElementById('grid-ch').innerHTML='';
+  document.getElementById('ch-tipo').value='';document.getElementById('ch-desc').value='';
+  document.getElementById('modal-chamado').classList.remove('hidden');
+}
+
+let _salvandoCh=false;
+function salvarChamado(){
+  const tipo=document.getElementById('ch-tipo').value;
+  if(!tipo){alert('Escolha o tipo.');return;}
+  if(!(fotosData['fotos-ch']||[]).length){alert('Adicione foto do problema.');return;}
+  if(_salvandoCh)return; _salvandoCh=true; setTimeout(()=>{_salvandoCh=false;},3000);
+  fecharModal('modal-chamado'); // fecha a tela imediatamente — evita toque duplo
+  const ch={id:gid(),colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,cliente:colAtual.cliente||'',
+    tipo,desc:document.getElementById('ch-desc').value.trim(),urgencia:urgSel2,
+    fotosAntes:fotosData['fotos-ch']||[],fotosdepois:[],status:'aberto',
+    dataAbertura:new Date().toISOString().slice(0,10),timestamp:Date.now(),origem:'colaborador'};
+  const chs=lerLocal('mjl_chamados_local',[]);chs.push(ch);salvarLocal('mjl_chamados_local',chs);
+  adicionarPendente({acao:'novoChamado',dados:{...ch,fotosAntes:ch.fotosAntes.length+' foto(s)'}});
+  // fotos do problema vão para o Drive (MJL Fotos/Chamados/AAAA-MM)
+  (ch.fotosAntes||[]).forEach(function(img){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Chamados',etapa:'antes',refId:ch.id,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:ch.dataAbertura,img:img,timestamp:Date.now()
+    }});
+  });
+  renderChamados();atualizarBadges();
+  mostrarSucesso('🔧','Chamado enviado!','A MJL foi notificada.');
+}
+
+function chamadosAtivos(){
+  // Junta locais + recebidos SEM duplicar (o status vindo da MJL/Gestão vence)
+  const map=new Map();
+  lerLocal('mjl_chamados_local',[]).forEach(c=>{if(c&&c.id)map.set(c.id,c);});
+  const rankSt={aberto:0,andamento:1,fechado:2};
+  lerLocal('mjl_chamados_recebidos',[]).forEach(c=>{
+    if(!c||!c.id)return;
+    const loc=map.get(c.id);
+    if(!loc){map.set(c.id,c);return;}
+    // v13: quem mexeu por último vence; sem carimbo, vence o status mais
+    // avançado — um "fechado" local nunca volta a "aberto" por cópia velha
+    if(Number(loc.upC||0)>Number(c.upC||0)||(rankSt[loc.status]||0)>(rankSt[c.status]||0)){
+      map.set(c.id,{...c,...loc});
+    } else {
+      map.set(c.id,{...loc,...c});
+    }
+  });
+  return Array.from(map.values()).filter(c=>c.colaboradorId===colAtual?.id||c.cliente===colAtual?.cliente);
+}
+function renderChamados(){
+  const el=document.getElementById('lista-chamados');
+  // v8: mostra só os PENDENTES (aberto/em andamento) — concluído sai da tela
+  const lista=chamadosAtivos().filter(c=>c.status!=='fechado').sort((a,b)=>b.timestamp-a.timestamp);
+  if(!lista.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">✅ Nenhum chamado pendente.</p>';return;}
+  const bMap={aberto:'b-aberto',andamento:'b-andamento',fechado:'b-fechado'};
+  const tMap={aberto:'Aberto',andamento:'Em andamento',fechado:'Concluído'};
+  el.innerHTML=lista.map(c=>`<div class="item-card">
+    ${c.urgencia==='urgente'?'<div class="urgente-strip">🔴 URGENTE</div>':''}
+    <div class="it-top"><span class="it-title">${c.tipo}</span><span class="badge ${bMap[c.status]||''}">${tMap[c.status]||c.status}</span></div>
+    <div class="it-sub">${c.desc||''}</div>
+    <div class="it-meta">📅 ${c.dataAbertura} · 📍 ${c.cliente||'—'}</div>
+    ${c.status!=='fechado'?`<button class="btn btn-green" style="margin-top:10px;padding:11px;" onclick="iniciarFechamento('${c.id}')">✅ Marcar como resolvido</button>`:''}
+  </div>`).join('');
+}
+
+function iniciarFechamento(id){
+  fotosData['fotos-depois']=[];document.getElementById('grid-depois').innerHTML='';
+  document.getElementById('fechar-ch-obs').value='';document.getElementById('fechar-ch-id').value=id;
+  document.getElementById('modal-fechar-ch').classList.remove('hidden');
+}
+
+let _fechandoCh=false;
+function fecharChamado(){
+  if(!(fotosData['fotos-depois']||[]).length){alert('Adicione foto do serviço concluído.');return;}
+  if(_fechandoCh)return; _fechandoCh=true; setTimeout(()=>{_fechandoCh=false;},3000);
+  const id=document.getElementById('fechar-ch-id').value;
+  fecharModal('modal-fechar-ch'); // fecha a tela imediatamente — evita toque duplo
+  const chs=lerLocal('mjl_chamados_local',[]);
+  let idx=chs.findIndex(x=>x.id===id);
+  // v13: se o chamado foi criado em OUTRO aparelho (veio dos "recebidos"),
+  // traz ele pro local antes de fechar — antes o fechamento era ignorado
+  // em silêncio e o chamado "nunca fechava"
+  if(idx<0){
+    const rec=lerLocal('mjl_chamados_recebidos',[]).find(x=>x.id===id);
+    if(rec){chs.push({...rec});idx=chs.length-1;}
+  }
+  if(idx>=0){chs[idx].status='fechado';chs[idx].upC=Date.now();chs[idx].fotosdepois=fotosData['fotos-depois'];chs[idx].obs=document.getElementById('fechar-ch-obs').value.trim();chs[idx].dataFechamento=new Date().toISOString().slice(0,10);salvarLocal('mjl_chamados_local',chs);adicionarPendente({acao:'fecharChamado',dados:{...chs[idx],fotosdepois:chs[idx].fotosdepois.length+' foto(s)'}});
+    (chs[idx].fotosdepois||[]).forEach(function(img){
+      adicionarPendente({acao:'salvarFoto',dados:{
+        tipo:'Chamados',etapa:'depois',refId:chs[idx].id,
+        colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+        cliente:colAtual.cliente||'',data:chs[idx].dataFechamento,img:img,timestamp:Date.now()
+      }});
+    });}
+  renderChamados();atualizarBadges();
+  mostrarSucesso('✅','Chamado resolvido!','Ótimo trabalho!');
+}
+
+// ===== INFORMATIVOS / PDF =====
+function renderInformativos(){
+  const el=document.getElementById('lista-informativos');
+  const infos=lerLocal('mjl_informativos',[]);
+  if(!infos.length){el.innerHTML='<p style="color:var(--text3);text-align:center;padding:20px;">Nenhum aviso no momento.</p>';return;}
+  el.innerHTML=infos.map(inf=>{
+    const assinado=lerLocal('mjl_assinatura_'+inf.id+'_'+(colAtual?.id||''),null);
+    const lido=!!assinado;
+    const temPdf=!!inf.pdfLink;
+    return `<div class="item-card${lido?'':' '}" style="${!lido?'border-color:var(--brand);background:var(--brand-light)':''}" onclick="verInfo('${inf.id}')">
+      <div class="it-top">
+        <span class="it-title">${inf.titulo}</span>
+        ${lido?'<span style="color:var(--green);font-size:18px">✅</span>':'<div style="width:10px;height:10px;border-radius:50%;background:var(--red);flex-shrink:0;margin-top:3px;"></div>'}
+      </div>
+      <div class="it-sub">${inf.resumo||''}</div>
+      <div class="it-meta">📅 ${inf.data} · ${inf.tipo}${temPdf?' · 📄 PDF':''} ${lido?'· Assinado':'· ⚠️ Aguardando assinatura'}</div>
+    </div>`;
+  }).join('');
+}
+
+function verInfo(id){
+  const infos=lerLocal('mjl_informativos',[]);
+  const inf=infos.find(x=>x.id===id);if(!inf)return;
+  infoId=id;
+  document.getElementById('mi-title').textContent=inf.titulo;
+  document.getElementById('mi-body').innerHTML=`<div class="badge b-info" style="background:var(--brand-light);color:var(--brand);margin-bottom:10px">${inf.tipo}</div><p style="font-size:14px;line-height:1.7;color:var(--text)">${inf.conteudo}</p>`;
+  // PDF
+  const pdfEl=document.getElementById('mi-pdf-area');
+  const pdfLink=document.getElementById('mi-pdf-link');
+  if(inf.pdfLink){pdfEl.classList.remove('hidden');pdfLink.href=inf.pdfLink;}
+  else pdfEl.classList.add('hidden');
+  // Assinatura
+  const assinado=lerLocal('mjl_assinatura_'+id+'_'+(colAtual?.id||''),null);
+  const assEl=document.getElementById('mi-assinar');
+  const assOkEl=document.getElementById('mi-assinado');
+  if(assinado){assEl.classList.add('hidden');assOkEl.classList.remove('hidden');document.getElementById('mi-data-ass').textContent=assinado.dataHora;}
+  else if(inf.exigeAssinatura){assEl.classList.remove('hidden');assOkEl.classList.add('hidden');initSign();obterGeoAss();}
+  else{assEl.classList.add('hidden');assOkEl.classList.add('hidden');}
+  document.getElementById('modal-info').classList.remove('hidden');
+}
+
+function obterGeoAss(){
+  const el=document.getElementById('mi-geo-ass');
+  if(geoAtual){el.className='geo-bar geo-ok';el.textContent='📍 Localização capturada';return;}
+  navigator.geolocation?.getCurrentPosition(pos=>{geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};el.className='geo-bar geo-ok';el.textContent='📍 Localização capturada';});
+}
+
+function initSign(){
+  signCanvas=document.getElementById('canvas-sign');signCtx=signCanvas.getContext('2d');
+  signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);
+  signCtx.strokeStyle='#1a4f7a';signCtx.lineWidth=2.5;signCtx.lineCap='round';
+  signing=false;
+  signCanvas.ontouchstart=e=>{e.preventDefault();signing=true;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));};
+  signCanvas.ontouchmove=e=>{e.preventDefault();if(!signing)return;const t=e.touches[0];const r=signCanvas.getBoundingClientRect();signCtx.lineTo((t.clientX-r.left)*(signCanvas.width/r.width),(t.clientY-r.top)*(signCanvas.height/r.height));signCtx.stroke();};
+  signCanvas.ontouchend=()=>{signing=false;};
+  signCanvas.onmousedown=e=>{signing=true;const r=signCanvas.getBoundingClientRect();signCtx.beginPath();signCtx.moveTo(e.clientX-r.left,e.clientY-r.top);};
+  signCanvas.onmousemove=e=>{if(!signing)return;const r=signCanvas.getBoundingClientRect();signCtx.lineTo(e.clientX-r.left,e.clientY-r.top);signCtx.stroke();};
+  signCanvas.onmouseup=()=>{signing=false;};
+}
+function limparSign(){if(signCtx)signCtx.clearRect(0,0,signCanvas.width,signCanvas.height);}
+
+function confirmarLeitura(){
+  const pixels=signCtx?.getImageData(0,0,signCanvas.width,signCanvas.height).data;
+  const temAss=pixels&&Array.from(pixels).some((v,i)=>i%4===3&&v>0);
+  if(!temAss){alert('Assine no campo antes de confirmar.');return;}
+  const ass={colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,informativoId:infoId,
+    assinaturaBase64:signCanvas.toDataURL(),geo:geoAtual,
+    geoLink:geoAtual?`https://maps.google.com/?q=${geoAtual.lat},${geoAtual.lng}`:'',
+    dataHora:new Date().toLocaleString('pt-BR'),timestamp:Date.now(),
+    validade:'Art. 10 MP 2200-2/2001 — Assinatura eletrônica com localização e timestamp'};
+  salvarLocal('mjl_assinatura_'+infoId+'_'+colAtual.id,ass);
+  adicionarPendente({acao:'registrarAssinatura',dados:ass});
+  fecharModal('modal-info');renderInformativos();atualizarBadges();
+  mostrarSucesso('✅','Documento assinado!','Assinatura registrada com data, hora e localização.');
+}
+
+// ===== OUVIDORIA =====
+function selOuvTipo(el,v){document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel'));el.classList.add('sel');ouvTipo=v;}
+function toggleAnon(){anonimo=!anonimo;document.getElementById('anon-box').classList.toggle('on',anonimo);document.getElementById('anon-label').textContent=anonimo?'Enviando como anônimo':'Enviar como anônimo';}
+function enviarOuvidoria(){
+  const msg=document.getElementById('ouv-msg').value.trim();
+  if(!ouvTipo){alert('Escolha o tipo da mensagem.');return;}
+  if(!msg){alert('Escreva sua mensagem.');return;}
+  const ouv={id:gid(),tipo:ouvTipo,mensagem:msg,anonimo,colaboradorId:anonimo?null:colAtual?.id,
+    colaboradorNome:anonimo?'Anônimo':colAtual?.nome,data:new Date().toISOString().slice(0,10),timestamp:Date.now(),lido:false};
+  adicionarPendente({acao:'novaOuvidoria',dados:ouv});
+  document.getElementById('ouv-msg').value='';
+  document.querySelectorAll('.ouv-tipo').forEach(x=>x.classList.remove('sel'));ouvTipo='';
+  mostrarSucesso('💬','Mensagem enviada!',anonimo?'Mensagem anônima enviada à MJL.':'Mensagem enviada à MJL. Obrigado!');
+}
+
+// ===== v16: DIAGNÓSTICO DA FILA =====
+function _descItem(it){
+  const d=it.dados||{};const nome={salvarPonto:'Ponto',salvarRegistro:'Registro',salvarFoto:'Foto',novoChamado:'Chamado',fecharChamado:'Fechar chamado',novaOuvidoria:'Ouvidoria',registrarAssinatura:'Assinatura',registrarCrono:'Tarefa'}[it.acao]||it.acao||'?';
+  const q=it.timestamp?new Date(it.timestamp).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  const tam=Math.round(JSON.stringify(it).length/1024);
+  return nome+(d.tipo?' '+d.tipo:'')+(d.etapa?' '+d.etapa:'')+' · '+q+' · '+tam+'KB'+(it._tent?' · tent. '+it._tent:'')+(it._erro?' · ⚠️ '+String(it._erro).slice(0,40):'');
+}
+function renderFila(){
+  const el=document.getElementById('fila-lista');if(!el)return;
+  const f=lerLocal('mjl_pendentes_campo',[]);const er=lerLocal('mjl_fila_erros',[]);
+  let h=f.length?f.map(function(it,i){return '<div style="display:flex;justify-content:space-between;gap:6px;padding:4px 0;border-bottom:1px solid #eef2f6;"><span>'+(i+1)+'. '+_descItem(it)+'</span><button onclick="removerDaFila('+i+')" style="border:0;background:none;color:var(--red);font-size:14px;">✖</button></div>';}).join(''):'<div style="color:var(--green);font-weight:700;">✅ Fila vazia — tudo enviado</div>';
+  if(er.length) h+='<div style="margin-top:8px;color:var(--red);font-weight:700;">❌ '+er.length+' item(ns) desistidos após 8 tentativas (use "Enviar p/ MJL" para não perder)</div>';
+  el.innerHTML=h;
+}
+function removerDaFila(i){
+  const f=lerLocal('mjl_pendentes_campo',[]);if(!f[i])return;
+  if(!confirm('Remover "'+_descItem(f[i])+'" da fila? Esse registro NÃO chegará na MJL. Copie a fila antes, se precisar.'))return;
+  f.splice(i,1);salvarLocal('mjl_pendentes_campo',f);renderFila();
+}
+function reenviarFila(){
+  const st=document.getElementById('fila-status');
+  if(!navigator.onLine){st.textContent='📵 Sem internet.';return;}
+  if(!localStorage.getItem('mjl_script_url')){st.textContent='⚠️ URL do sistema não configurada.';return;}
+  st.textContent='⏳ Enviando...';enviarPendentes();
+  let n=0;const t=setInterval(function(){renderFila();n++;const q=lerLocal('mjl_pendentes_campo',[]).length;if(!q||n>12){clearInterval(t);st.textContent=q?'⚠️ Ainda restam '+q+' item(ns). Veja o motivo (⚠️) na lista.':'✅ Tudo enviado!';}},2500);
+}
+function _resumoItem(it){
+  const d=it.dados||{};const g=function(x){return x&&x.lat?x.lat.toFixed(5)+','+x.lng.toFixed(5):'';};
+  const dt=d.data?d.data.split('-').reverse().join('/'):'';
+  switch(it.acao){
+    case 'salvarPonto': return '⏱ PONTO '+dt+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+')\n  Entrada '+(d.entrada||'--')+' | Alm. '+(d.saida_alm||'--')+'-'+(d.volta_alm||'--')+' | Saída '+(d.saida||'--')+(g(d.geo_e)?'\n  GPS ent: '+g(d.geo_e):'')+(g(d.geo_s)?'\n  GPS saí: '+g(d.geo_s):'')+(d.just_entrada?'\n  Just. ent: '+d.just_entrada:'')+(d.just_saida?'\n  Just. saí: '+d.just_saida:'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'salvarFoto': return '📷 FOTO '+(d.tipo||'')+' '+(d.etapa||'')+' '+dt+' '+(d.hora||'')+' — '+(d.colaboradorNome||'')+' (foto fica no celular)';
+    case 'salvarRegistro': return '📝 REGISTRO '+dt+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+') '+(d.entrada||'')+'-'+(d.saida||'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'registrarCrono': return '✅ TAREFA '+dt+' '+(d.hora||'')+' — '+(d.colaboradorNome||'')+' — '+(d.local||'')+' (item '+(d.itemId||'')+')';
+    case 'novoChamado': return '🔧 CHAMADO '+(d.dataAbertura?d.dataAbertura.split('-').reverse().join('/'):'')+' — '+(d.colaboradorNome||'')+' ('+(d.cliente||'')+') '+(d.tipo||'')+' '+(d.urgencia||'')+'\n  '+(d.desc||'');
+    case 'fecharChamado': return '✔ FECHAR CHAMADO '+(d.id||'')+' — '+(d.colaboradorNome||'')+(d.obs?'\n  Obs: '+d.obs:'');
+    case 'novaOuvidoria': return '💬 OUVIDORIA '+dt+' — '+(d.colaboradorNome||'')+' — '+(d.tipo||'')+'\n  '+(d.msg||d.mensagem||'');
+    case 'registrarAssinatura': return '✍ ASSINATURA informativo '+(d.informativoId||d.id||'')+' — '+(d.colaboradorNome||'');
+    default: return '• '+(it.acao||'?');
+  }
+}
+function _textoFila(){
+  const f=lerLocal('mjl_pendentes_campo',[]).concat(lerLocal('mjl_fila_erros',[]));
+  if(!f.length) return '';
+  return 'MJL Campo — registros pendentes ('+(colAtual?colAtual.nome:'')+')\n\n'+f.map(function(it,i){return (i+1)+'. '+_resumoItem(it);}).join('\n\n');
+}
+function copiarFila(){
+  const txt=_textoFila();const st=document.getElementById('fila-status');
+  if(!txt){st.textContent='Nada para copiar — fila vazia.';return;}
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(function(){st.textContent='📋 Copiado!';}).catch(function(){prompt('Copie o texto:',txt);});}
+  else prompt('Copie o texto:',txt);
+}
+function enviarFilaWhats(){
+  const txt=_textoFila();const st=document.getElementById('fila-status');
+  if(!txt){st.textContent='Nada para enviar — fila vazia.';return;}
+  window.open('https://wa.me/5521968381313?text='+encodeURIComponent(txt.slice(0,3000)),'_blank');
+}
+
+// ===== CONFIG APP =====
+function salvarURLApp(){
+  const url=document.getElementById('cfg-url-app').value.trim();
+  if(!url||!url.startsWith('https://')){alert('URL inválida.');return;}
+  localStorage.setItem('mjl_script_url',url);
+  document.getElementById('cfg-app-status').innerHTML='<span style="color:var(--green);font-weight:700">✅ Salvo!</span>';
+  if(navigator.onLine) enviarPendentes();
+}
+
+// ===== FOTOS =====
+function comprimirFoto(dataUrl,cb,local){
+  var img=new Image();
+  img.onload=function(){
+    var canvas=document.createElement('canvas');
+    var w=img.width,h=img.height,max=800;
+    if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+    canvas.width=w;canvas.height=h;
+    var ctx=canvas.getContext('2d');
+    ctx.drawImage(img,0,0,w,h);
+    // v18: MESMO carimbo da foto do ponto (local + data/hora) agora em TODA
+    // foto do app — cronograma, chamados e registro do dia. Antes só o ponto
+    // tinha, porque essas fotos passavam por aqui e não pelo capturarFotoPS.
+    try{
+      var _ag=new Date();
+      var _dh=_ag.toLocaleDateString('pt-BR')+' '+_ag.toTimeString().slice(0,5);
+      var _loc=local||(colAtual&&colAtual.cliente)||'';
+      if(typeof desenharCarimboFoto==='function') desenharCarimboFoto(canvas,ctx,_loc,_dh);
+    }catch(e){}
+    var q=0.7,r=canvas.toDataURL('image/jpeg',q);
+    while(r.length>120*1024*1.37&&q>0.2){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
+    cb(r);
+  };
+  img.onerror=function(){cb(dataUrl);};
+  img.src=dataUrl;
+}
+function addFotos(e,gridId,dataKey,local){
+  if(!fotosData[dataKey])fotosData[dataKey]=[];
+  Array.from(e.target.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=ev=>{
+      // v8: comprime ANTES de guardar — foto original do celular (3-8MB)
+      // estourava o armazenamento local e travava o envio
+      comprimirFoto(ev.target.result,function(comp){
+        fotosData[dataKey].push(comp);
+        const g=document.getElementById(gridId);if(!g)return;
+        const d=document.createElement('div');d.className='photo-thumb';
+        const img=document.createElement('img');img.src=comp;
+        const idx=fotosData[dataKey].length-1;
+        const del=document.createElement('button');del.className='photo-del';del.innerHTML='×';
+        del.onclick=()=>{fotosData[dataKey].splice(idx,1);d.remove();};
+        d.appendChild(img);d.appendChild(del);g.appendChild(d);
+      },local);
+    };r.readAsDataURL(f);
+  });
+}
+
+// ===== PENDENTES =====
+function adicionarPendente(item){
+  try{ _adicionarPendenteInterno(item); }
+  catch(e){ alert('⚠️ Memória do aparelho cheia. A foto/registro pode não ter sido guardado para envio. Conecte na internet e sincronize para liberar espaço.'); }
+}
+function _adicionarPendenteInterno(item){
+  const p=lerLocal('mjl_pendentes_campo',[]);
+  p.push({...item,timestamp:Date.now()});
+  salvarLocal('mjl_pendentes_campo',p);
+  if(navigator.onLine)enviarPendentes();
+}
+
+let _enviandoPendentes=false;
+function enviarPendentes(){
+  const url=localStorage.getItem('mjl_script_url');if(!url)return;
+  // CORREÇÃO: antes, a fila NUNCA era limpa — os mesmos registros eram
+  // reenviados a cada sync, duplicando pontos na planilha. Agora cada item
+  // é enviado com confirmação de entrega e SÓ sai da fila quando o servidor
+  // responde OK. Se falhar (sem internet, erro), fica guardado e tenta de novo.
+  if(navigator.onLine&&!_enviandoPendentes){
+    _enviandoPendentes=true;
+    (async function(){
+      try{
+        const filaOrig=lerLocal('mjl_pendentes_campo',[]);
+        const lenOrig=filaOrig.length;
+        // v11: LIMPEZA — descarta fotos gigantes de versões antigas (sem
+        // compressão) que travavam a fila e bloqueavam tudo que vinha depois
+        let fila=filaOrig.filter(function(it){
+          if(it&&it.acao==='salvarFoto'&&it.dados&&it.dados.img&&it.dados.img.length>450000) return false;
+          return true;
+        });
+        const restantes=[];const atrasados=[];
+        let quebrou=false;
+        for(let i=0;i<fila.length;i++){
+          if(quebrou){restantes.push(fila[i]);continue;}
+          try{
+            const r=await fetch(url,{method:'POST',redirect:'follow',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(fila[i])});
+            if(!r.ok){
+              // v11: item recusado não trava a fila — os próximos seguem;
+              // ele fica para tentar de novo (até 8 tentativas, depois descarta)
+              fila[i]._tent=(fila[i]._tent||0)+1;
+              if(fila[i]._tent<8) restantes.push(fila[i]);
+              else { const er=lerLocal('mjl_fila_erros',[]);er.push(fila[i]);salvarLocal('mjl_fila_erros',er.slice(-30)); }
+            }
+          }catch(e){
+            // v16: antes, QUALQUER erro de conexão parava a fila inteira no
+            // item da frente — se um item fazia o doPost quebrar (resposta sem
+            // CORS), os outros nunca saíam. Agora: se o aparelho está online,
+            // conta a tentativa; após 3 falhas o item vai para o FIM da fila
+            // (os demais seguem) e após 8 vai para "mjl_fila_erros" (não perde).
+            fila[i]._erro=(e&&e.message)||String(e);
+            if(!navigator.onLine){ restantes.push(fila[i]);quebrou=true; }
+            else{
+              fila[i]._tent=(fila[i]._tent||0)+1;
+              if(fila[i]._tent>=8){ const er=lerLocal('mjl_fila_erros',[]);er.push(fila[i]);salvarLocal('mjl_fila_erros',er.slice(-30)); }
+              else if(fila[i]._tent>=3){ atrasados.push(fila[i]); }
+              else { restantes.push(fila[i]);quebrou=true; }
+            }
+          }
+        }
+        // Junta com itens novos que chegaram DURANTE o envio
+        const atual=lerLocal('mjl_pendentes_campo',[]);
+        salvarLocal('mjl_pendentes_campo',restantes.concat(atrasados).concat(atual.slice(lenOrig)));
+      }finally{
+        _enviandoPendentes=false;
+        // v16: corrige corrida entre ponto e foto — se algo novo chegou
+        // na fila ENQUANTO este envio rodava (ex: a foto do ponto logo
+        // depois do registro), ele ficava esperando parado. Agora,
+        // assim que um envio termina, verifica se sobrou pendente e
+        // dispara de novo automaticamente.
+        if(navigator.onLine && lerLocal('mjl_pendentes_campo',[]).length) enviarPendentes();
+      }
+    })();
+  }
+  // Buscar atualizações
+  fetch(url+'?acao=getColaboradores').then(r=>r.json()).then(d=>{
+    if(d?.colaboradores){
+      salvarLocal('mjl_colaboradores',d.colaboradores);
+      // v21: se a MJL mudou o perfil deste colaborador (colaborador →
+      // encarregado, por exemplo), o botão de supervisão aparece na
+      // próxima sincronização, sem precisar sair e entrar de novo.
+      if(colAtual){
+        const at=d.colaboradores.find(c=>c.id===colAtual.id);
+        if(at){
+          const antes=colAtual.perfil||'colaborador';
+          colAtual.perfil=at.perfil||'colaborador';
+          atualizarBotaoSuperv();
+          renderPerfilCfg();
+          // virou supervisor agora? busca na hora os dados da supervisão,
+          // senão ele teria que sincronizar duas vezes.
+          if(antes!==colAtual.perfil && ehSupervisor()) buscarDadosSupervisao(url);
+        }
+      }
+    }
+  }).catch(()=>{});
+  fetch(url+'?acao=getInformativos').then(r=>r.json()).then(d=>{if(d?.informativos){salvarLocal('mjl_informativos',d.informativos);renderInformativos?.();}}).catch(()=>{});
+  fetch(url+'?acao=getChamados').then(r=>r.json()).then(d=>{if(d?.chamados){const meus=d.chamados.filter(c=>c.cliente===colAtual?.cliente);salvarLocal('mjl_chamados_recebidos',meus);renderChamados?.();}}).catch(()=>{});
+  fetch(url+'?acao=getCronogramas').then(r=>r.json()).then(d=>{if(d?.cronogramas){salvarLocal('mjl_cronogramas',d.cronogramas);renderCronograma?.();}}).catch(()=>{});
+  // v24: servicos avulsos designados a este colaborador.
+  // Mescla por id: o que ESTE aparelho ja concluiu e ainda esta na fila
+  // de envio nunca volta a ficar "agendado" porque o servidor esta velho.
+  fetch(url+'?acao=getAvulsos',{redirect:'follow',headers:{'Accept':'application/json'}})
+    .then(r=>r.json()).then(d=>{
+      if(!d||!d.avulsos) return;
+      var locais={}; avTodosCampo().forEach(function(a){ if(a&&a.id) locais[a.id]=a; });
+      var merged=d.avulsos.map(function(a){
+        var l=locais[a.id];
+        if(l && l.status==='concluido' && a.status!=='concluido') return l;
+        return a;
+      });
+      salvarLocal('mjl_avulsos',merged);
+      renderAvulsosCampo?.(); atualizarBadges?.();
+    }).catch(()=>{});
+  // v23: pendencias. Pede so os ultimos 30 dias — as ABERTAS o
+  // servidor manda de qualquer data, mesmo as antigas.
+  (function(){
+    var _lim=new Date(); _lim.setDate(_lim.getDate()-30);
+    fetch(url+'?acao=getPendencias&desde='+_lim.toISOString().slice(0,10),{redirect:'follow',headers:{'Accept':'application/json'}})
+      .then(r=>r.json()).then(d=>{
+        if(!d||!d.pendencias) return;
+        // Nao atropela o que este aparelho acabou de resolver e ainda
+        // esta na fila de envio: resolvida local vence aberta do servidor.
+        var locais={}; pendTodas().forEach(function(p){ if(p&&p.id) locais[p.id]=p; });
+        var merged=d.pendencias.map(function(p){
+          var l=locais[p.id];
+          if(l && l.status==='resolvida' && p.status!=='resolvida') return l;
+          return p;
+        });
+        salvarLocal('mjl_pendencias',merged);
+        renderPendencias?.(); atualizarBadges?.();
+      }).catch(()=>{});
+  })();
+  // v21: SÓ quem supervisiona baixa a lista de condomínios e o que a
+  // equipe registrou. O celular do colaborador comum não carrega isso.
+  if(typeof ehSupervisor==='function' && ehSupervisor()) buscarDadosSupervisao(url);
+}
+
+// ===== BADGES =====
+function atualizarBadges(){
+  if(typeof renderAvulsosCampo==='function') renderAvulsosCampo();
+  const infos=lerLocal('mjl_informativos',[]);
+  const naoLidos=infos.filter(i=>i.exigeAssinatura&&!lerLocal('mjl_assinatura_'+i.id+'_'+(colAtual?.id||''),null)).length;
+  const nbInfo=document.getElementById('nb-info');
+  nbInfo.style.display=naoLidos?'flex':'none';nbInfo.textContent=naoLidos;
+  document.getElementById('home-info-sub').textContent=naoLidos?naoLidos+' para assinar':'Documentos';
+
+  const chs=chamadosAtivos().filter(c=>c.status!=='fechado').length;
+  const nbCh=document.getElementById('nb-ch');
+  nbCh.style.display=chs?'flex':'none';nbCh.textContent=chs;
+  document.getElementById('home-ch-sub').textContent=chs?chs+' em aberto':'Manutenção';
+
+  // Cronograma pendente hoje
+  // v22: antes comparava o numero de CRONOGRAMAS cadastrados com o de
+  // TAREFAS feitas — coisas diferentes, entao o numero na tela inicial
+  // nao batia. Agora conta as tarefas de hoje que ainda nao foram feitas.
+  const hoje=new Date().toISOString().slice(0,10);
+  const feitos=lerLocal('mjl_crono_feitos_'+hoje+'_'+(colAtual?.id||''),[]);
+  const _hoje=cronogramasDeHoje();
+  const _meusL=Array.isArray(colAtual?.clientes)?colAtual.clientes
+    :(typeof colAtual?.clientes==='string'&&colAtual.clientes?colAtual.clientes.split('|').map(x=>x.trim()).filter(Boolean)
+    :[colAtual?.cliente||'']);
+  const _minhas=_hoje.filter(c=>c.cobertura||(c.visib==='especifico'&&Array.isArray(c.colabsIds)&&c.colabsIds.includes(colAtual?.id))||_meusL.some(l=>l&&c.cliente&&c.cliente.toLowerCase().includes(l.toLowerCase()))||c.colaboradorId===colAtual?.id||c.todos);
+  const pendente=_minhas.filter(c=>!feitos.includes(c.id)).length;
+  // v23: pendencias para refazer entram na mesma bolinha e tem
+  // prioridade no texto — e o que precisa ser resolvido primeiro.
+  const _pend=(typeof minhasPendencias==='function')?minhasPendencias().length:0;
+  const nbCrono=document.getElementById('nb-crono');
+  const _total=pendente+_pend;
+  nbCrono.style.display=_total>0?'flex':'none';nbCrono.textContent=_total;
+  document.getElementById('home-crono-sub').textContent=
+    _pend>0 ? (_pend+(_pend>1?' para refazer':' para refazer')) :
+    (pendente>0?pendente+' tarefas pendentes':'Tarefas do dia');
+  if(typeof renderPendencias==='function') renderPendencias();
+}
+
+// ===== SUCESSO =====
+function mostrarSucesso(ico,titulo,sub){
+  document.getElementById('suc-ico').textContent=ico;document.getElementById('suc-title').textContent=titulo;document.getElementById('suc-sub').textContent=sub;ir('scr-sucesso');
+}
+
+// ===== MODAIS =====
+function fecharModal(id){document.getElementById(id).classList.add('hidden');}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.add('hidden');}));
+
+
+// ===== PONTO STEP — SEM FOTO, SÓ GPS =====
+var psTimer = null;
+
+function irParaPontoStep(tipo){
+  pontoTipoAtual = tipo;
+  fotoPS = null;
+  document.getElementById('btn-confirmar-ps').disabled = true;
+  document.getElementById('ps-just-area').classList.add('hidden');
+  document.getElementById('ps-alerta').classList.add('hidden');
+  document.getElementById('ps-just-txt').value = '';
+  var btnFoto2 = document.getElementById('ps-foto-btn');
+  if(btnFoto2) btnFoto2.style.display='';
+  var prev2 = document.getElementById('ps-foto-prev');
+  if(prev2){ prev2.src=''; prev2.style.display='none'; }
+  var inp = document.getElementById('input-ps-foto');
+  if(inp) inp.value='';
+
+  if(tipo === 'entrada'){
+    document.getElementById('ps-titulo').textContent = 'Bater Entrada';
+    document.getElementById('ps-ico-tipo').textContent = '🟢';
+    var check = verificarTolerancia();
+    if(check && !check.ok){
+      document.getElementById('ps-alerta').classList.remove('hidden');
+      document.getElementById('ps-alerta-titulo').textContent = '⚠️ Fora do horário previsto';
+      document.getElementById('ps-alerta-msg').textContent = check.msg;
+      document.getElementById('ps-just-area').classList.remove('hidden');
+    }
+  } else {
+    document.getElementById('ps-titulo').textContent = 'Bater Saída';
+    document.getElementById('ps-ico-tipo').textContent = '🔴';
+  }
+
+  if(psTimer) clearInterval(psTimer);
+  psTimer = setInterval(function(){
+    var el = document.getElementById('ps-hora-display');
+    if(el) el.textContent = new Date().toTimeString().slice(0,5);
+  }, 1000);
+  document.getElementById('ps-hora-display').textContent = new Date().toTimeString().slice(0,5);
+
+  var geoEl = document.getElementById('ps-geo-status');
+  geoEl.className = 'geo-bar geo-wait';
+  geoEl.textContent = '⏳ Buscando localização...';
+
+  // v14: usa a localização JÁ capturada (geoAtual) e atualiza direto do
+  // navegador — sem callback fantasma que causava o falso "GPS não disponível"
+  var btnPS = document.getElementById('btn-confirmar-ps');
+  btnPS.disabled = false; verificarBtnPS();
+  function _mostraGeo(){
+    if(geoAtual){ geoEl.className='geo-bar geo-ok'; geoEl.innerHTML='📍 Localização capturada (±'+geoAtual.acc+'m)'; }
+    else { geoEl.className='geo-bar geo-wait'; geoEl.innerHTML='⏳ Buscando localização... (o ponto pode ser batido)'; }
+  }
+  _mostraGeo();
+  if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(function(pos){
+      geoAtual={lat:pos.coords.latitude,lng:pos.coords.longitude,acc:Math.round(pos.coords.accuracy)};
+      _mostraGeo();
+    },function(){ if(!geoAtual){ geoEl.className='geo-bar geo-err'; geoEl.innerHTML='⚠️ Sem GPS agora — ponto registrado sem localização'; } },{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+  }
+
+  ir('scr-ponto-step');
+}
+
+
+// v9: carimbo discreto (condomínio + data/hora) desenhado na própria foto,
+// no momento da captura — funciona 100% offline (cliente vem do cache local,
+// data/hora vem do relógio do aparelho). Não usa nome do colaborador.
+function desenharCarimboFoto(canvas, ctx, linha1, linha2){
+  if(!linha1 && !linha2) return;
+  var w = canvas.width, h = canvas.height;
+  var fontSize = Math.max(11, Math.round(w*0.032));
+  ctx.font = fontSize+'px Arial, sans-serif';
+  var padX = Math.round(fontSize*0.6), padY = Math.round(fontSize*0.45);
+  var textos = [linha1, linha2].filter(Boolean);
+  var largura = 0;
+  textos.forEach(function(t){ largura = Math.max(largura, ctx.measureText(t).width); });
+  largura += padX*2;
+  var linhaAltura = Math.round(fontSize*1.25);
+  var altura = linhaAltura*textos.length + padY*2 - Math.round(fontSize*0.25);
+  ctx.fillStyle = 'rgba(0,0,0,0.5)';
+  ctx.fillRect(0, h-altura, largura, altura);
+  ctx.fillStyle = '#ffffff';
+  ctx.textBaseline = 'top';
+  textos.forEach(function(t, i){
+    ctx.fillText(t, padX, h-altura+padY+ (i*linhaAltura));
+  });
+}
+
+function capturarFotoPS(e){
+  var file = e.target.files[0]; if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    var img = new Image();
+    img.onload = function(){
+      var canvas = document.createElement('canvas');
+      var w=img.width, h=img.height, max=640;
+      if(w>max||h>max){ if(w>h){h=Math.round(h*max/w);w=max;}else{w=Math.round(w*max/h);h=max;} }
+      canvas.width=w; canvas.height=h;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var agora = new Date();
+      var dataHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toTimeString().slice(0,5);
+      var condominio = (colAtual && colAtual.cliente) ? colAtual.cliente : '';
+      desenharCarimboFoto(canvas, ctx, condominio, dataHora);
+      var q=0.65, r=canvas.toDataURL('image/jpeg',q);
+      while(r.length>80*1024*1.37&&q>0.1){q-=0.1;r=canvas.toDataURL('image/jpeg',q);}
+      fotoPS = r;
+      var prev = document.getElementById('ps-foto-prev');
+      if(prev){ prev.src=r; prev.style.display='block'; }
+      var btn = document.getElementById('ps-foto-btn');
+      if(btn) btn.style.display='none';
+      verificarBtnPS();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function verificarBtnPS(){
+  var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
+  var temJust = (document.getElementById('ps-just-txt').value || '').trim().length > 0;
+  var temFoto = !!fotoPS;
+  document.getElementById('btn-confirmar-ps').disabled = !temFoto || (needJust && !temJust);
+}
+
+function confirmarPontoStep(){
+  var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
+  var just = (document.getElementById('ps-just-txt').value || '').trim();
+  if(needJust && !just){ alert('Informe o motivo de estar fora do horário.'); return; }
+
+  var agora = new Date();
+  var hora = agora.toTimeString().slice(0,5);
+
+  if(!pontoHoje) pontoHoje = {entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',fotoEntrada:null,fotoSaida:null,geo_e:null,geo_s:null,ajustes:[]};
+
+  if(pontoTipoAtual === 'entrada'){
+    pontoHoje.entrada = hora;
+    pontoHoje.fotoEntrada = fotoPS;
+    pontoHoje.geo_e = geoAtual;
+    if(just) pontoHoje.just_entrada = just;
+  } else {
+    pontoHoje.saida = hora;
+    pontoHoje.fotoSaida = fotoPS;
+    pontoHoje.geo_s = geoAtual;
+    if(just) pontoHoje.just_saida = just;
+    pontoHoje.horas_trab = calcHorasTrabP();
+    pontoHoje.saldo_dia = calcSaldoDiaP();
+    pontoHoje.feriado = (document.getElementById('ponto-obs').value === 'Feriado');
+    pontoHoje.noturno = isNocturno(pontoHoje.entrada) || isNocturno(hora);
+  }
+
+  pontoHoje.obs = document.getElementById('ponto-obs').value;
+  pontoHoje.colaboradorId = colAtual.id;
+  pontoHoje.colaboradorNome = colAtual.nome;
+  pontoHoje.data = new Date().toISOString().slice(0,10);
+
+  if(psTimer){ clearInterval(psTimer); psTimer = null; }
+
+  salvarPontoHoje();
+  // v7: envia a foto do ponto para o Drive da MJL (organizada em MJL Fotos/Ponto/AAAA-MM)
+  if(fotoPS){
+    adicionarPendente({acao:'salvarFoto',dados:{
+      tipo:'Ponto',etapa:(pontoTipoAtual==='entrada'?'entrada':'saida'),
+      refId:colAtual.id+'_'+pontoHoje.data,
+      colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+      cliente:colAtual.cliente||'',data:pontoHoje.data,hora:hora,
+      img:fotoPS,timestamp:Date.now()
+    }});
+  }
+  fotoPS = null;
+  var btnFoto = document.getElementById('ps-foto-btn');
+  if(btnFoto) btnFoto.style.display='';
+  var prev = document.getElementById('ps-foto-prev');
+  if(prev){ prev.src=''; prev.style.display='none'; }
+  ir('scr-ponto');
+  atualizarStepsPonto();
+  atualizarBancoPonto();
+  renderHistoricoPonto();
+  atualizarAlertasPonto();
+}
+// ===== FIM PONTO STEP =====
+
+
+// ===================================================================
+// MÓDULO DE PONTO ELETRÔNICO — COMPLETO
+// ===================================================================
+var pontoTimerRel = null;
+var pontoHoje = null;
+var pontoTipoAtual = null;
+var fotoPS = null;
+
+function parseHoraP(str){ if(!str) return 0; var p=(str+'').split(':').map(Number); return (p[0]||0)*60+(p[1]||0); }
+function minToHHMM(min){ var neg=min<0; var abs=Math.abs(min); var h=Math.floor(abs/60).toString().padStart(2,'0'); var m=(abs%60).toString().padStart(2,'0'); return (neg?'-':'')+h+':'+m; }
+function isNocturno(hora){ if(!hora) return false; var m=parseHoraP(hora); return m>=22*60||m<5*60; }
+
+function iniciarRelogioPonto(){
+  if(pontoTimerRel) return;
+  var meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var dias=['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
+  pontoTimerRel = setInterval(function(){
+    var now = new Date();
+    var el = document.getElementById('rp-hora');
+    if(el) el.textContent = now.toTimeString().slice(0,8);
+    var elD = document.getElementById('rp-data');
+    if(elD) elD.textContent = now.getDate()+' de '+meses[now.getMonth()]+' de '+now.getFullYear();
+    var elDi = document.getElementById('rp-dia');
+    if(elDi) elDi.textContent = dias[now.getDay()];
+  }, 1000);
+  var now=new Date();
+  var el=document.getElementById('rp-hora');
+  if(el) el.textContent=now.toTimeString().slice(0,8);
+}
+
+function carregarPontoHoje(){
+  if(!colAtual) return;
+  var hoje=new Date().toISOString().slice(0,10);
+  var key='ponto_'+colAtual.id+'_'+hoje;
+  var salvo=localStorage.getItem(key);
+  pontoHoje=salvo?JSON.parse(salvo):{entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',geo_e:null,geo_s:null,ajustes:[]};
+  atualizarStepsPonto();
+  atualizarBancoPonto();
+  renderHistoricoPonto();
+  atualizarAlertasPonto();
+}
+
+function salvarPontoHoje(){
+  if(!colAtual||!pontoHoje) return;
+  var hoje=new Date().toISOString().slice(0,10);
+  localStorage.setItem('ponto_'+colAtual.id+'_'+hoje, JSON.stringify(pontoHoje));
+  adicionarPendente({acao:'salvarPonto',dados:{
+    colaboradorId:colAtual.id,colaboradorNome:colAtual.nome,
+    colaboradorFuncao:colAtual.funcao,cliente:colAtual.cliente||'',
+    data:pontoHoje.data||hoje,entrada:pontoHoje.entrada,
+    saida_alm:pontoHoje.saida_alm,volta_alm:pontoHoje.volta_alm,
+    saida:pontoHoje.saida,obs:pontoHoje.obs,
+    horas_trab:pontoHoje.horas_trab,saldo_dia:pontoHoje.saldo_dia,
+    feriado:pontoHoje.feriado,noturno:pontoHoje.noturno,
+    geo_e:pontoHoje.geo_e,geo_s:pontoHoje.geo_s,
+    just_entrada:pontoHoje.just_entrada,just_saida:pontoHoje.just_saida,
+    ajustes:pontoHoje.ajustes,timestamp:Date.now()
+  }});
+}
+
+function atualizarStepsPonto(){
+  if(!pontoHoje) return;
+  var p=pontoHoje;
+  if(p.entrada){ setStepP('entrada','feito',p.entrada); liberarStepP('saida-alm'); }
+  else setStepP('entrada','ativo',null);
+  if(p.saida_alm){ setStepP('saida-alm','feito',p.saida_alm); liberarStepP('volta-alm'); }
+  if(p.volta_alm){ setStepP('volta-alm','feito',p.volta_alm); liberarStepP('saida'); }
+  if(p.saida){ setStepP('saida','feito',p.saida); }
+  if(p.obs){ var el=document.getElementById('ponto-obs'); if(el) el.value=p.obs; }
+  var nb=document.getElementById('nb-ponto');
+  if(nb) nb.style.display=(!p.entrada)?'flex':'none';
+  var sub=document.getElementById('home-ponto-sub');
+  if(sub){ if(p.saida) sub.textContent='Concluido ✅'; else if(p.entrada) sub.textContent='Em andamento'; else sub.textContent='Bater ponto'; }
+}
+
+function setStepP(tipo,estado,hora){
+  var step=document.getElementById('pstep-'+tipo);
+  var btn=document.getElementById('pbtn-'+tipo);
+  var horaEl=document.getElementById('phora-'+tipo);
+  if(!step) return;
+  step.classList.remove('ps-ativo','ps-feito','ps-bloq');
+  if(estado==='feito'){
+    step.classList.add('ps-feito');
+    if(horaEl) horaEl.textContent=hora+(isNocturno(hora)?' 🌙':'');
+    if(btn){ btn.disabled=true; btn.textContent='✓'; btn.className='btn-ps btn-ps-feito'; }
+    var fa=document.getElementById('pfoto-'+tipo.replace('-','')+'entrada'==='entrada'?'entrada':'saida'+'-area');
+    var faE=document.getElementById('pfoto-entrada-area');
+    var faS=document.getElementById('pfoto-saida-area');
+    if(tipo==='entrada'&&faE) faE.style.display='block';
+    if(tipo==='saida'&&faS) faS.style.display='block';
+  } else if(estado==='ativo'){
+    step.classList.add('ps-ativo');
+    if(horaEl) horaEl.textContent='Aguardando...';
+  } else {
+    step.classList.add('ps-bloq');
+  }
+}
+
+function liberarStepP(tipo){
+  var step=document.getElementById('pstep-'+tipo);
+  var btn=document.getElementById('pbtn-'+tipo);
+  if(step){ step.classList.remove('ps-bloq'); step.classList.add('ps-ativo'); }
+  if(btn) btn.disabled=false;
+}
+
+function verificarTolerancia(){
+  if(!colAtual||!colAtual.horario_entrada) return {ok:true};
+  var previsto=parseHoraP(colAtual.horario_entrada);
+  var now=new Date(); var atual=now.getHours()*60+now.getMinutes();
+  var diff=atual-previsto;
+  if(diff<-5) return {ok:false,msg:'Chegando '+minToHHMM(Math.abs(diff))+' antes do horário ('+colAtual.horario_entrada+'). Justifique.'};
+  return {ok:true};
+}
+
+function baterPontoSimples(tipo){
+  var hora=new Date().toTimeString().slice(0,5);
+  if(!pontoHoje) pontoHoje={entrada:null,saida_alm:null,volta_alm:null,saida:null,obs:'',geo_e:null,geo_s:null,ajustes:[]};
+  pontoHoje[tipo]=hora;
+  pontoHoje.colaboradorId=colAtual.id;
+  pontoHoje.data=new Date().toISOString().slice(0,10);
+  salvarPontoHoje();
+  atualizarStepsPonto();
+}
+
+function salvarObsDia(){
+  if(!pontoHoje) return;
+  pontoHoje.obs=document.getElementById('ponto-obs').value;
+  salvarPontoHoje();
+  atualizarAlertasPonto();
+}
+
+function calcHorasTrabP(){
+  if(!pontoHoje||!pontoHoje.entrada||!pontoHoje.saida) return 0;
+  var e=parseHoraP(pontoHoje.entrada),s=parseHoraP(pontoHoje.saida);
+  if(s<e) s+=24*60;
+  var t=s-e;
+  if(pontoHoje.saida_alm&&pontoHoje.volta_alm){ var sa=parseHoraP(pontoHoje.saida_alm),va=parseHoraP(pontoHoje.volta_alm); if(va<sa)va+=24*60; t-=(va-sa); }
+  else t-=60;
+  return Math.max(0,t);
+}
+
+function calcSaldoDiaP(){
+  var obs=pontoHoje&&pontoHoje.obs||'';
+  if(obs==='Folga'||obs==='Domingo'||obs==='Ferias'||obs==='Falta Justificada') return 0;
+  var carga=parseHoraP(colAtual&&colAtual.carga_diaria||'07:20');
+  var prev=colAtual&&colAtual.escala==='12x36'?720:carga;
+  if(obs==='Falta') return -prev;
+  if(obs==='Feriado'||pontoHoje&&pontoHoje.feriado) return calcHorasTrabP();
+  return calcHorasTrabP()-prev;
+}
+
+function calcBancoMesP(){
+  if(!colAtual) return 0;
+  var hoje=new Date(),ano=hoje.getFullYear(),mes=String(hoje.getMonth()+1).padStart(2,'0');
+  var total=0;
+  for(var d=1;d<=hoje.getDate();d++){
+    var data=ano+'-'+mes+'-'+String(d).padStart(2,'0');
+    var salvo=localStorage.getItem('ponto_'+colAtual.id+'_'+data);
+    if(salvo){ var p=JSON.parse(salvo); if(p.saldo_dia!==undefined) total+=p.saldo_dia; }
+  }
+  return total+parseHoraP(colAtual.saldo_anterior||'00:00');
+}
+
+function atualizarBancoPonto(){
+  if(!colAtual) return;
+  var banco=calcBancoMesP();
+  var el=document.getElementById('banco-pill-el');
+  var val=document.getElementById('banco-val-el');
+  var badge=document.getElementById('banco-badge-el');
+  if(!el) return;
+  el.classList.remove('hidden','banco-pos','banco-neg','banco-zer');
+  if(val) val.textContent=minToHHMM(banco);
+  if(banco>0){ el.classList.add('banco-pos'); if(badge) badge.innerHTML='<span class="badge-cre">a favor</span>'; }
+  else if(banco<0){ el.classList.add('banco-neg'); if(badge) badge.innerHTML='<span class="badge-deb">a compensar</span>'; }
+  else el.classList.add('banco-zer');
+}
+
+function atualizarAlertasPonto(){
+  var area=document.getElementById('ponto-alertas'); if(!area) return;
+  area.innerHTML='';
+  var obs=pontoHoje&&pontoHoje.obs||'';
+  if(obs==='Feriado') area.innerHTML+='<div class="alerta alerta-warn">Feriado — horas contam 100% extra.</div>';
+  var banco=calcBancoMesP();
+  if(banco<-60) area.innerHTML+='<div class="alerta alerta-warn">'+minToHHMM(Math.abs(banco))+' a compensar neste mes.</div>';
+}
+
+function renderHistoricoPonto(){
+  var el=document.getElementById('ponto-historico'); if(!el||!colAtual) return;
+  var hoje=new Date(),ano=hoje.getFullYear(),mes=String(hoje.getMonth()+1).padStart(2,'0');
+  var dias=['Dom','Seg','Ter','Qua','Qui','Sex','Sab'],itens=[];
+  for(var d=hoje.getDate();d>=1;d--){
+    var data=ano+'-'+mes+'-'+String(d).padStart(2,'0');
+    var salvo=localStorage.getItem('ponto_'+colAtual.id+'_'+data);
+    if(!salvo) continue;
+    var p=JSON.parse(salvo);
+    var dt=new Date(data+'T12:00:00');
+    var saldo=p.saldo_dia||0,trab=p.horas_trab||0;
+    itens.push('<div class="hist-ponto"><div class="hp-top"><div class="hp-data">'+dias[dt.getDay()]+', '+String(d).padStart(2,'0')+'/'+mes+(p.obs==='Feriado'?' 🔴':'')+(p.noturno?' 🌙':'')+'</div><div class="hp-saldo '+(saldo>=0?'saldo-pos':'saldo-neg')+'">'+(saldo>=0?'+':'')+minToHHMM(saldo)+'</div></div><div class="hp-horas">'+(p.entrada||'—')+' / '+(p.saida||'—')+(trab?' ('+minToHHMM(trab)+')':'')+'</div>'+(p.obs?'<div class="hp-obs">'+p.obs+'</div>':'')+'</div>');
+  }
+  el.innerHTML=itens.join('')||'<p style="color:var(--text3);font-size:13px;text-align:center;padding:10px;">Nenhum registro.</p>';
+}
+
+function initPonto(){
+  iniciarRelogioPonto();
+  carregarPontoHoje();
+}
+// ===================================================================
+// FIM MÓDULO PONTO
+// ===================================================================
+
+checkOnline();
+
+// ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
+const APP_VERSAO='v26';
+(function(){
+  const b=document.createElement('div');
+  b.id='mjl-versao-badge';
+  b.style.cssText='position:fixed;bottom:4px;right:8px;font-size:10px;color:#9aa5b1;z-index:9999;pointer-events:none;background:rgba(255,255,255,.75);padding:1px 6px;border-radius:8px;';
+  document.body.appendChild(b);
+  function atualizarBadgeVersao(){
+    const n=lerLocal('mjl_pendentes_campo',[]).length;
+    b.textContent='MJL Campo '+APP_VERSAO+(n?' · fila: '+n:' · fila vazia');
+  }
+  atualizarBadgeVersao();
+  setInterval(atualizarBadgeVersao,5000);
+})();
+
+// ===== OFFLINE: service worker guarda o app no aparelho =====
+if('serviceWorker' in navigator && location.protocol==='https:'){
+  navigator.serviceWorker.register('./sw.js').then(function(reg){ try{reg.update();}catch(e){} }).catch(function(){});
+}
+
+// ===== v19: AVISO DE VERSÃO NOVA =====
+// O service worker guarda o app no aparelho, então depois de um deploy o
+// celular continuava abrindo a versão antiga até a 2ª abertura — e como o
+// selinho podia repetir o mesmo número, era impossível perceber. Agora o app
+// confere sozinho se há versão nova no servidor e avisa na tela.
+(function(){
+  if(location.protocol!=='https:') return;
+  function checarVersao(){
+    fetch('./index.html?v='+Date.now(),{cache:'no-store'}).then(function(r){ return r.text(); }).then(function(txt){
+      var m=txt.match(/APP_VERSAO\s*=\s*'([^']+)'/);
+      if(!m||m[1]===APP_VERSAO) return;
+      if(document.getElementById('mjl-nova-versao')) return;
+      var d=document.createElement('div');
+      d.id='mjl-nova-versao';
+      d.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99999;background:#1e7e4a;color:#fff;padding:13px 16px;font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px;box-shadow:0 -3px 14px rgba(0,0,0,.25);cursor:pointer;';
+      d.innerHTML='<span style="flex:1;">🔄 Versão nova disponível ('+m[1]+') — toque para atualizar</span><span style="background:rgba(255,255,255,.22);padding:6px 12px;border-radius:8px;">Atualizar</span>';
+      d.onclick=function(){
+        d.innerHTML='<span style="flex:1;">⏳ Atualizando...</span>';
+        var fim=function(){ location.reload(true); };
+        try{
+          var ps=[];
+          if(window.caches&&caches.keys) ps.push(caches.keys().then(function(ns){ return Promise.all(ns.map(function(n){ return caches.delete(n); })); }));
+          if(navigator.serviceWorker&&navigator.serviceWorker.getRegistrations) ps.push(navigator.serviceWorker.getRegistrations().then(function(rs){ return Promise.all(rs.map(function(r){ return r.unregister(); })); }));
+          Promise.all(ps).then(fim).catch(fim);
+          setTimeout(fim,4000);
+        }catch(e){ fim(); }
+      };
+      document.body.appendChild(d);
+    }).catch(function(){});
+  }
+  setTimeout(checarVersao,3000);
+  setInterval(checarVersao,600000);
+  window.addEventListener('online',function(){ setTimeout(checarVersao,2000); });
+})();
+</script>
+<script>
+
+// ================================================================
+// SUPERVISÃO (v21) — visita de acompanhamento do encarregado
+// Aparece só para quem tem perfil "encarregado" ou "supervisor".
+//
+// REGRA DE OURO DESTE MÓDULO: a visita vai para a planilha como UM
+// JSON numa única célula, e célula do Sheets aceita ~50 mil
+// caracteres. Por isso NENHUMA foto entra no objeto da visita —
+// cada foto segue sozinha pela fila (acao salvarFoto) com refId da
+// visita, e aqui guardamos só a CONTAGEM. Mesmo padrão do cronograma.
+// ================================================================
+
+let visitaAtual = null;
+
+function ehSupervisor(){
+  var p = (colAtual && colAtual.perfil) || 'colaborador';
+  return p === 'encarregado' || p === 'supervisor';
+}
+
+// Baixa o que só a supervisão usa: a lista de condomínios e o que a
+// equipe registrou nos últimos dias.
+function buscarDadosSupervisao(url){
+  if(!url) url = localStorage.getItem('mjl_script_url')||'';
+  if(!url) return;
+  fetch(url+'?acao=getClientes',{redirect:'follow',headers:{'Accept':'application/json'}})
+    .then(function(r){ return r.json(); })
+    .then(function(d){ if(d && d.clientes && d.clientes.length){ salvarLocal('mjl_clientes', d.clientes); renderPerfilCfg(); } })
+    .catch(function(){});
+  fetch(url+'?acao=getCronoFeitos',{redirect:'follow',headers:{'Accept':'application/json'}})
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      if(d && d.cronoFeitos){
+        var lim = new Date(); lim.setDate(lim.getDate()-10);
+        var ls = lim.toISOString().slice(0,10);
+        salvarLocal('mjl_crono_feitos_srv', d.cronoFeitos.filter(function(t){ return t && (t.data||'') >= ls; }));
+        renderPerfilCfg();
+      }
     })
-  );
-});
+    .catch(function(){});
+}
+
+// Diagnóstico no próprio celular: mostra em Configurar qual perfil
+// chegou da MJL. Sem isso, "o botão não apareceu" vira adivinhação.
+function renderPerfilCfg(){
+  var el = document.getElementById('cfg-perfil');
+  if(!el) return;
+  if(!colAtual){ el.innerHTML = 'Ninguém logado.'; return; }
+  var p = colAtual.perfil || 'colaborador';
+  var sup = ehSupervisor();
+  el.innerHTML =
+    '<div><strong>'+(colAtual.nome||'')+'</strong></div>'+
+    '<div>Função: '+(colAtual.funcao||'—')+'</div>'+
+    '<div>Perfil no sistema: <strong style="color:'+(sup?'#7b2d8b':'#1a4f7a')+';">'+p+'</strong></div>'+
+    '<div style="margin-top:6px;color:'+(sup?'#1e7e4a':'var(--text3)')+';">'+
+      (sup ? '✅ Botão de Supervisão liberado.'
+           : '🔒 Sem supervisão. Para liberar: no App Gestão, abrir este colaborador, mudar Perfil para encarregado ou supervisor, Salvar e Sincronizar. Depois, aqui, toque em "Reenviar agora" e volte ao Início.')+
+    '</div>'+
+    '<div style="margin-top:6px;font-size:11.5px;color:var(--text3);">Condomínios baixados: '+svLocais().length+
+      ' · tarefas dos últimos dias: '+lerLocal('mjl_crono_feitos_srv',[]).length+'</div>';
+}
+
+function atualizarBotaoSuperv(){
+  var b = document.getElementById('home-btn-superv');
+  if(b) b.style.display = ehSupervisor() ? 'block' : 'none';
+}
+
+function svClientes(){ return lerLocal('mjl_clientes', []); }
+
+function svLocais(){
+  var nomes = [];
+  svClientes().forEach(function(c){ if(c && c.nome && nomes.indexOf(c.nome)<0) nomes.push(c.nome); });
+  if(!nomes.length){
+    // Sem o cadastro ainda? cai para os nomes que aparecem nos cronogramas
+    lerLocal('mjl_cronogramas',[]).forEach(function(cr){
+      if(cr && cr.cliente && nomes.indexOf(cr.cliente)<0) nomes.push(cr.cliente);
+    });
+  }
+  return nomes.sort();
+}
+
+function svRegraLocal(nome){
+  var c = svClientes().find(function(x){ return x && x.nome === nome; }) || {};
+  return {
+    assinatura: c.assinaturaVisita || 'opcional',
+    periodicidade: c.periodicidadeVisita || ''
+  };
+}
+
+function svVisitas(){ return lerLocal('mjl_visitas_campo', []); }
+function svSalvarVisitas(v){ salvarLocal('mjl_visitas_campo', v); }
+
+function svGravar(){
+  if(!visitaAtual) return;
+  var lista = svVisitas();
+  var i = lista.findIndex(function(v){ return v.id === visitaAtual.id; });
+  if(i >= 0) lista[i] = visitaAtual; else lista.push(visitaAtual);
+  // guarda no máximo as 40 visitas mais recentes no aparelho
+  svSalvarVisitas(lista.slice(-40));
+}
+
+function svEnviar(){
+  if(!visitaAtual) return;
+  svGravar();
+  adicionarPendente({ acao:'registrarVisita', dados: visitaAtual });
+}
+
+function svGeo(cb){
+  if(!navigator.geolocation){ cb(null); return; }
+  var respondeu = false;
+  navigator.geolocation.getCurrentPosition(function(pos){
+    if(respondeu) return; respondeu = true;
+    cb({ lat:pos.coords.latitude, lng:pos.coords.longitude, acc:Math.round(pos.coords.accuracy) });
+  }, function(){ if(!respondeu){ respondeu = true; cb(null); } }, { enableHighAccuracy:true, timeout:12000, maximumAge:0 });
+  setTimeout(function(){ if(!respondeu){ respondeu = true; cb(null); } }, 13000);
+}
+
+function svData(d){ return d ? String(d).split('-').reverse().join('/') : ''; }
+function svMapsLink(g){ return g ? ('https://maps.google.com/?q='+g.lat+','+g.lng) : ''; }
+
+// Envia UMA foto pela fila e devolve só a contagem para o objeto da visita
+function svEnviarFoto(dataUrl, etapa, local){
+  adicionarPendente({ acao:'salvarFoto', dados:{
+    tipo:'Supervisao', etapa:etapa, refId:(visitaAtual?visitaAtual.id:''),
+    colaboradorId:(colAtual?colAtual.id:''), colaboradorNome:(colAtual?colAtual.nome:''),
+    cliente: local || (visitaAtual?visitaAtual.local:''),
+    data:(visitaAtual?visitaAtual.data:new Date().toISOString().slice(0,10)),
+    img:dataUrl, timestamp:Date.now()
+  }});
+}
+
+// ---------- TELA DE ENTRADA ----------
+function abrirSupervisao(){
+  var sel = document.getElementById('sv-local');
+  var locais = svLocais();
+  sel.innerHTML = locais.length
+    ? locais.map(function(n){ return '<option>'+n+'</option>'; }).join('')
+    : '<option value="">Nenhum local cadastrado — sincronize</option>';
+  svMostrarRegra();
+
+  var abertas = svVisitas().filter(function(v){ return v.status === 'aberta'; });
+  var el = document.getElementById('sv-abertas');
+  el.innerHTML = abertas.length ? (
+    '<div class="card" style="margin-bottom:14px;border-left:4px solid var(--yellow,#d68910);">'+
+    '<div class="card-title">🕒 Visitas em andamento</div>'+
+    abertas.map(function(v){
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+        '<div style="flex:1;"><strong>'+v.local+'</strong>'+
+        '<div style="font-size:12px;color:var(--text3);">Iniciada '+(v.inicioHora||'')+' · '+svData(v.data)+'</div></div>'+
+        '<button class="btn btn-primary" style="flex:0 0 auto;width:auto;padding:8px 16px;font-size:13px;white-space:nowrap;" onclick="continuarVisita(\''+v.id+'\')">Continuar</button>'+
+        '</div>';
+    }).join('')+'</div>'
+  ) : '';
+}
+
+function svMostrarRegra(){
+  var nome = (document.getElementById('sv-local')||{}).value || '';
+  var r = svRegraLocal(nome);
+  var txtA = r.assinatura === 'obrigatoria' ? '✍️ Assinatura obrigatória ao encerrar'
+           : (r.assinatura === 'naoaplica' ? '📸 Sem assinatura neste local — foto de saída obrigatória'
+           : '✍️ Assinatura opcional');
+  var txtP = r.periodicidade ? (' · meta '+r.periodicidade) : '';
+  var el = document.getElementById('sv-regra');
+  if(el) el.textContent = txtA + txtP;
+}
+
+function iniciarVisita(ev){
+  var f = ev.target.files && ev.target.files[0];
+  if(!f) return;
+  var local = (document.getElementById('sv-local')||{}).value || '';
+  if(!local){ alert('Escolha o condomínio.'); return; }
+  var agora = new Date();
+  var r = svRegraLocal(local);
+  svAssImg = null; svCanvas = null; svCtx = null;
+
+  visitaAtual = {
+    id: gid(), tipo:'supervisao', status:'aberta',
+    local: local,
+    supervisorId: colAtual ? colAtual.id : '',
+    supervisorNome: colAtual ? colAtual.nome : '',
+    data: agora.toISOString().slice(0,10),
+    inicioHora: agora.toTimeString().slice(0,5),
+    inicioGeo: null, inicioMaps: '', fotosInicio: 0,
+    fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
+    regraAssinatura: r.assinatura,
+    itens: [], extras: [],
+    checklist: { uniforme:'', epi:'', cliente:'', livro:'' },
+    material: [], equipamentos: [],
+    diluicao: { feita:'', periodo:'', materiais:'', fotos:0 },
+    relatorio: '',
+    assinatura: null,
+    timestamp: Date.now()
+  };
+
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'inicio', local);
+      visitaAtual.fotosInicio = 1;
+      svGravar();
+      svGeo(function(g){
+        visitaAtual.inicioGeo = g; visitaAtual.inicioMaps = svMapsLink(g);
+        svEnviar();
+        renderVisita();
+      });
+      renderVisita();
+      ir('scr-visita');
+    }, local);
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
+}
+
+function continuarVisita(id){
+  svAssImg = null; svCanvas = null; svCtx = null;
+  visitaAtual = svVisitas().find(function(v){ return v.id === id; }) || null;
+  if(!visitaAtual){ alert('Visita não encontrada neste aparelho.'); return; }
+  renderVisita();
+  ir('scr-visita');
+}
+
+// ---------- TAREFAS DOS ÚLTIMOS 7 DIAS ----------
+// Vem da aba CronoFeitos (baixada só para quem supervisiona).
+// Mostra o que a equipe REGISTROU. O que não foi registrado o
+// encarregado acrescenta à mão no bloco "Apontar algo a mais".
+function svTarefas7(local){
+  var limite = new Date(); limite.setDate(limite.getDate()-7);
+  var lim = limite.toISOString().slice(0,10);
+  return lerLocal('mjl_crono_feitos_srv', [])
+    .filter(function(t){
+      return t && t.local && String(t.local).toLowerCase() === String(local).toLowerCase() && (t.data||'') >= lim;
+    })
+    .sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+}
+
+function svItemEstado(refId){
+  var it = (visitaAtual.itens||[]).find(function(x){ return x.refId === refId; });
+  return it || null;
+}
+
+function svAvaliar(refId, tarefa, area, data, colab, valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.itens) visitaAtual.itens = [];
+  var it = svItemEstado(refId);
+  if(!it){
+    it = { refId:refId, tarefa:tarefa, area:area||'', data:data||'', colaborador:colab||'', aval:'', just:'', fotos:0 };
+    visitaAtual.itens.push(it);
+  }
+  it.aval = valor;
+  if(valor === 'ok'){ it.just = ''; }
+  svGravar(); renderVisita();
+}
+
+function svJust(refId, txt){
+  var it = svItemEstado(refId); if(!it) return;
+  it.just = txt; svGravar();
+}
+
+function svFotoItem(ev, refId){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var it = svItemEstado(refId); if(!it) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'item-'+refId, visitaAtual.local);
+      it.fotos = (it.fotos||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
+}
+
+// ---------- APONTAMENTO LIVRE ----------
+function svAddExtra(){
+  var t = (document.getElementById('sv-extra-txt')||{}).value || '';
+  t = t.trim();
+  if(!t){ alert('Escreva o que foi observado.'); return; }
+  if(!visitaAtual.extras) visitaAtual.extras = [];
+  visitaAtual.extras.push({ id:gid(), texto:t, fotos:0 });
+  document.getElementById('sv-extra-txt').value = '';
+  svGravar(); renderVisita();
+}
+function svRemExtra(id){
+  visitaAtual.extras = (visitaAtual.extras||[]).filter(function(x){ return x.id !== id; });
+  svGravar(); renderVisita();
+}
+function svFotoExtra(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var ex = (visitaAtual.extras||[]).find(function(x){ return x.id === id; }); if(!ex) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'extra-'+id, visitaAtual.local);
+      ex.fotos = (ex.fotos||0)+1; svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- CHECKLIST ----------
+function svCheck(campo, valor){
+  if(!visitaAtual.checklist) visitaAtual.checklist = {};
+  visitaAtual.checklist[campo] = valor;
+  svGravar(); renderVisita();
+}
+
+// ---------- MATERIAL / EQUIPAMENTOS ----------
+function svAddMaterial(){
+  var n = (document.getElementById('sv-mat-nome')||{}).value || '';
+  n = n.trim(); if(!n){ alert('Escreva o nome do produto.'); return; }
+  if(!visitaAtual.material) visitaAtual.material = [];
+  visitaAtual.material.push({ id:gid(), nome:n, situacao:'tem' });
+  document.getElementById('sv-mat-nome').value='';
+  svGravar(); renderVisita();
+}
+function svSetMaterial(id, sit){
+  var m = (visitaAtual.material||[]).find(function(x){ return x.id===id; }); if(!m) return;
+  m.situacao = sit; svGravar(); renderVisita();
+}
+function svRemMaterial(id){
+  visitaAtual.material = (visitaAtual.material||[]).filter(function(x){ return x.id!==id; });
+  svGravar(); renderVisita();
+}
+function svAddEquip(){
+  var n = (document.getElementById('sv-eq-nome')||{}).value || '';
+  n = n.trim(); if(!n){ alert('Escreva o nome do equipamento.'); return; }
+  if(!visitaAtual.equipamentos) visitaAtual.equipamentos = [];
+  visitaAtual.equipamentos.push({ id:gid(), nome:n, estado:'ok', fotos:0 });
+  document.getElementById('sv-eq-nome').value='';
+  svGravar(); renderVisita();
+}
+function svSetEquip(id, est){
+  var e = (visitaAtual.equipamentos||[]).find(function(x){ return x.id===id; }); if(!e) return;
+  e.estado = est; svGravar(); renderVisita();
+}
+function svRemEquip(id){
+  visitaAtual.equipamentos = (visitaAtual.equipamentos||[]).filter(function(x){ return x.id!==id; });
+  svGravar(); renderVisita();
+}
+function svFotoEquip(ev, id){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var eq = (visitaAtual.equipamentos||[]).find(function(x){ return x.id===id; }); if(!eq) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'equip-'+id, visitaAtual.local);
+      eq.fotos=(eq.fotos||0)+1; svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- DILUIÇÃO ----------
+function svDilui(campo, valor){
+  if(!visitaAtual.diluicao) visitaAtual.diluicao = {};
+  visitaAtual.diluicao[campo] = valor;
+  svGravar(); renderVisita();
+}
+// Campos de TEXTO não podem redesenhar a tela a cada letra digitada,
+// senão o teclado fecha e o texto se perde. Só gravam.
+function svDiluiTxt(valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.diluicao) visitaAtual.diluicao = {};
+  visitaAtual.diluicao.materiais = valor;
+  svGravar();
+}
+function svRelatorio(valor){
+  if(!visitaAtual) return;
+  visitaAtual.relatorio = valor;
+  svGravar();
+}
+function svFotoDilui(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'diluicao', visitaAtual.local);
+      visitaAtual.diluicao.fotos = (visitaAtual.diluicao.fotos||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+// ---------- ASSINATURA ----------
+// svAssImg guarda o traço já desenhado. A tela da visita se redesenha
+// inteira a cada toque em qualquer botão, e isso apagaria o canvas.
+// Por isso, a cada traço terminado a assinatura é guardada aqui e
+// redesenhada quando o canvas volta.
+let svCanvas=null, svCtx=null, svDesenhando=false, svAssImg=null;
+function svGuardarTraco(){
+  if(svCanvas) { try { svAssImg = svCanvas.toDataURL(); } catch(e){} }
+}
+function svIniciarAssinatura(){
+  svCanvas = document.getElementById('sv-ass-canvas');
+  if(!svCanvas) return;
+  svCanvas.width = svCanvas.offsetWidth; svCanvas.height = 150;
+  svCtx = svCanvas.getContext('2d');
+  svCtx.lineWidth = 2; svCtx.lineCap='round'; svCtx.strokeStyle='#1c2b3a';
+  if(svAssImg){
+    var im = new Image();
+    im.onload = function(){ try { svCtx.drawImage(im,0,0); } catch(e){} };
+    im.src = svAssImg;
+  }
+  function pos(e){
+    var r = svCanvas.getBoundingClientRect();
+    var t = e.touches ? e.touches[0] : e;
+    return { x:t.clientX-r.left, y:t.clientY-r.top };
+  }
+  svCanvas.ontouchstart = function(e){ e.preventDefault(); svDesenhando=true; var p=pos(e); svCtx.beginPath(); svCtx.moveTo(p.x,p.y); };
+  svCanvas.ontouchmove = function(e){ e.preventDefault(); if(!svDesenhando)return; var p=pos(e); svCtx.lineTo(p.x,p.y); svCtx.stroke(); };
+  svCanvas.ontouchend = function(){ svDesenhando=false; svGuardarTraco(); };
+  svCanvas.onmousedown = function(e){ svDesenhando=true; var p=pos(e); svCtx.beginPath(); svCtx.moveTo(p.x,p.y); };
+  svCanvas.onmousemove = function(e){ if(!svDesenhando)return; var p=pos(e); svCtx.lineTo(p.x,p.y); svCtx.stroke(); };
+  svCanvas.onmouseup = function(){ svDesenhando=false; svGuardarTraco(); };
+}
+function svLimparAssinatura(){
+  svAssImg = null;
+  if(svCtx&&svCanvas) svCtx.clearRect(0,0,svCanvas.width,svCanvas.height);
+}
+function svTemAssinatura(){
+  if(!svCtx||!svCanvas) return !!svAssImg;
+  try {
+    var d = svCtx.getImageData(0,0,svCanvas.width,svCanvas.height).data;
+    for(var i=3;i<d.length;i+=4){ if(d[i]>0) return true; }
+  } catch(e){}
+  return !!svAssImg;
+}
+function svAssinaturaData(){
+  if(svCanvas){ try { return svCanvas.toDataURL(); } catch(e){} }
+  return svAssImg;
+}
+
+// ---------- ENCERRAR ----------
+function svPodeEncerrar(){
+  var r = visitaAtual.regraAssinatura || 'opcional';
+  var pend = (visitaAtual.itens||[]).filter(function(i){
+    return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
+  });
+  if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
+  if(r === 'obrigatoria' && !svTemAssinatura()) return 'Este condomínio exige assinatura de quem recebeu a visita.';
+  if(r === 'naoaplica' && !visitaAtual.fotosFim) return 'Neste local não há assinatura, então a foto de saída é obrigatória.';
+  return '';
+}
+
+function svFotoFim(ev){
+  var f = ev.target.files && ev.target.files[0]; if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    comprimirFoto(e.target.result, function(comp){
+      svEnviarFoto(comp, 'fim', visitaAtual.local);
+      visitaAtual.fotosFim = (visitaAtual.fotosFim||0)+1;
+      svGravar(); renderVisita();
+    }, visitaAtual.local);
+  };
+  reader.readAsDataURL(f); ev.target.value='';
+}
+
+function encerrarVisita(){
+  if(!visitaAtual) return;
+  visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
+  var erro = svPodeEncerrar();
+  if(erro){ alert('⚠️ '+erro); return; }
+  if(!confirm('Encerrar a visita em '+visitaAtual.local+'?')) return;
+
+  if(svTemAssinatura()){
+    visitaAtual.assinatura = {
+      nome: ((document.getElementById('sv-ass-nome')||{}).value||'').trim(),
+      funcao: ((document.getElementById('sv-ass-func')||{}).value||'').trim(),
+      img: svAssinaturaData(),
+      validade: 'Art. 10 MP 2200-2/2001 — Assinatura eletronica'
+    };
+  }
+  var agora = new Date();
+  visitaAtual.fimHora = agora.toTimeString().slice(0,5);
+  visitaAtual.status = 'encerrada';
+
+  svGeo(function(g){
+    visitaAtual.fimGeo = g; visitaAtual.fimMaps = svMapsLink(g);
+    // A assinatura é imagem: vai pela fila de fotos, não dentro do JSON
+    if(visitaAtual.assinatura && visitaAtual.assinatura.img){
+      svEnviarFoto(visitaAtual.assinatura.img, 'assinatura', visitaAtual.local);
+      visitaAtual.assinatura = {
+        nome: visitaAtual.assinatura.nome, funcao: visitaAtual.assinatura.funcao,
+        validade: visitaAtual.assinatura.validade, registrada: true
+      };
+    }
+    svEnviar();
+    var _geradas = svGerarPendencias(visitaAtual);
+    var v = visitaAtual; visitaAtual = null;
+    svAssImg = null; svCanvas = null; svCtx = null;
+    mostrarSucesso('✅','Visita encerrada!',
+      (navigator.onLine ? ('Enviada para a MJL — '+v.local) : 'Salva. Enviará quando tiver internet.')+
+      (_geradas ? ('  ·  '+_geradas+' pendência(s) aberta(s).') : ''));
+  });
+}
+
+// ---------- PENDENCIAS QUE NASCEM DA VISITA ----------
+// Cada apontamento vira uma pendencia com DESTINO:
+//   refazer / nao feito / uniforme / EPI -> EQUIPE (celular do colaborador)
+//   material acabando / equipamento ruim -> MJL (caixa da Marjorie)
+// A separacao importa: material em falta nao e culpa de quem limpa.
+function svGerarPendencias(v){
+  if(!v) return 0;
+  var n = 0;
+  function abrir(o){
+    o.id = gid();
+    o.origem = 'supervisao';
+    o.status = 'aberta';
+    o.liberada = true;
+    o.local = v.local;
+    o.visitaId = v.id;
+    o.criadoPorId = v.supervisorId;
+    o.criadoPorNome = v.supervisorNome;
+    o.data = v.data;
+    o.hora = v.fimHora || v.inicioHora || '';
+    o.timestamp = Date.now();
+    adicionarPendente({ acao:'abrirPendencia', dados:o });
+    n++;
+  }
+
+  (v.itens||[]).forEach(function(it){
+    if(it.aval!=='refazer' && it.aval!=='naofeito') return;
+    abrir({ tipo:'equipe', tarefa:it.tarefa||'', area:it.area||'',
+      itemId:it.refId||'', texto:it.just||'',
+      colaboradorNome:it.colaborador||'', fotos:it.fotos||0,
+      motivo:(it.aval==='refazer'?'refazer':'nao feito') });
+  });
+
+  (v.extras||[]).forEach(function(x){
+    abrir({ tipo:'equipe', tarefa:'Apontamento da supervisão', area:'',
+      texto:x.texto||'', fotos:x.fotos||0, motivo:'apontado na visita' });
+  });
+
+  var c = v.checklist||{};
+  if(c.uniforme==='nao') abrir({ tipo:'equipe', tarefa:'Uniforme completo', texto:'Uniforme incompleto na visita.', motivo:'uniforme' });
+  if(c.epi==='nao')      abrir({ tipo:'equipe', tarefa:'EPI em uso', texto:'EPI não estava em uso na visita.', motivo:'epi' });
+
+  (v.material||[]).forEach(function(m){
+    if(m.situacao!=='acabando' && m.situacao!=='acabou') return;
+    abrir({ tipo:'mjl', tarefa:'Repor material: '+m.nome,
+      texto:(m.situacao==='acabou'?'Acabou':'Está acabando')+' em '+v.local+'.', motivo:'material' });
+  });
+
+  (v.equipamentos||[]).forEach(function(q){
+    if(!q.estado || q.estado==='ok') return;
+    var txt = q.estado==='manut' ? 'Precisa de manutenção' : (q.estado==='quebrado' ? 'Quebrado' : 'Faltando no local');
+    abrir({ tipo:'mjl', tarefa:'Equipamento: '+q.nome,
+      texto:txt+' em '+v.local+'.', fotos:q.fotos||0, motivo:'equipamento' });
+  });
+
+  return n;
+}
+
+// ---------- RENDER ----------
+function _svBtn(ativo, cor, label, onclick){
+  return '<button onclick="'+onclick+'" style="flex:1;padding:9px 6px;font-size:12px;font-weight:700;border-radius:8px;cursor:pointer;border:1.5px solid '+(ativo?cor:'#d7dee6')+';background:'+(ativo?cor:'#fff')+';color:'+(ativo?'#fff':'#5a6a7a')+';">'+label+'</button>';
+}
+function _svSel(campo, valor, opcoes){
+  return '<div style="display:flex;gap:6px;margin-top:6px;">'+opcoes.map(function(o){
+    return _svBtn(valor===o[0], o[2], o[1], "svCheck('"+campo+"','"+o[0]+"')");
+  }).join('')+'</div>';
+}
+
+function renderVisita(){
+  var el = document.getElementById('vs-body');
+  if(!el) return;
+  if(!visitaAtual){ el.innerHTML = '<div class="card">Nenhuma visita aberta.</div>'; return; }
+  var v = visitaAtual;
+  var h = '';
+
+  // cabeçalho
+  h += '<div class="card" style="margin-bottom:12px;border-left:4px solid var(--brand,#1a4f7a);">'+
+    '<div style="font-size:17px;font-weight:800;">'+v.local+'</div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-top:3px;">Supervisão de <strong>'+(v.supervisorNome||'')+'</strong></div>'+
+    '<div style="font-size:12px;color:var(--text3);">Início '+(v.inicioHora||'')+' · '+svData(v.data)+
+      (v.inicioGeo?' · 📍 localização registrada':' · ⏳ localização...')+'</div>'+
+    '</div>';
+
+  // tarefas dos últimos 7 dias
+  var tar = svTarefas7(v.local);
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">📋 Últimos 7 dias — o que a equipe registrou</div>';
+  if(!tar.length){
+    h += '<p style="font-size:13px;color:var(--text3);">Nenhuma tarefa registrada neste local nos últimos 7 dias. Use o bloco abaixo para apontar o que observou.</p>';
+  } else {
+    tar.forEach(function(t){
+      var refId = (t.itemId||t.refId||'')+'_'+(t.data||'');
+      var it = svItemEstado(refId) || {};
+      h += '<div style="padding:10px 0;border-bottom:1px solid #eef2f6;">'+
+        '<div style="font-weight:600;font-size:14px;">'+(t.tarefa||'(sem nome)')+'</div>'+
+        '<div style="font-size:11.5px;color:var(--text3);margin-bottom:6px;">'+svData(t.data)+' '+(t.hora||'')+
+          (t.area?(' · 📍 '+t.area):'')+(t.colaboradorNome?(' · '+t.colaboradorNome):'')+'</div>'+
+        (t.obs?('<div style="font-size:12px;background:#fff8e1;border:1px solid #f3e2b0;border-radius:6px;padding:6px 8px;margin-bottom:6px;">'+t.obs+'</div>'):'')+
+        '<div style="display:flex;gap:6px;">'+
+          _svBtn(it.aval==='ok','#1e7e4a','✓ Conferido', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','ok')")+
+          _svBtn(it.aval==='refazer','#e67e22','↻ Refazer', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','refazer')")+
+          _svBtn(it.aval==='naofeito','#c0392b','✗ Não feito', "svAvaliar('"+refId+"','"+String(t.tarefa||'').replace(/'/g,"\\'")+"','"+(t.area||'')+"','"+(t.data||'')+"','"+String(t.colaboradorNome||'').replace(/'/g,"\\'")+"','naofeito')")+
+        '</div>';
+      if(it.aval==='refazer'||it.aval==='naofeito'){
+        h += '<textarea placeholder="O que foi observado? (descreva o fato, não a pessoa)" oninput="svJust(\''+refId+'\',this.value)" style="width:100%;margin-top:8px;font-size:13px;min-height:52px;">'+(it.just||'')+'</textarea>'+
+          '<label style="display:block;margin-top:6px;cursor:pointer;">'+
+          '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoItem(event,\''+refId+'\')">'+
+          '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto do apontamento'+(it.fotos?(' ('+it.fotos+')'):' — obrigatória')+'</div></label>';
+      }
+      h += '</div>';
+    });
+  }
+  h += '</div>';
+
+  // apontamento livre
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">➕ Apontar algo a mais</div>'+
+    '<p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Para o que não está no registro da equipe: área suja, tarefa não lançada, algo fora do lugar.</p>'+
+    '<textarea id="sv-extra-txt" placeholder="Ex: hall social não varrido às 14h" style="width:100%;font-size:13px;min-height:48px;"></textarea>'+
+    '<button class="btn btn-ghost" style="margin-top:6px;font-size:13px;padding:9px;" onclick="svAddExtra()">+ Adicionar</button>';
+  (v.extras||[]).forEach(function(x){
+    h += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="flex:1;font-size:13px;">'+x.texto+
+        '<label style="display:inline-block;margin-left:6px;cursor:pointer;">'+
+        '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoExtra(event,\''+x.id+'\')">'+
+        '<span style="font-size:12px;color:var(--brand,#1a4f7a);text-decoration:underline;">📸 foto'+(x.fotos?(' ('+x.fotos+')'):'')+'</span></label>'+
+      '</div>'+
+      '<button onclick="svRemExtra(\''+x.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button>'+
+      '</div>';
+  });
+  h += '</div>';
+
+  // checklist
+  var c = v.checklist||{};
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">✅ Checklist da visita</div>'+
+    '<div style="font-size:13px;font-weight:600;margin-top:4px;">Uniforme completo</div>'+
+      _svSel('uniforme', c.uniforme, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">EPI em uso</div>'+
+      _svSel('epi', c.epi, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">Falou com síndico ou zelador</div>'+
+      _svSel('cliente', c.cliente, [['ok','Sim','#1e7e4a'],['nao','Não','#7d8f9e'],['recl','Houve reclamação','#e67e22']])+
+    '<div style="font-size:13px;font-weight:600;margin-top:10px;">Livro de ocorrências</div>'+
+      _svSel('livro', c.livro, [['ok','Conferido','#1e7e4a'],['nao','Não conferido','#7d8f9e'],['na','Não tem','#7d8f9e']])+
+    '</div>';
+
+  // material
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧴 Material no local</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    '<input id="sv-mat-nome" placeholder="Ex: Desinfetante" style="flex:1;font-size:13px;">'+
+    '<button class="btn btn-ghost" style="padding:9px 14px;font-size:13px;" onclick="svAddMaterial()">+</button></div>';
+  (v.material||[]).forEach(function(m){
+    h += '<div style="padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="display:flex;align-items:center;"><div style="flex:1;font-weight:600;font-size:13.5px;">'+m.nome+'</div>'+
+      '<button onclick="svRemMaterial(\''+m.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:5px;">'+
+        _svBtn(m.situacao==='tem','#1e7e4a','Tem',"svSetMaterial('"+m.id+"','tem')")+
+        _svBtn(m.situacao==='acabando','#e67e22','Acabando',"svSetMaterial('"+m.id+"','acabando')")+
+        _svBtn(m.situacao==='acabou','#c0392b','Acabou',"svSetMaterial('"+m.id+"','acabou')")+
+      '</div></div>';
+  });
+  h += '</div>';
+
+  // diluição
+  var d = v.diluicao||{};
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧪 Diluição preparada</div>'+
+    '<div style="display:flex;gap:6px;">'+
+      _svBtn(d.feita==='sim','#1e7e4a','Preparei',"svDilui('feita','sim')")+
+      _svBtn(d.feita==='nao','#7d8f9e','Não',"svDilui('feita','nao')")+
+      _svBtn(d.feita==='na','#7d8f9e','N/A',"svDilui('feita','na')")+
+    '</div>';
+  if(d.feita==='sim'){
+    h += '<div style="display:flex;gap:6px;margin-top:8px;">'+
+        _svBtn(d.periodo==='semana','#1a4f7a','Semana',"svDilui('periodo','semana')")+
+        _svBtn(d.periodo==='quinzena','#1a4f7a','Quinzena',"svDilui('periodo','quinzena')")+
+        _svBtn(d.periodo==='mes','#1a4f7a','Mês',"svDilui('periodo','mes')")+
+      '</div>'+
+      '<textarea placeholder="Quais materiais ficaram prontos" oninput="svDiluiTxt(this.value)" style="width:100%;margin-top:8px;font-size:13px;min-height:46px;">'+(d.materiais||'')+'</textarea>'+
+      '<label style="display:block;margin-top:6px;cursor:pointer;">'+
+      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoDilui(event)">'+
+      '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto dos frascos'+(d.fotos?(' ('+d.fotos+')'):'')+'</div></label>';
+  }
+  h += '</div>';
+
+  // equipamentos
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🧹 Equipamentos</div>'+
+    '<div style="display:flex;gap:6px;">'+
+    '<input id="sv-eq-nome" placeholder="Ex: Carrinho de limpeza" style="flex:1;font-size:13px;">'+
+    '<button class="btn btn-ghost" style="padding:9px 14px;font-size:13px;" onclick="svAddEquip()">+</button></div>';
+  (v.equipamentos||[]).forEach(function(q){
+    h += '<div style="padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="display:flex;align-items:center;"><div style="flex:1;font-weight:600;font-size:13.5px;">'+q.nome+'</div>'+
+      '<button onclick="svRemEquip(\''+q.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button></div>'+
+      '<div style="display:flex;gap:6px;margin-top:5px;">'+
+        _svBtn(q.estado==='ok','#1e7e4a','OK',"svSetEquip('"+q.id+"','ok')")+
+        _svBtn(q.estado==='manut','#e67e22','Manutenção',"svSetEquip('"+q.id+"','manut')")+
+        _svBtn(q.estado==='quebrado','#c0392b','Quebrado',"svSetEquip('"+q.id+"','quebrado')")+
+        _svBtn(q.estado==='faltando','#c0392b','Faltando',"svSetEquip('"+q.id+"','faltando')")+
+      '</div>'+
+      (q.estado&&q.estado!=='ok' ? ('<label style="display:block;margin-top:6px;cursor:pointer;">'+
+        '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoEquip(event,\''+q.id+'\')">'+
+        '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto'+(q.fotos?(' ('+q.fotos+')'):' — obrigatória')+'</div></label>') : '')+
+      '</div>';
+  });
+  h += '</div>';
+
+  // relatório
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">📝 Relatório da visita</div>'+
+    '<textarea id="sv-relatorio" oninput="svRelatorio(this.value)" placeholder="Parecer geral da visita..." style="width:100%;font-size:13px;min-height:80px;">'+(v.relatorio||'')+'</textarea></div>';
+
+  // encerramento
+  var regra = v.regraAssinatura||'opcional';
+  h += '<div class="card" style="margin-bottom:12px;border-left:4px solid #1e7e4a;"><div class="card-title">🏁 Encerrar visita</div>';
+  h += '<label style="display:block;margin-bottom:10px;cursor:pointer;">'+
+    '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoFim(event)">'+
+    '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:10px;">📸 Foto de saída'+
+      (v.fotosFim?(' ('+v.fotosFim+')'):(regra==='naoaplica'?' — obrigatória':''))+'</div></label>';
+  if(regra !== 'naoaplica'){
+    h += '<div style="font-size:13px;font-weight:600;margin-bottom:4px;">Assinatura de quem recebeu'+(regra==='obrigatoria'?' (obrigatória)':' (opcional)')+'</div>'+
+      '<div style="display:flex;gap:6px;margin-bottom:6px;">'+
+      '<input id="sv-ass-nome" placeholder="Nome" style="flex:1;font-size:13px;">'+
+      '<input id="sv-ass-func" placeholder="Função" style="flex:1;font-size:13px;"></div>'+
+      '<canvas id="sv-ass-canvas" style="width:100%;height:150px;border:1.5px dashed #c8d4e0;border-radius:8px;background:#fff;touch-action:none;"></canvas>'+
+      '<button class="btn btn-ghost" style="margin:6px 0 10px;font-size:13px;padding:8px;" onclick="svLimparAssinatura()">Limpar assinatura</button>';
+  } else {
+    h += '<p style="font-size:12.5px;color:var(--text3);margin-bottom:10px;">Neste local não há quem receba a visita, então a foto de saída substitui a assinatura.</p>';
+  }
+  h += '<button class="btn btn-primary" style="width:100%;padding:13px;" onclick="encerrarVisita()">✅ Encerrar visita</button></div>';
+
+  el.innerHTML = h;
+  if(regra !== 'naoaplica') setTimeout(svIniciarAssinatura, 30);
+}
+
+// ---------- HISTÓRICO NO APARELHO ----------
+function svHistorico(){
+  var el = document.getElementById('sv-hist');
+  if(!el) return;
+  var minhas = svVisitas().filter(function(v){
+    return v.status === 'encerrada' && (!colAtual || v.supervisorId === colAtual.id);
+  }).slice(-10).reverse();
+  if(!minhas.length){ el.innerHTML = '<span style="color:var(--text3);">Nenhuma visita encerrada neste aparelho.</span>'; return; }
+  el.innerHTML = minhas.map(function(v){
+    var ruins = (v.itens||[]).filter(function(i){ return i.aval==='refazer'||i.aval==='naofeito'; }).length;
+    return '<div style="padding:8px 0;border-bottom:1px solid #eef2f6;">'+
+      '<strong>'+v.local+'</strong> · '+svData(v.data)+
+      '<div style="font-size:12px;color:var(--text3);">'+(v.inicioHora||'')+' às '+(v.fimHora||'')+
+      (ruins?(' · '+ruins+' apontamento(s)'):' · sem apontamentos')+'</div></div>';
+  }).join('');
+}
+
+</script>
+</body>
+</html>
+ 
