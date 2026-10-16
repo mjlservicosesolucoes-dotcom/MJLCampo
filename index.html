@@ -1562,8 +1562,15 @@ function cronogramasDeHoje(){
       if(!_cobPre&&(!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
       // v17: cobertura (falta/atestado/férias) — local aparece pra quem está cobrindo
       const _cob=_cobPre;
-      const doDia=cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[];
-      doDia.forEach((t,ix)=>{
+      // v27: TAREFA DE TODO DIA.
+      // Nos cronogramas de posto quase tudo e diario. No Gestao elas
+      // ficam num balde proprio (tarefasDiarias) em vez de repetidas nos
+      // sete dias — aqui elas entram em TODO dia em que o posto atende.
+      // O id leva '_td' para nunca colidir com a tarefa do dia.
+      const doDia=(cr.tarefasDiarias||[]).map(function(t){ return {t:t,pre:'td'}; })
+        .concat((cr.tarefasPorDia[diaHoje]||cr.tarefasPorDia[String(diaHoje)]||[]).map(function(t){ return {t:t,pre:'d'+diaHoje}; }));
+      doDia.forEach((par,ix)=>{
+        const t=par.t, _pre=par.pre;
         const txt=(typeof t==='string')?t:(t&&(t.texto||t.tarefa))||'';
         const _area=(t&&typeof t==='object'&&t.area)?t.area:'';
         if(!txt) return;
@@ -1573,11 +1580,11 @@ function cronogramasDeHoje(){
         const _areas=expandirAreas(t);
         if(_areas.length){
           _areas.forEach(function(nomeArea,k){
-            lista.push({id:cr.id+'_d'+diaHoje+'_'+ix+'_a'+k,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:nomeArea});
+            lista.push({id:cr.id+'_'+_pre+'_'+ix+'_a'+k,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:nomeArea});
           });
           return;
         }
-        lista.push({id:cr.id+'_d'+diaHoje+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:_area});
+        lista.push({id:cr.id+'_'+_pre+'_'+ix,cliente:cr.cliente||'',tarefa:txt,frequencia:cr.nome||'',funcao:cr.funcao||'',visib:cr.visib,colabsIds:cr.colabsIds,colaboradorId:cr.colaboradorId,todos:cr.todos,cobertura:_cob,area:_area});
       });
       // v17: tarefas periódicas (15/15, 20/20, mensal) — só aparecem no dia calculado
       (cr.periodicas||[]).forEach(function(t){
@@ -1703,6 +1710,12 @@ function minhasPendencias(){
     if(!p || p.tipo!=='equipe' || p.status!=='aberta') return false;
     if(p.liberada===false) return false;
     if(p.colaboradorId && p.colaboradorId!==colAtual.id) return false;
+    // v26: ESCOLHA EXPLICITA VALE MAIS QUE O FILTRO AUTOMATICO.
+    // Quando a MJL libera a pendencia NOMINALMENTE para alguem, ela tem
+    // que chegar nessa pessoa mesmo que o cadastro dela ainda nao tenha
+    // aquele condominio — cobertura, posto novo, alocacao desatualizada.
+    // Antes o pedido sumia em silencio e ninguem ficava sabendo.
+    if(p.colaboradorId === colAtual.id) return true;
     var lp = String(p.local||'').toLowerCase();
     return !lp || locais.some(function(l){ return lp.indexOf(l)>=0 || l.indexOf(lp)>=0; });
   }).sort(function(a,b){ return String(b.data||'').localeCompare(String(a.data||'')); });
@@ -2811,7 +2824,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v25';
+const APP_VERSAO='v27';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
