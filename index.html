@@ -140,7 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
 .crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
 .crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
-/* v29 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
+/* v30 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
    botao de som do tamanho de um dedo. */
 .crono-item.ci-big{align-items:center;padding:14px 12px;gap:10px;}
 .crono-item.ci-big .ci-ico{font-size:40px;line-height:1;width:50px;text-align:center;flex-shrink:0;}
@@ -1530,7 +1530,7 @@ function descPeriodica(t){
 // virgula ou ponto-e-virgula.
 
 // ================================================================
-// v29 — ICONES E VOZ (gemeo do bloco do App Gestao)
+// v30 — ICONES E VOZ (gemeo do bloco do App Gestao)
 // Para quem nao le: o desenho diz a ACAO, o numero diz o LUGAR,
 // e o botao de som le a tarefa em voz alta. O texto continua ali.
 // Se mudar a regra aqui, mudar no Gestao tambem.
@@ -1582,7 +1582,7 @@ function _escHTML(x){
   return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-// v29: o telefone le a tarefa. Nao precisa de internet nem de app novo.
+// v30: o telefone le a tarefa. Nao precisa de internet nem de app novo.
 function falarTarefa(ev, txt){
   if(ev){ ev.stopPropagation(); }
   try{
@@ -1741,7 +1741,7 @@ function renderCronograma(){
       const feito=feitosHoje.includes(item.id);
       const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
       if(_modoIcones()){
-        // v29: cartao grande. Desenho da acao, numero do lugar e o
+        // v30: cartao grande. Desenho da acao, numero do lugar e o
         // botao de som. O texto fica embaixo, menor, mas continua.
         const _ic=iconeEmoji(item.icone||_iconeDaTarefa(null,item.tarefa));
         const _num=_numDaArea(item.area);
@@ -2924,7 +2924,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v29';
+const APP_VERSAO='v30';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -3164,7 +3164,7 @@ function iniciarVisita(ev){
     fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
     regraAssinatura: r.assinatura,
     itens: [], extras: [],
-    // v29: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
+    // v30: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
     // ter resposta POR PESSOA (uniformePessoas / epiPessoas). "Uniforme
     // incompleto" sem dizer de quem nao serve para chamar, conversar nem
     // advertir ninguem — e e exatamente nisso que a visita tem que dar
@@ -3173,6 +3173,14 @@ function iniciarVisita(ev){
     // quebrarem. reclamacao guarda o texto de QUAL foi a reclamacao.
     checklist: { uniforme:'', epi:'', cliente:'', livro:'', reclamacao:'',
                  uniformePessoas:{}, epiPessoas:{} },
+    // v30: esta versao e a supervisao de LIMPEZA. Fica gravado no
+    // registro em vez de ficar implicito: quando a de PORTARIA for
+    // construida, as visitas antigas continuam sabendo o que eram, e o
+    // relatorio nao precisa adivinhar.
+    escopo: 'limpeza',
+    // v30: entrega de EPI individual. Lista vazia por padrao — so entra
+    // quando houve entrega de verdade.
+    entregasEpi: [],
     material: [], equipamentos: [],
     diluicao: { feita:'', periodo:'', materiais:'', fotos:0 },
     relatorio: '',
@@ -3293,15 +3301,29 @@ function svCheck(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v29: quem trabalha NESTE local. Mesma leitura tolerante de
+// v30: quem trabalha NESTE local. Mesma leitura tolerante de
 // meusLocaisCampo(): a Gestao manda `clientes` como texto separado por
 // " | ", mas o campo tambem pode chegar como lista.
+// v30: funcoes que entram na supervisao de LIMPEZA. Porteiro, vigia e
+// recepcionista ficam de fora: eles batem ponto, mas nao tem cronograma
+// de limpeza, e listar o porteiro num checklist de limpeza obriga o
+// supervisor a responder por quem nao e dele. A supervisao de PORTARIA
+// sera uma tela propria, com os campos dela (livro de portaria, ronda,
+// controle de acesso) — e ai esta lista vira a de la.
+var SV_FUNCOES_LIMPEZA = ['asg','zelador','auxiliar de limpeza','servicos gerais','serviços gerais','encarregado','outro',''];
+function _svFuncaoDoEscopo(funcao, escopo){
+  var f = String(funcao||'').toLowerCase().trim();
+  if((escopo||'limpeza') !== 'limpeza') return true;
+  return SV_FUNCOES_LIMPEZA.indexOf(f) >= 0;
+}
 function svColsDoLocal(local){
   var alvo = String(local||'').toLowerCase().trim();
   if(!alvo) return [];
+  var esc = (visitaAtual && visitaAtual.escopo) || 'limpeza';
   return lerLocal('mjl_colaboradores',[]).filter(function(c){
     if(!c || !c.nome) return false;
     if(c.status && c.status!=='ativo') return false;
+    if(!_svFuncaoDoEscopo(c.funcao, esc)) return false;
     var locais = Array.isArray(c.clientes) ? c.clientes
       : (typeof c.clientes==='string' && c.clientes
           ? c.clientes.split('|').map(function(x){return x.trim();})
@@ -3314,7 +3336,7 @@ function svColsDoLocal(local){
     .sort(function(a,b){ return a.nome.localeCompare(b.nome); });
 }
 
-// v29: resumo do grupo a partir das respostas por pessoa. Um "nao" de
+// v30: resumo do grupo a partir das respostas por pessoa. Um "nao" de
 // um so ja faz o resumo ser "nao" — e o resumo que a pendencia antiga e
 // o relatorio leem.
 function _svResumoPessoas(mapa){
@@ -3355,7 +3377,7 @@ function svCheckTodos(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v29: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
+// v30: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
 // foco do teclado); grava ao sair do campo e e lido de novo no encerrar.
 function svReclTxt(v, gravar){
   if(!visitaAtual) return;
@@ -3429,17 +3451,68 @@ function svRelatorio(valor){
   visitaAtual.relatorio = valor;
   svGravar();
 }
+// v30: o input agora e multiple — percorre TODOS os arquivos escolhidos.
+// Antes lia so files[0] e as outras fotos sumiam em silencio.
 function svFotoDilui(ev){
-  var f = ev.target.files && ev.target.files[0]; if(!f) return;
-  var reader = new FileReader();
-  reader.onload = function(e){
-    comprimirFoto(e.target.result, function(comp){
-      svEnviarFoto(comp, 'diluicao', visitaAtual.local);
-      visitaAtual.diluicao.fotos = (visitaAtual.diluicao.fotos||0)+1;
-      svGravar(); renderVisita();
-    }, visitaAtual.local);
-  };
-  reader.readAsDataURL(f); ev.target.value='';
+  var fs = ev.target.files; if(!fs || !fs.length) return;
+  Array.prototype.slice.call(fs).forEach(function(f){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      comprimirFoto(e.target.result, function(comp){
+        if(!visitaAtual) return;
+        svEnviarFoto(comp, 'diluicao', visitaAtual.local);
+        if(!visitaAtual.diluicao) visitaAtual.diluicao = {};
+        visitaAtual.diluicao.fotos = (visitaAtual.diluicao.fotos||0)+1;
+        svGravar(); renderVisita();
+      }, visitaAtual.local);
+    };
+    reader.readAsDataURL(f);
+  });
+  ev.target.value='';
+}
+
+// ---------- ENTREGA DE EPI (v30) ----------
+// NR-6 exige comprovacao de entrega. A visita e o momento em que o EPI
+// troca de mao, entao o registro nasce aqui: para quem, o que, quanto,
+// e foto (do EPI entregue ou da ficha assinada). Sem dono o registro
+// nao serve de comprovacao — mesma regra do uniforme e do EPI em uso.
+function svAddEntregaEpi(){
+  if(!visitaAtual) return;
+  var colabId = (document.getElementById('sv-epi-colab')||{}).value || '';
+  var item = ((document.getElementById('sv-epi-item')||{}).value || '').trim();
+  var qtd  = ((document.getElementById('sv-epi-qtd')||{}).value || '').trim();
+  if(!colabId){ alert('Escolha para quem foi a entrega.'); return; }
+  if(!item){ alert('Escreva qual EPI foi entregue.'); return; }
+  var p = svColsDoLocal(visitaAtual.local).find(function(x){ return x.id===colabId; }) || {};
+  if(!visitaAtual.entregasEpi) visitaAtual.entregasEpi = [];
+  visitaAtual.entregasEpi.push({ id:gid(), colabId:colabId, colabNome:p.nome||'',
+    colabFuncao:p.funcao||'', item:item, qtd:(qtd||'1'), fotos:0 });
+  var el;
+  el = document.getElementById('sv-epi-item'); if(el) el.value='';
+  el = document.getElementById('sv-epi-qtd');  if(el) el.value='';
+  svGravar(); renderVisita();
+}
+function svRemEntregaEpi(id){
+  if(!visitaAtual) return;
+  visitaAtual.entregasEpi = (visitaAtual.entregasEpi||[]).filter(function(x){ return x.id!==id; });
+  svGravar(); renderVisita();
+}
+function svFotoEntregaEpi(ev, id){
+  var fs = ev.target.files; if(!fs || !fs.length) return;
+  Array.prototype.slice.call(fs).forEach(function(f){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      comprimirFoto(e.target.result, function(comp){
+        if(!visitaAtual) return;
+        svEnviarFoto(comp, 'epi-'+id, visitaAtual.local);
+        var it = (visitaAtual.entregasEpi||[]).find(function(x){ return x.id===id; });
+        if(it) it.fotos = (it.fotos||0)+1;
+        svGravar(); renderVisita();
+      }, visitaAtual.local);
+    };
+    reader.readAsDataURL(f);
+  });
+  ev.target.value='';
 }
 
 // ---------- ASSINATURA ----------
@@ -3498,7 +3571,7 @@ function svPodeEncerrar(){
     return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
   });
   if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
-  // v29: marcou que houve reclamacao e nao disse qual? Nao encerra.
+  // v30: marcou que houve reclamacao e nao disse qual? Nao encerra.
   var _c = visitaAtual.checklist || {};
   if(_c.cliente==='recl' && !String(_c.reclamacao||'').trim())
     return 'Você marcou que houve reclamação. Escreva qual foi — é isso que vira registro.';
@@ -3523,7 +3596,7 @@ function svFotoFim(ev){
 function encerrarVisita(){
   if(!visitaAtual) return;
   visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
-  // v29: o texto da reclamacao vive no campo; le de novo aqui, igual ao
+  // v30: o texto da reclamacao vive no campo; le de novo aqui, igual ao
   // relatorio, para nao depender de o supervisor ter saido do campo.
   var _rc = document.getElementById('sv-recl-txt');
   if(_rc){ if(!visitaAtual.checklist) visitaAtual.checklist={}; visitaAtual.checklist.reclamacao = _rc.value || ''; }
@@ -3601,7 +3674,7 @@ function svGerarPendencias(v){
   });
 
   var c = v.checklist||{};
-  // v29: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
+  // v30: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
   // chega so no celular daquele colaborador (ver minhasPendencias), e na
   // Gestao da para contar quantas vezes a mesma pessoa foi avisada — e
   // disso que sai a conversa e, se for o caso, a advertencia.
@@ -3624,7 +3697,7 @@ function svGerarPendencias(v){
   pendPessoas('uniforme','Uniforme completo','Uniforme incompleto.');
   pendPessoas('epi','EPI em uso','EPI não estava em uso.');
 
-  // v29: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
+  // v30: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
   // limpa — vai para a caixa da Marjorie com o texto inteiro.
   if(c.cliente==='recl' && String(c.reclamacao||'').trim()){
     abrir({ tipo:'mjl', tarefa:'Reclamação do síndico/zelador — '+v.local,
@@ -3657,7 +3730,7 @@ function _svSel(campo, valor, opcoes){
   }).join('')+'</div>';
 }
 
-// v29: uma linha por colaborador do local. Se o aparelho ainda nao tem
+// v30: uma linha por colaborador do local. Se o aparelho ainda nao tem
 // a lista de colaboradores (nunca sincronizou), cai no Sim/Nao antigo —
 // o supervisor nao pode ficar travado em campo por falta de cadastro.
 function _svSelPessoas(campo, c){
@@ -3687,7 +3760,7 @@ function _svSelPessoas(campo, c){
   return h;
 }
 
-// v29: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
+// v30: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
 function _svCampoReclamacao(c){
   if(c.cliente!=='recl') return '';
   return '<div style="margin-top:8px;background:#fdf3e7;border-radius:8px;padding:9px;">'+
@@ -3709,7 +3782,7 @@ function renderVisita(){
   // cabeçalho
   h += '<div class="card" style="margin-bottom:12px;border-left:4px solid var(--brand,#1a4f7a);">'+
     '<div style="font-size:17px;font-weight:800;">'+v.local+'</div>'+
-    '<div style="font-size:12px;color:var(--text3);margin-top:3px;">Supervisão de <strong>'+(v.supervisorNome||'')+'</strong></div>'+
+    '<div style="font-size:12px;color:var(--text3);margin-top:3px;">Supervisão de <strong>Limpeza</strong> · '+(v.supervisorNome||'')+'</div>'+
     '<div style="font-size:12px;color:var(--text3);">Início '+(v.inicioHora||'')+' · '+svData(v.data)+
       (v.inicioGeo?' · 📍 localização registrada':' · ⏳ localização...')+'</div>'+
     '</div>';
@@ -3807,10 +3880,41 @@ function renderVisita(){
         _svBtn(d.periodo==='mes','#1a4f7a','Mês',"svDilui('periodo','mes')")+
       '</div>'+
       '<textarea placeholder="Quais materiais ficaram prontos" oninput="svDiluiTxt(this.value)" style="width:100%;margin-top:8px;font-size:13px;min-height:46px;">'+(d.materiais||'')+'</textarea>'+
-      '<label style="display:block;margin-top:6px;cursor:pointer;">'+
-      '<input type="file" accept="image/*" capture="environment" style="display:none;" onchange="svFotoDilui(event)">'+
-      '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Foto dos frascos'+(d.fotos?(' ('+d.fotos+')'):'')+'</div></label>';
+      '<label style="display:block;margin-top:8px;cursor:pointer;">'+
+      '<input type="file" accept="image/*" capture="environment" multiple style="display:none;" onchange="svFotoDilui(event)">'+
+      '<div class="btn btn-ghost" style="pointer-events:none;font-size:13px;padding:9px;">📸 Fotos dos produtos diluídos'+(d.fotos?(' — '+d.fotos+' enviada(s)'):'')+'</div></label>'+
+      '<div style="font-size:11.5px;color:#7d8f9e;margin-top:3px;">Pode tirar mais de uma: um frasco por vez, ou todos juntos. Toda foto enviada entra no relatório da visita.</div>';
   }
+  h += '</div>';
+
+  // entrega de EPI (v30)
+  var cols = svColsDoLocal(v.local);
+  h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🦺 Entrega de EPI</div>'+
+    '<p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Só quando houve entrega. Fica registrado para quem, o que e quanto — é a comprovação de que o EPI foi entregue.</p>';
+  if(!cols.length){
+    h += '<p style="font-size:12.5px;color:#7d8f9e;">Sem a lista de colaboradores deste local neste aparelho — sincronize para registrar entrega.</p>';
+  } else {
+    h += '<select id="sv-epi-colab" style="width:100%;font-size:13px;margin-bottom:6px;">'+
+      '<option value="">Para quem…</option>'+
+      cols.map(function(p){ return '<option value="'+p.id+'">'+p.nome+(p.funcao?(' · '+p.funcao):'')+'</option>'; }).join('')+
+      '</select>'+
+      '<div style="display:flex;gap:6px;">'+
+      '<input id="sv-epi-item" placeholder="Ex: Luva nitrílica tam. M" style="flex:1;font-size:13px;">'+
+      '<input id="sv-epi-qtd" placeholder="Qtd" style="width:62px;font-size:13px;">'+
+      '<button class="btn btn-ghost" style="padding:9px 14px;font-size:13px;" onclick="svAddEntregaEpi()">+</button></div>';
+  }
+  (v.entregasEpi||[]).forEach(function(x){
+    h += '<div style="padding:9px 0;border-bottom:1px solid #eef2f6;">'+
+      '<div style="display:flex;align-items:flex-start;gap:8px;">'+
+      '<div style="flex:1;"><div style="font-weight:700;font-size:13.5px;">'+x.item+' <span style="font-weight:400;color:var(--text3);">× '+(x.qtd||'1')+'</span></div>'+
+      '<div style="font-size:12px;color:var(--text2);">'+x.colabNome+(x.colabFuncao?(' · '+x.colabFuncao):'')+'</div>'+
+      '<label style="display:inline-block;margin-top:4px;cursor:pointer;">'+
+        '<input type="file" accept="image/*" capture="environment" multiple style="display:none;" onchange="svFotoEntregaEpi(event,\''+x.id+'\')">'+
+        '<span style="font-size:12px;color:var(--brand,#1a4f7a);text-decoration:underline;">📸 foto do EPI ou da ficha assinada'+(x.fotos?(' ('+x.fotos+')'):'')+'</span></label>'+
+      '</div>'+
+      '<button onclick="svRemEntregaEpi(\''+x.id+'\')" style="border:0;background:none;color:#c0392b;font-size:18px;cursor:pointer;">×</button>'+
+      '</div></div>';
+  });
   h += '</div>';
 
   // equipamentos
