@@ -140,7 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
 .crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
 .crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
-/* v28 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
+/* v29 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
    botao de som do tamanho de um dedo. */
 .crono-item.ci-big{align-items:center;padding:14px 12px;gap:10px;}
 .crono-item.ci-big .ci-ico{font-size:40px;line-height:1;width:50px;text-align:center;flex-shrink:0;}
@@ -1530,7 +1530,7 @@ function descPeriodica(t){
 // virgula ou ponto-e-virgula.
 
 // ================================================================
-// v28 — ICONES E VOZ (gemeo do bloco do App Gestao)
+// v29 — ICONES E VOZ (gemeo do bloco do App Gestao)
 // Para quem nao le: o desenho diz a ACAO, o numero diz o LUGAR,
 // e o botao de som le a tarefa em voz alta. O texto continua ali.
 // Se mudar a regra aqui, mudar no Gestao tambem.
@@ -1582,7 +1582,7 @@ function _escHTML(x){
   return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-// v28: o telefone le a tarefa. Nao precisa de internet nem de app novo.
+// v29: o telefone le a tarefa. Nao precisa de internet nem de app novo.
 function falarTarefa(ev, txt){
   if(ev){ ev.stopPropagation(); }
   try{
@@ -1741,7 +1741,7 @@ function renderCronograma(){
       const feito=feitosHoje.includes(item.id);
       const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
       if(_modoIcones()){
-        // v28: cartao grande. Desenho da acao, numero do lugar e o
+        // v29: cartao grande. Desenho da acao, numero do lugar e o
         // botao de som. O texto fica embaixo, menor, mas continua.
         const _ic=iconeEmoji(item.icone||_iconeDaTarefa(null,item.tarefa));
         const _num=_numDaArea(item.area);
@@ -2924,7 +2924,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v28';
+const APP_VERSAO='v29';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -3164,7 +3164,15 @@ function iniciarVisita(ev){
     fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
     regraAssinatura: r.assinatura,
     itens: [], extras: [],
-    checklist: { uniforme:'', epi:'', cliente:'', livro:'' },
+    // v29: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
+    // ter resposta POR PESSOA (uniformePessoas / epiPessoas). "Uniforme
+    // incompleto" sem dizer de quem nao serve para chamar, conversar nem
+    // advertir ninguem — e e exatamente nisso que a visita tem que dar
+    // embasamento. Os campos uniforme/epi continuam existindo como
+    // RESUMO derivado, para o relatorio e a pendencia antigos nao
+    // quebrarem. reclamacao guarda o texto de QUAL foi a reclamacao.
+    checklist: { uniforme:'', epi:'', cliente:'', livro:'', reclamacao:'',
+                 uniformePessoas:{}, epiPessoas:{} },
     material: [], equipamentos: [],
     diluicao: { feita:'', periodo:'', materiais:'', fotos:0 },
     relatorio: '',
@@ -3283,6 +3291,77 @@ function svCheck(campo, valor){
   if(!visitaAtual.checklist) visitaAtual.checklist = {};
   visitaAtual.checklist[campo] = valor;
   svGravar(); renderVisita();
+}
+
+// v29: quem trabalha NESTE local. Mesma leitura tolerante de
+// meusLocaisCampo(): a Gestao manda `clientes` como texto separado por
+// " | ", mas o campo tambem pode chegar como lista.
+function svColsDoLocal(local){
+  var alvo = String(local||'').toLowerCase().trim();
+  if(!alvo) return [];
+  return lerLocal('mjl_colaboradores',[]).filter(function(c){
+    if(!c || !c.nome) return false;
+    if(c.status && c.status!=='ativo') return false;
+    var locais = Array.isArray(c.clientes) ? c.clientes
+      : (typeof c.clientes==='string' && c.clientes
+          ? c.clientes.split('|').map(function(x){return x.trim();})
+          : [c.cliente||'']);
+    return locais.filter(Boolean).some(function(l){
+      l = String(l).toLowerCase().trim();
+      return l===alvo || l.indexOf(alvo)>=0 || alvo.indexOf(l)>=0;
+    });
+  }).map(function(c){ return { id:c.id, nome:c.nome, funcao:c.funcao||'' }; })
+    .sort(function(a,b){ return a.nome.localeCompare(b.nome); });
+}
+
+// v29: resumo do grupo a partir das respostas por pessoa. Um "nao" de
+// um so ja faz o resumo ser "nao" — e o resumo que a pendencia antiga e
+// o relatorio leem.
+function _svResumoPessoas(mapa){
+  var temOk=false, temNa=false;
+  for(var k in mapa){
+    var v=(mapa[k]||{}).v;
+    if(v==='nao') return 'nao';
+    if(v==='ok') temOk=true;
+    if(v==='na') temNa=true;
+  }
+  return temOk ? 'ok' : (temNa ? 'na' : '');
+}
+
+function svCheckPessoa(campo, colabId, valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.checklist) visitaAtual.checklist = {};
+  var k = campo+'Pessoas';
+  var m = visitaAtual.checklist[k] || {};
+  var p = svColsDoLocal(visitaAtual.local).find(function(x){ return x.id===colabId; });
+  var antes = m[colabId] || {};
+  // clicar de novo no mesmo botao limpa (volta para "nao informado")
+  if(antes.v===valor) delete m[colabId];
+  else m[colabId] = { nome:(p&&p.nome)||antes.nome||'', funcao:(p&&p.funcao)||antes.funcao||'', v:valor };
+  visitaAtual.checklist[k] = m;
+  visitaAtual.checklist[campo] = _svResumoPessoas(m);
+  svGravar(); renderVisita();
+}
+
+function svCheckTodos(campo, valor){
+  if(!visitaAtual) return;
+  if(!visitaAtual.checklist) visitaAtual.checklist = {};
+  var m = {};
+  svColsDoLocal(visitaAtual.local).forEach(function(p){
+    m[p.id] = { nome:p.nome, funcao:p.funcao, v:valor };
+  });
+  visitaAtual.checklist[campo+'Pessoas'] = m;
+  visitaAtual.checklist[campo] = _svResumoPessoas(m);
+  svGravar(); renderVisita();
+}
+
+// v29: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
+// foco do teclado); grava ao sair do campo e e lido de novo no encerrar.
+function svReclTxt(v, gravar){
+  if(!visitaAtual) return;
+  if(!visitaAtual.checklist) visitaAtual.checklist = {};
+  visitaAtual.checklist.reclamacao = v;
+  if(gravar) svGravar();
 }
 
 // ---------- MATERIAL / EQUIPAMENTOS ----------
@@ -3419,6 +3498,10 @@ function svPodeEncerrar(){
     return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
   });
   if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
+  // v29: marcou que houve reclamacao e nao disse qual? Nao encerra.
+  var _c = visitaAtual.checklist || {};
+  if(_c.cliente==='recl' && !String(_c.reclamacao||'').trim())
+    return 'Você marcou que houve reclamação. Escreva qual foi — é isso que vira registro.';
   if(r === 'obrigatoria' && !svTemAssinatura()) return 'Este condomínio exige assinatura de quem recebeu a visita.';
   if(r === 'naoaplica' && !visitaAtual.fotosFim) return 'Neste local não há assinatura, então a foto de saída é obrigatória.';
   return '';
@@ -3440,6 +3523,10 @@ function svFotoFim(ev){
 function encerrarVisita(){
   if(!visitaAtual) return;
   visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
+  // v29: o texto da reclamacao vive no campo; le de novo aqui, igual ao
+  // relatorio, para nao depender de o supervisor ter saido do campo.
+  var _rc = document.getElementById('sv-recl-txt');
+  if(_rc){ if(!visitaAtual.checklist) visitaAtual.checklist={}; visitaAtual.checklist.reclamacao = _rc.value || ''; }
   var erro = svPodeEncerrar();
   if(erro){ alert('⚠️ '+erro); return; }
   if(!confirm('Encerrar a visita em '+visitaAtual.local+'?')) return;
@@ -3514,8 +3601,35 @@ function svGerarPendencias(v){
   });
 
   var c = v.checklist||{};
-  if(c.uniforme==='nao') abrir({ tipo:'equipe', tarefa:'Uniforme completo', texto:'Uniforme incompleto na visita.', motivo:'uniforme' });
-  if(c.epi==='nao')      abrir({ tipo:'equipe', tarefa:'EPI em uso', texto:'EPI não estava em uso na visita.', motivo:'epi' });
+  // v29: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
+  // chega so no celular daquele colaborador (ver minhasPendencias), e na
+  // Gestao da para contar quantas vezes a mesma pessoa foi avisada — e
+  // disso que sai a conversa e, se for o caso, a advertencia.
+  function pendPessoas(campo, tarefa, texto){
+    var m = c[campo+'Pessoas'] || {};
+    var achou = false;
+    for(var id in m){
+      if((m[id]||{}).v !== 'nao') continue;
+      achou = true;
+      var nome = (m[id].nome||'').trim();
+      abrir({ tipo:'equipe', tarefa:tarefa+(nome?(' — '+nome):''),
+        texto:texto+' Registrado na visita de '+svData(v.data)+' em '+v.local+'.',
+        colaboradorId:id, colaboradorNome:nome, motivo:campo });
+    }
+    // sem resposta por pessoa (aparelho sem cadastro) cai no antigo
+    if(!achou && c[campo]==='nao' && !Object.keys(m).length){
+      abrir({ tipo:'equipe', tarefa:tarefa, texto:texto, motivo:campo });
+    }
+  }
+  pendPessoas('uniforme','Uniforme completo','Uniforme incompleto.');
+  pendPessoas('epi','EPI em uso','EPI não estava em uso.');
+
+  // v29: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
+  // limpa — vai para a caixa da Marjorie com o texto inteiro.
+  if(c.cliente==='recl' && String(c.reclamacao||'').trim()){
+    abrir({ tipo:'mjl', tarefa:'Reclamação do síndico/zelador — '+v.local,
+      texto:String(c.reclamacao).trim(), motivo:'reclamacao' });
+  }
 
   (v.material||[]).forEach(function(m){
     if(m.situacao!=='acabando' && m.situacao!=='acabou') return;
@@ -3541,6 +3655,48 @@ function _svSel(campo, valor, opcoes){
   return '<div style="display:flex;gap:6px;margin-top:6px;">'+opcoes.map(function(o){
     return _svBtn(valor===o[0], o[2], o[1], "svCheck('"+campo+"','"+o[0]+"')");
   }).join('')+'</div>';
+}
+
+// v29: uma linha por colaborador do local. Se o aparelho ainda nao tem
+// a lista de colaboradores (nunca sincronizou), cai no Sim/Nao antigo —
+// o supervisor nao pode ficar travado em campo por falta de cadastro.
+function _svSelPessoas(campo, c){
+  var cols = svColsDoLocal(visitaAtual ? visitaAtual.local : '');
+  if(!cols.length){
+    return _svSel(campo, c[campo], [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
+      '<div style="font-size:11.5px;color:#7d8f9e;margin-top:4px;">Sem a lista de colaboradores deste local neste aparelho — sincronize para marcar um por um.</div>';
+  }
+  var m = c[campo+'Pessoas'] || {};
+  var faltam = cols.filter(function(p){ return !(m[p.id]||{}).v; }).length;
+  var h = '<div style="display:flex;gap:6px;margin-top:6px;">'+
+    _svBtn(false,'#1e7e4a','✓ Todos Sim',"svCheckTodos('"+campo+"','ok')")+
+    _svBtn(false,'#7d8f9e','Todos N/A',"svCheckTodos('"+campo+"','na')")+
+    '</div>';
+  cols.forEach(function(p){
+    var v = (m[p.id]||{}).v || '';
+    h += '<div style="margin-top:8px;padding-top:7px;border-top:1px solid #eef2f6;">'+
+      '<div style="font-size:12.5px;font-weight:700;color:'+(v==='nao'?'#c0392b':'#2c3e50')+';">'+p.nome+
+        (p.funcao?'<span style="font-weight:400;color:#7d8f9e;"> · '+p.funcao+'</span>':'')+'</div>'+
+      '<div style="display:flex;gap:6px;margin-top:5px;">'+
+        _svBtn(v==='ok','#1e7e4a','Sim',"svCheckPessoa('"+campo+"','"+p.id+"','ok')")+
+        _svBtn(v==='nao','#c0392b','Não',"svCheckPessoa('"+campo+"','"+p.id+"','nao')")+
+        _svBtn(v==='na','#7d8f9e','N/A',"svCheckPessoa('"+campo+"','"+p.id+"','na')")+
+      '</div></div>';
+  });
+  if(faltam) h += '<div style="font-size:11.5px;color:#7d8f9e;margin-top:7px;">'+faltam+' sem marcar — vai para o relatório como <strong>não informado</strong>, nunca como OK.</div>';
+  return h;
+}
+
+// v29: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
+function _svCampoReclamacao(c){
+  if(c.cliente!=='recl') return '';
+  return '<div style="margin-top:8px;background:#fdf3e7;border-radius:8px;padding:9px;">'+
+    '<div style="font-size:12.5px;font-weight:700;color:#c0392b;">Qual foi a reclamação? *</div>'+
+    '<textarea id="sv-recl-txt" oninput="svReclTxt(this.value,false)" onchange="svReclTxt(this.value,true)" '+
+      'placeholder="Ex: o síndico reclamou que o hall social não foi lavado na sexta" '+
+      'style="width:100%;font-size:13px;min-height:54px;margin-top:5px;">'+(c.reclamacao||'')+'</textarea>'+
+    '<div style="font-size:11.5px;color:#7d8f9e;margin-top:3px;">Entra no relatório e abre uma pendência para a MJL. Sem isso a visita não encerra.</div>'+
+    '</div>';
 }
 
 function renderVisita(){
@@ -3609,11 +3765,12 @@ function renderVisita(){
   var c = v.checklist||{};
   h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">✅ Checklist da visita</div>'+
     '<div style="font-size:13px;font-weight:600;margin-top:4px;">Uniforme completo</div>'+
-      _svSel('uniforme', c.uniforme, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
-    '<div style="font-size:13px;font-weight:600;margin-top:10px;">EPI em uso</div>'+
-      _svSel('epi', c.epi, [['ok','Sim','#1e7e4a'],['nao','Não','#c0392b'],['na','N/A','#7d8f9e']])+
-    '<div style="font-size:13px;font-weight:600;margin-top:10px;">Falou com síndico ou zelador</div>'+
+      _svSelPessoas('uniforme', c)+
+    '<div style="font-size:13px;font-weight:600;margin-top:14px;">EPI em uso</div>'+
+      _svSelPessoas('epi', c)+
+    '<div style="font-size:13px;font-weight:600;margin-top:14px;">Falou com síndico ou zelador</div>'+
       _svSel('cliente', c.cliente, [['ok','Sim','#1e7e4a'],['nao','Não','#7d8f9e'],['recl','Houve reclamação','#e67e22']])+
+      _svCampoReclamacao(c)+
     '<div style="font-size:13px;font-weight:600;margin-top:10px;">Livro de ocorrências</div>'+
       _svSel('livro', c.livro, [['ok','Conferido','#1e7e4a'],['nao','Não conferido','#7d8f9e'],['na','Não tem','#7d8f9e']])+
     '</div>';
