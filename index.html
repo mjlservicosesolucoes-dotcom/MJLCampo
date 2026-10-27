@@ -140,7 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
 .crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
 .crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
-/* v30 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
+/* v31 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
    botao de som do tamanho de um dedo. */
 .crono-item.ci-big{align-items:center;padding:14px 12px;gap:10px;}
 .crono-item.ci-big .ci-ico{font-size:40px;line-height:1;width:50px;text-align:center;flex-shrink:0;}
@@ -1530,7 +1530,7 @@ function descPeriodica(t){
 // virgula ou ponto-e-virgula.
 
 // ================================================================
-// v30 — ICONES E VOZ (gemeo do bloco do App Gestao)
+// v31 — ICONES E VOZ (gemeo do bloco do App Gestao)
 // Para quem nao le: o desenho diz a ACAO, o numero diz o LUGAR,
 // e o botao de som le a tarefa em voz alta. O texto continua ali.
 // Se mudar a regra aqui, mudar no Gestao tambem.
@@ -1582,7 +1582,7 @@ function _escHTML(x){
   return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-// v30: o telefone le a tarefa. Nao precisa de internet nem de app novo.
+// v31: o telefone le a tarefa. Nao precisa de internet nem de app novo.
 function falarTarefa(ev, txt){
   if(ev){ ev.stopPropagation(); }
   try{
@@ -1638,9 +1638,24 @@ function cronogramasDeHoje(){
       if(cr.ativo===false) return;
       // v15: cronograma restrito a colaboradores específicos só aparece pra eles
       const _cobPre=(cr.coberturas||[]).some(function(cb){ return cb&&cb.colabId===(colAtual&&colAtual.id)&&cb.de&&cb.ate&&hojeStr>=cb.de&&hojeStr<=cb.ate; });
-      if(!_cobPre&&cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
+      // v31: ENCARREGADO VE TODOS OS CRONOGRAMAS DO DIA.
+      // A trava de "colaboradores especificos" existe para cada
+      // colaboradora ver so o bloco dela — e estava pegando no
+      // encarregado junto. No Living Choice sao tres cronogramas
+      // restritos (Sandra, Eledilce e o plantonista): o encarregado nao
+      // via nenhum, nem na lista dos outros locais, porque o filtro
+      // derrubava o cronograma ANTES de ela ser montada.
+      // Falta nao se planeja: as 6h da manha ninguem esta na Gestao
+      // cadastrando cobertura com data. Entao quem e encarregado ou
+      // supervisao ve o dia inteiro de todos os postos e clica no que
+      // estiver cobrindo. Se nao precisar cobrir ninguem, faz so a
+      // visita de supervisao e nao toca em nada.
+      // Isso NAO afrouxa nada para o colaborador comum: a trava segue
+      // igual para quem tem perfil 'colaborador'.
+      const _ehEnc=(typeof ehSupervisor==='function') && ehSupervisor();
+      if(!_cobPre&&!_ehEnc&&cr.visib==='especifico'&&Array.isArray(cr.colabsIds)&&!cr.colabsIds.includes(colAtual&&colAtual.id)) return;
       // se for por função, respeita a função do colaborador (quando definida)
-      if(!_cobPre&&(!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
+      if(!_cobPre&&!_ehEnc&&(!cr.visib||cr.visib==='funcao')&&cr.funcao&&colAtual&&colAtual.funcao&&cr.funcao!==colAtual.funcao&&cr.cliente&&colAtual.cliente&&cr.cliente.toLowerCase()===String(colAtual.cliente).toLowerCase()){/* função diferente no MESMO local: oculta */ return;}
       // v17: cobertura (falta/atestado/férias) — local aparece pra quem está cobrindo
       const _cob=_cobPre;
       // v27: TAREFA DE TODO DIA.
@@ -1741,7 +1756,7 @@ function renderCronograma(){
       const feito=feitosHoje.includes(item.id);
       const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
       if(_modoIcones()){
-        // v30: cartao grande. Desenho da acao, numero do lugar e o
+        // v31: cartao grande. Desenho da acao, numero do lugar e o
         // botao de som. O texto fica embaixo, menor, mas continua.
         const _ic=iconeEmoji(item.icone||_iconeDaTarefa(null,item.tarefa));
         const _num=_numDaArea(item.area);
@@ -2924,7 +2939,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v30';
+const APP_VERSAO='v31';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -3164,7 +3179,7 @@ function iniciarVisita(ev){
     fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
     regraAssinatura: r.assinatura,
     itens: [], extras: [],
-    // v30: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
+    // v31: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
     // ter resposta POR PESSOA (uniformePessoas / epiPessoas). "Uniforme
     // incompleto" sem dizer de quem nao serve para chamar, conversar nem
     // advertir ninguem — e e exatamente nisso que a visita tem que dar
@@ -3173,12 +3188,12 @@ function iniciarVisita(ev){
     // quebrarem. reclamacao guarda o texto de QUAL foi a reclamacao.
     checklist: { uniforme:'', epi:'', cliente:'', livro:'', reclamacao:'',
                  uniformePessoas:{}, epiPessoas:{} },
-    // v30: esta versao e a supervisao de LIMPEZA. Fica gravado no
+    // v31: esta versao e a supervisao de LIMPEZA. Fica gravado no
     // registro em vez de ficar implicito: quando a de PORTARIA for
     // construida, as visitas antigas continuam sabendo o que eram, e o
     // relatorio nao precisa adivinhar.
     escopo: 'limpeza',
-    // v30: entrega de EPI individual. Lista vazia por padrao — so entra
+    // v31: entrega de EPI individual. Lista vazia por padrao — so entra
     // quando houve entrega de verdade.
     entregasEpi: [],
     material: [], equipamentos: [],
@@ -3301,10 +3316,10 @@ function svCheck(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v30: quem trabalha NESTE local. Mesma leitura tolerante de
+// v31: quem trabalha NESTE local. Mesma leitura tolerante de
 // meusLocaisCampo(): a Gestao manda `clientes` como texto separado por
 // " | ", mas o campo tambem pode chegar como lista.
-// v30: funcoes que entram na supervisao de LIMPEZA. Porteiro, vigia e
+// v31: funcoes que entram na supervisao de LIMPEZA. Porteiro, vigia e
 // recepcionista ficam de fora: eles batem ponto, mas nao tem cronograma
 // de limpeza, e listar o porteiro num checklist de limpeza obriga o
 // supervisor a responder por quem nao e dele. A supervisao de PORTARIA
@@ -3336,7 +3351,7 @@ function svColsDoLocal(local){
     .sort(function(a,b){ return a.nome.localeCompare(b.nome); });
 }
 
-// v30: resumo do grupo a partir das respostas por pessoa. Um "nao" de
+// v31: resumo do grupo a partir das respostas por pessoa. Um "nao" de
 // um so ja faz o resumo ser "nao" — e o resumo que a pendencia antiga e
 // o relatorio leem.
 function _svResumoPessoas(mapa){
@@ -3377,7 +3392,7 @@ function svCheckTodos(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v30: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
+// v31: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
 // foco do teclado); grava ao sair do campo e e lido de novo no encerrar.
 function svReclTxt(v, gravar){
   if(!visitaAtual) return;
@@ -3451,7 +3466,7 @@ function svRelatorio(valor){
   visitaAtual.relatorio = valor;
   svGravar();
 }
-// v30: o input agora e multiple — percorre TODOS os arquivos escolhidos.
+// v31: o input agora e multiple — percorre TODOS os arquivos escolhidos.
 // Antes lia so files[0] e as outras fotos sumiam em silencio.
 function svFotoDilui(ev){
   var fs = ev.target.files; if(!fs || !fs.length) return;
@@ -3471,7 +3486,7 @@ function svFotoDilui(ev){
   ev.target.value='';
 }
 
-// ---------- ENTREGA DE EPI (v30) ----------
+// ---------- ENTREGA DE EPI (v31) ----------
 // NR-6 exige comprovacao de entrega. A visita e o momento em que o EPI
 // troca de mao, entao o registro nasce aqui: para quem, o que, quanto,
 // e foto (do EPI entregue ou da ficha assinada). Sem dono o registro
@@ -3571,7 +3586,7 @@ function svPodeEncerrar(){
     return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
   });
   if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
-  // v30: marcou que houve reclamacao e nao disse qual? Nao encerra.
+  // v31: marcou que houve reclamacao e nao disse qual? Nao encerra.
   var _c = visitaAtual.checklist || {};
   if(_c.cliente==='recl' && !String(_c.reclamacao||'').trim())
     return 'Você marcou que houve reclamação. Escreva qual foi — é isso que vira registro.';
@@ -3596,7 +3611,7 @@ function svFotoFim(ev){
 function encerrarVisita(){
   if(!visitaAtual) return;
   visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
-  // v30: o texto da reclamacao vive no campo; le de novo aqui, igual ao
+  // v31: o texto da reclamacao vive no campo; le de novo aqui, igual ao
   // relatorio, para nao depender de o supervisor ter saido do campo.
   var _rc = document.getElementById('sv-recl-txt');
   if(_rc){ if(!visitaAtual.checklist) visitaAtual.checklist={}; visitaAtual.checklist.reclamacao = _rc.value || ''; }
@@ -3674,7 +3689,7 @@ function svGerarPendencias(v){
   });
 
   var c = v.checklist||{};
-  // v30: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
+  // v31: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
   // chega so no celular daquele colaborador (ver minhasPendencias), e na
   // Gestao da para contar quantas vezes a mesma pessoa foi avisada — e
   // disso que sai a conversa e, se for o caso, a advertencia.
@@ -3697,7 +3712,7 @@ function svGerarPendencias(v){
   pendPessoas('uniforme','Uniforme completo','Uniforme incompleto.');
   pendPessoas('epi','EPI em uso','EPI não estava em uso.');
 
-  // v30: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
+  // v31: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
   // limpa — vai para a caixa da Marjorie com o texto inteiro.
   if(c.cliente==='recl' && String(c.reclamacao||'').trim()){
     abrir({ tipo:'mjl', tarefa:'Reclamação do síndico/zelador — '+v.local,
@@ -3730,7 +3745,7 @@ function _svSel(campo, valor, opcoes){
   }).join('')+'</div>';
 }
 
-// v30: uma linha por colaborador do local. Se o aparelho ainda nao tem
+// v31: uma linha por colaborador do local. Se o aparelho ainda nao tem
 // a lista de colaboradores (nunca sincronizou), cai no Sim/Nao antigo —
 // o supervisor nao pode ficar travado em campo por falta de cadastro.
 function _svSelPessoas(campo, c){
@@ -3760,7 +3775,7 @@ function _svSelPessoas(campo, c){
   return h;
 }
 
-// v30: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
+// v31: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
 function _svCampoReclamacao(c){
   if(c.cliente!=='recl') return '';
   return '<div style="margin-top:8px;background:#fdf3e7;border-radius:8px;padding:9px;">'+
@@ -3887,7 +3902,7 @@ function renderVisita(){
   }
   h += '</div>';
 
-  // entrega de EPI (v30)
+  // entrega de EPI (v31)
   var cols = svColsDoLocal(v.local);
   h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🦺 Entrega de EPI</div>'+
     '<p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Só quando houve entrega. Fica registrado para quem, o que e quanto — é a comprovação de que o EPI foi entregue.</p>';
