@@ -140,7 +140,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .crono-item.feito .ci-label{text-decoration:line-through;color:var(--text3);}
 .crono-item .ci-freq{font-size:11px;color:var(--text3);margin-top:2px;}
 .crono-item .ci-quando{font-size:11px;color:var(--green);font-weight:700;margin-top:3px;}
-/* v32 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
+/* v33 — MODO COM DESENHO. Linha alta, desenho e numero grandes,
    botao de som do tamanho de um dedo. */
 .crono-item.ci-big{align-items:center;padding:14px 12px;gap:10px;}
 .crono-item.ci-big .ci-ico{font-size:40px;line-height:1;width:50px;text-align:center;flex-shrink:0;}
@@ -462,7 +462,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div id="banco-badge-el"></div>
     </div>
 
-    <!-- v32: local do dia -->
+    <!-- v33: local do dia -->
     <div id="ponto-local-box"></div>
 
     <!-- Alertas -->
@@ -1533,7 +1533,7 @@ function descPeriodica(t){
 // virgula ou ponto-e-virgula.
 
 // ================================================================
-// v32 — ICONES E VOZ (gemeo do bloco do App Gestao)
+// v33 — ICONES E VOZ (gemeo do bloco do App Gestao)
 // Para quem nao le: o desenho diz a ACAO, o numero diz o LUGAR,
 // e o botao de som le a tarefa em voz alta. O texto continua ali.
 // Se mudar a regra aqui, mudar no Gestao tambem.
@@ -1585,7 +1585,7 @@ function _escHTML(x){
   return String(x==null?'':x).replace(/&/g,'&amp;').replace(/</g,'&lt;')
     .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-// v32: o telefone le a tarefa. Nao precisa de internet nem de app novo.
+// v33: o telefone le a tarefa. Nao precisa de internet nem de app novo.
 function falarTarefa(ev, txt){
   if(ev){ ev.stopPropagation(); }
   try{
@@ -1641,7 +1641,7 @@ function cronogramasDeHoje(){
       if(cr.ativo===false) return;
       // v15: cronograma restrito a colaboradores específicos só aparece pra eles
       const _cobPre=(cr.coberturas||[]).some(function(cb){ return cb&&cb.colabId===(colAtual&&colAtual.id)&&cb.de&&cb.ate&&hojeStr>=cb.de&&hojeStr<=cb.ate; });
-      // v32: ENCARREGADO VE TODOS OS CRONOGRAMAS DO DIA.
+      // v33: ENCARREGADO VE TODOS OS CRONOGRAMAS DO DIA.
       // A trava de "colaboradores especificos" existe para cada
       // colaboradora ver so o bloco dela — e estava pegando no
       // encarregado junto. No Living Choice sao tres cronogramas
@@ -1759,7 +1759,7 @@ function renderCronograma(){
       const feito=feitosHoje.includes(item.id);
       const quando=feito?lerLocal('mjl_crono_quando_'+item.id+'_'+(colAtual?.id||''),null):null;
       if(_modoIcones()){
-        // v32: cartao grande. Desenho da acao, numero do lugar e o
+        // v33: cartao grande. Desenho da acao, numero do lugar e o
         // botao de som. O texto fica embaixo, menor, mas continua.
         const _ic=iconeEmoji(item.icone||_iconeDaTarefa(null,item.tarefa));
         const _num=_numDaArea(item.area);
@@ -2648,7 +2648,7 @@ function capturarFotoPS(e){
       ctx.drawImage(img,0,0,w,h);
       var agora = new Date();
       var dataHora = agora.toLocaleDateString('pt-BR') + ' ' + agora.toTimeString().slice(0,5);
-      // v32: carimba o local ESCOLHIDO, nao o posto do cadastro. Antes,
+      // v33: carimba o local ESCOLHIDO, nao o posto do cadastro. Antes,
       // a foto de quem cobria saia com o nome do predio errado.
       var condominio = (typeof pontoLocalAtual==='function' ? pontoLocalAtual() : '')
         || ((colAtual && colAtual.cliente) ? colAtual.cliente : '');
@@ -2678,7 +2678,7 @@ function confirmarPontoStep(){
   var needJust = !document.getElementById('ps-just-area').classList.contains('hidden');
   var just = (document.getElementById('ps-just-txt').value || '').trim();
   if(needJust && !just){ alert('Informe o motivo de estar fora do horário.'); return; }
-  // v32: entrada sem local escolhido nao pode passar — seria hora no
+  // v33: entrada sem local escolhido nao pode passar — seria hora no
   // predio errado, e depois da entrada o local trava.
   if(pontoTipoAtual === 'entrada' && pontoPrecisaEscolher() && !(pontoHoje && pontoHoje.cliente)){
     alert('⚠️ Escolha primeiro onde você está hoje, na tela do Ponto.');
@@ -2782,7 +2782,7 @@ function carregarPontoHoje(){
   renderPontoLocal();
 }
 
-// ===== LOCAL DO DIA (v32) =====
+// ===== LOCAL DO DIA (v33) =====
 // O ponto gravava SEMPRE colAtual.cliente — o posto principal do
 // cadastro. Quem cobre falta em outro predio batia ponto no nome do
 // predio errado: a folha de ponto por local e o custo por contrato no
@@ -3013,7 +3013,7 @@ function initPonto(){
 checkOnline();
 
 // ===== v12: selinho de versão + contador da fila (diagnóstico visível) =====
-const APP_VERSAO='v32';
+const APP_VERSAO='v33';
 (function(){
   const b=document.createElement('div');
   b.id='mjl-versao-badge';
@@ -3253,7 +3253,7 @@ function iniciarVisita(ev){
     fimHora: '', fimGeo: null, fimMaps: '', fotosFim: 0,
     regraAssinatura: r.assinatura,
     itens: [], extras: [],
-    // v32: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
+    // v33: uniforme e EPI deixam de ser um Sim/Nao do grupo e passam a
     // ter resposta POR PESSOA (uniformePessoas / epiPessoas). "Uniforme
     // incompleto" sem dizer de quem nao serve para chamar, conversar nem
     // advertir ninguem — e e exatamente nisso que a visita tem que dar
@@ -3262,12 +3262,12 @@ function iniciarVisita(ev){
     // quebrarem. reclamacao guarda o texto de QUAL foi a reclamacao.
     checklist: { uniforme:'', epi:'', cliente:'', livro:'', reclamacao:'',
                  uniformePessoas:{}, epiPessoas:{} },
-    // v32: esta versao e a supervisao de LIMPEZA. Fica gravado no
+    // v33: esta versao e a supervisao de LIMPEZA. Fica gravado no
     // registro em vez de ficar implicito: quando a de PORTARIA for
     // construida, as visitas antigas continuam sabendo o que eram, e o
     // relatorio nao precisa adivinhar.
     escopo: 'limpeza',
-    // v32: entrega de EPI individual. Lista vazia por padrao — so entra
+    // v33: entrega de EPI individual. Lista vazia por padrao — so entra
     // quando houve entrega de verdade.
     entregasEpi: [],
     material: [], equipamentos: [],
@@ -3390,10 +3390,10 @@ function svCheck(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v32: quem trabalha NESTE local. Mesma leitura tolerante de
+// v33: quem trabalha NESTE local. Mesma leitura tolerante de
 // meusLocaisCampo(): a Gestao manda `clientes` como texto separado por
 // " | ", mas o campo tambem pode chegar como lista.
-// v32: funcoes que entram na supervisao de LIMPEZA. Porteiro, vigia e
+// v33: funcoes que entram na supervisao de LIMPEZA. Porteiro, vigia e
 // recepcionista ficam de fora: eles batem ponto, mas nao tem cronograma
 // de limpeza, e listar o porteiro num checklist de limpeza obriga o
 // supervisor a responder por quem nao e dele. A supervisao de PORTARIA
@@ -3405,13 +3405,26 @@ function _svFuncaoDoEscopo(funcao, escopo){
   if((escopo||'limpeza') !== 'limpeza') return true;
   return SV_FUNCOES_LIMPEZA.indexOf(f) >= 0;
 }
-function svColsDoLocal(local){
+// v33: CHEFIA NAO ENTRA NO CHECKLIST DE UNIFORME E EPI.
+// O Jaime tem FUNCAO 'ASG' e PERFIL 'encarregado' — passava pelo filtro
+// de funcao e aparecia na lista para ser avaliado. Nao e isso: quem
+// cobre uma falta esta ali fiscalizando, nao sendo fiscalizado. Na
+// entrega de EPI ele continua disponivel, porque entrega e um fato
+// registrado, nao uma avaliacao.
+// O criterio e o PERFIL (quem manda), nao a FUNCAO (o que faz) — sao
+// dois campos diferentes e confundi-los foi o bug.
+function _svEhChefia(c){
+  var p = String((c&&c.perfil)||'colaborador').toLowerCase();
+  return p==='encarregado' || p==='supervisor';
+}
+function svColsDoLocal(local, incluirChefia){
   var alvo = String(local||'').toLowerCase().trim();
   if(!alvo) return [];
   var esc = (visitaAtual && visitaAtual.escopo) || 'limpeza';
   return lerLocal('mjl_colaboradores',[]).filter(function(c){
     if(!c || !c.nome) return false;
     if(c.status && c.status!=='ativo') return false;
+    if(!incluirChefia && _svEhChefia(c)) return false;
     if(!_svFuncaoDoEscopo(c.funcao, esc)) return false;
     var locais = Array.isArray(c.clientes) ? c.clientes
       : (typeof c.clientes==='string' && c.clientes
@@ -3425,7 +3438,7 @@ function svColsDoLocal(local){
     .sort(function(a,b){ return a.nome.localeCompare(b.nome); });
 }
 
-// v32: resumo do grupo a partir das respostas por pessoa. Um "nao" de
+// v33: resumo do grupo a partir das respostas por pessoa. Um "nao" de
 // um so ja faz o resumo ser "nao" — e o resumo que a pendencia antiga e
 // o relatorio leem.
 function _svResumoPessoas(mapa){
@@ -3466,7 +3479,7 @@ function svCheckTodos(campo, valor){
   svGravar(); renderVisita();
 }
 
-// v32: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
+// v33: texto da reclamacao. Nao re-renderiza a cada tecla (perderia o
 // foco do teclado); grava ao sair do campo e e lido de novo no encerrar.
 function svReclTxt(v, gravar){
   if(!visitaAtual) return;
@@ -3540,7 +3553,7 @@ function svRelatorio(valor){
   visitaAtual.relatorio = valor;
   svGravar();
 }
-// v32: o input agora e multiple — percorre TODOS os arquivos escolhidos.
+// v33: o input agora e multiple — percorre TODOS os arquivos escolhidos.
 // Antes lia so files[0] e as outras fotos sumiam em silencio.
 function svFotoDilui(ev){
   var fs = ev.target.files; if(!fs || !fs.length) return;
@@ -3560,7 +3573,7 @@ function svFotoDilui(ev){
   ev.target.value='';
 }
 
-// ---------- ENTREGA DE EPI (v32) ----------
+// ---------- ENTREGA DE EPI (v33) ----------
 // NR-6 exige comprovacao de entrega. A visita e o momento em que o EPI
 // troca de mao, entao o registro nasce aqui: para quem, o que, quanto,
 // e foto (do EPI entregue ou da ficha assinada). Sem dono o registro
@@ -3572,7 +3585,7 @@ function svAddEntregaEpi(){
   var qtd  = ((document.getElementById('sv-epi-qtd')||{}).value || '').trim();
   if(!colabId){ alert('Escolha para quem foi a entrega.'); return; }
   if(!item){ alert('Escreva qual EPI foi entregue.'); return; }
-  var p = svColsDoLocal(visitaAtual.local).find(function(x){ return x.id===colabId; }) || {};
+  var p = svColsDoLocal(visitaAtual.local, true).find(function(x){ return x.id===colabId; }) || {};
   if(!visitaAtual.entregasEpi) visitaAtual.entregasEpi = [];
   visitaAtual.entregasEpi.push({ id:gid(), colabId:colabId, colabNome:p.nome||'',
     colabFuncao:p.funcao||'', item:item, qtd:(qtd||'1'), fotos:0 });
@@ -3660,7 +3673,7 @@ function svPodeEncerrar(){
     return (i.aval==='refazer'||i.aval==='naofeito') && (!i.just || !i.just.trim());
   });
   if(pend.length) return 'Escreva a justificativa nos '+pend.length+' item(ns) marcados como Refazer ou Não foi feito.';
-  // v32: marcou que houve reclamacao e nao disse qual? Nao encerra.
+  // v33: marcou que houve reclamacao e nao disse qual? Nao encerra.
   var _c = visitaAtual.checklist || {};
   if(_c.cliente==='recl' && !String(_c.reclamacao||'').trim())
     return 'Você marcou que houve reclamação. Escreva qual foi — é isso que vira registro.';
@@ -3685,7 +3698,7 @@ function svFotoFim(ev){
 function encerrarVisita(){
   if(!visitaAtual) return;
   visitaAtual.relatorio = (document.getElementById('sv-relatorio')||{}).value || '';
-  // v32: o texto da reclamacao vive no campo; le de novo aqui, igual ao
+  // v33: o texto da reclamacao vive no campo; le de novo aqui, igual ao
   // relatorio, para nao depender de o supervisor ter saido do campo.
   var _rc = document.getElementById('sv-recl-txt');
   if(_rc){ if(!visitaAtual.checklist) visitaAtual.checklist={}; visitaAtual.checklist.reclamacao = _rc.value || ''; }
@@ -3763,7 +3776,7 @@ function svGerarPendencias(v){
   });
 
   var c = v.checklist||{};
-  // v32: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
+  // v33: uma pendencia POR PESSOA, com o nome e o id. Com o id ela
   // chega so no celular daquele colaborador (ver minhasPendencias), e na
   // Gestao da para contar quantas vezes a mesma pessoa foi avisada — e
   // disso que sai a conversa e, se for o caso, a advertencia.
@@ -3786,7 +3799,7 @@ function svGerarPendencias(v){
   pendPessoas('uniforme','Uniforme completo','Uniforme incompleto.');
   pendPessoas('epi','EPI em uso','EPI não estava em uso.');
 
-  // v32: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
+  // v33: a reclamacao do sindico/zelador e assunto da MJL, nao de quem
   // limpa — vai para a caixa da Marjorie com o texto inteiro.
   if(c.cliente==='recl' && String(c.reclamacao||'').trim()){
     abrir({ tipo:'mjl', tarefa:'Reclamação do síndico/zelador — '+v.local,
@@ -3819,7 +3832,7 @@ function _svSel(campo, valor, opcoes){
   }).join('')+'</div>';
 }
 
-// v32: uma linha por colaborador do local. Se o aparelho ainda nao tem
+// v33: uma linha por colaborador do local. Se o aparelho ainda nao tem
 // a lista de colaboradores (nunca sincronizou), cai no Sim/Nao antigo —
 // o supervisor nao pode ficar travado em campo por falta de cadastro.
 function _svSelPessoas(campo, c){
@@ -3849,7 +3862,7 @@ function _svSelPessoas(campo, c){
   return h;
 }
 
-// v32: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
+// v33: "Houve reclamação" sem dizer QUAL nao serve de nada depois.
 function _svCampoReclamacao(c){
   if(c.cliente!=='recl') return '';
   return '<div style="margin-top:8px;background:#fdf3e7;border-radius:8px;padding:9px;">'+
@@ -3976,8 +3989,10 @@ function renderVisita(){
   }
   h += '</div>';
 
-  // entrega de EPI (v32)
-  var cols = svColsDoLocal(v.local);
+  // entrega de EPI (v33)
+  // v33: aqui vai `true` — entrega de EPI pode ser para qualquer um,
+  // inclusive para o encarregado. Entregar nao e avaliar.
+  var cols = svColsDoLocal(v.local, true);
   h += '<div class="card" style="margin-bottom:12px;"><div class="card-title">🦺 Entrega de EPI</div>'+
     '<p style="font-size:12px;color:var(--text3);margin-bottom:8px;">Só quando houve entrega. Fica registrado para quem, o que e quanto — é a comprovação de que o EPI foi entregue.</p>';
   if(!cols.length){
@@ -4076,3 +4091,5 @@ function svHistorico(){
 </body>
 </html>
  
+
+          
